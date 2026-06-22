@@ -142,3 +142,46 @@
  
 ### Test coverage areas
 - Core logic remains covered by existing tests; logging was verified through build success and manual review of instrumentation.
+ 
+## Implement Rolling File Logging
+**Date/Time:** 2026-06-22 17:45
+ 
+### What was shipped
+- Configured Logback for rolling file logging based on date and size.
+- Implemented `Slf4jLogger` adapter for Kermit in `desktopApp`.
+- Extended `Platform` interface with `logsPath`.
+- Added support for external `logback.xml` configuration.
+ 
+### Key decisions
+- Chose **Logback** as the logging backend for the JVM/Desktop app due to its robust support for rolling files and XML-based configuration.
+- Placed default logs in `~/.junieviewer/logs` (platform-specific standard locations).
+- Implemented a custom Kermit `LogWriter` instead of using a third-party extension to minimize dependency issues and keep the implementation lightweight.
+ 
+### Gotchas
+- `kermit-slf4j` artifact was not found on Maven Central for version 2.0.4, necessitating a custom (but simple) adapter.
+ 
+### Test coverage areas
+- Build verification and manual validation of log file creation and rolling configuration.
+
+## Implement Global Error Handling
+**Date/Time:** 2026-06-22 18:15
+
+### What was shipped
+- Global uncaught exception handler using `Thread.setDefaultUncaughtExceptionHandler`.
+- `FatalErrorManager` singleton for centralized error reporting in common code.
+- `FatalErrorDialog` Compose component for user-friendly error messages.
+- Fallback `JOptionPane` dialog for fatal crashes where the UI thread is compromised.
+- Defensive coding in `SessionRepository` to handle invalid paths gracefully.
+
+### Key decisions
+- Used `Thread.setDefaultUncaughtExceptionHandler` as the ultimate safety net to satisfy the "caught at the top" requirement.
+- Implemented a two-tier error UI: a Compose dialog for managed errors and a Swing `JOptionPane` for unmanaged crashes.
+- Avoided vague "Something went wrong" messages in favor of more professional "Unexpected technical problem" wording.
+
+### Gotchas
+- Unhandled exceptions in Compose click handlers might not always reach the global handler depending on the event loop state; added explicit `try-catch` in `onAction` to compensate.
+- Default Compose for Desktop `AlertDialog` may show a generic "Error" title; switched to a standard `Dialog` + `Surface` for the fatal error message to ensure a professional header.
+- Avoided duplicate dialogs by tracking error reporting status in `FatalErrorManager` and checking it in the global `UncaughtExceptionHandler`.
+
+### Test coverage areas
+- Build verification and static analysis of error propagation paths.

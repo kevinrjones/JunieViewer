@@ -17,6 +17,17 @@ class JVMPlatform: Platform {
         logger.d { "Resolved preferences path: $path" }
         path
     }
+    override val logsPath: String by lazy {
+        val os = System.getProperty("os.name").lowercase()
+        val path = if (os.contains("win")) {
+            val appData = System.getenv("LOCALAPPDATA") ?: userHome
+            "$appData\\JunieViewer\\logs"
+        } else {
+            "$userHome/.junieviewer/logs"
+        }
+        logger.d { "Resolved logs path: $path" }
+        path
+    }
 }
 
 actual fun getPlatform(): Platform = JVMPlatform()

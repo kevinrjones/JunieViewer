@@ -13,7 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.knowledgespike.junieviewer.domain.SessionInfo
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -108,10 +108,13 @@ fun SessionItem(
                 )
                 
                 val dateTime = try {
+                    val tz = try { TimeZone.currentSystemDefault() } catch (e: Throwable) { TimeZone.UTC }
                     Instant.fromEpochMilliseconds(session.lastModified)
-                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .toLocalDateTime(tz)
                         .toString()
-                } catch (e: Exception) {
+                        .replace("T", " ")
+                        .substringBefore(".")
+                } catch (e: Throwable) {
                     "Unknown"
                 }
                 

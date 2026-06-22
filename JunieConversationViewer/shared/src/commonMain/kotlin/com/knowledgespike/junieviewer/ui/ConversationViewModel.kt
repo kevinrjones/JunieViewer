@@ -10,6 +10,7 @@ import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -26,6 +27,11 @@ class ConversationViewModel(
     private val _state = MutableStateFlow(ConversationState())
     val state: StateFlow<ConversationState> = _state.asStateFlow()
 
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        logger.e(throwable) { "Unhandled coroutine exception" }
+        FatalErrorManager.reportFatalError(throwable)
+    }
+
     private val _events = Channel<ConversationEvent>()
     val events = _events.receiveAsFlow()
 
@@ -36,46 +42,51 @@ class ConversationViewModel(
 
     fun onAction(action: ConversationAction) {
         logger.d { "Action received: $action" }
-        when (action) {
-            is ConversationAction.OnSearchQueryChange -> {
-                _state.update { it.copy(searchQuery = action.query) }
-                filterMessages(action.query)
-            }
-            ConversationAction.OnRetryClick -> loadMessages()
-            ConversationAction.OnToggleSessionPicker -> {
-                _state.update { it.copy(isSessionPickerOpen = !it.isSessionPickerOpen) }
-                if (_state.value.isSessionPickerOpen) {
-                    loadSessions()
+        try {
+            when (action) {
+                is ConversationAction.OnSearchQueryChange -> {
+                    _state.update { it.copy(searchQuery = action.query) }
+                    filterMessages(action.query)
                 }
-            }
-            is ConversationAction.OnSessionSelected -> {
-                logger.i { "Session selected: ${action.session.id}" }
-                _state.update { it.copy(selectedSessionId = action.session.id, isSessionPickerOpen = false) }
-                saveLastSession(action.session.id)
-                loadMessages()
-            }
-            ConversationAction.OnToggleSettings -> {
-                _state.update { it.copy(isSettingsOpen = !it.isSettingsOpen) }
-            }
-            is ConversationAction.OnHomePathChange -> {
-                logger.i { "Home path changed: ${action.path}" }
-                _state.update { it.copy(junieHomePath = action.path) }
-                saveHomePath(action.path)
-            }
-            is ConversationAction.OnToggleFilter -> {
-                _state.update { currentState ->
-                    val newFilter = when (action.kind) {
-                        FilterKind.Human -> currentState.filter.copy(showHuman = !currentState.filter.showHuman)
-                        FilterKind.Junie -> currentState.filter.copy(showJunie = !currentState.filter.showJunie)
-                        FilterKind.Thought -> currentState.filter.copy(showThoughts = !currentState.filter.showThoughts)
-                        FilterKind.Tool -> currentState.filter.copy(showTools = !currentState.filter.showTools)
-                        FilterKind.Patch -> currentState.filter.copy(showPatches = !currentState.filter.showPatches)
-                        FilterKind.Terminal -> currentState.filter.copy(showTerminal = !currentState.filter.showTerminal)
+                ConversationAction.OnRetryClick -> loadMessages()
+                ConversationAction.OnToggleSessionPicker -> {
+                    _state.update { it.copy(isSessionPickerOpen = !it.isSessionPickerOpen) }
+                    if (_state.value.isSessionPickerOpen) {
+                        loadSessions()
                     }
-                    currentState.copy(filter = newFilter)
                 }
-                filterMessages(_state.value.searchQuery)
+                is ConversationAction.OnSessionSelected -> {
+                    logger.i { "Session selected: ${action.session.id}" }
+                    _state.update { it.copy(selectedSessionId = action.session.id, isSessionPickerOpen = false) }
+                    saveLastSession(action.session.id)
+                    loadMessages()
+                }
+                ConversationAction.OnToggleSettings -> {
+                    _state.update { it.copy(isSettingsOpen = !it.isSettingsOpen) }
+                }
+                is ConversationAction.OnHomePathChange -> {
+                    logger.i { "Home path changed: ${action.path}" }
+                    _state.update { it.copy(junieHomePath = action.path) }
+                    saveHomePath(action.path)
+                }
+                is ConversationAction.OnToggleFilter -> {
+                    _state.update { currentState ->
+                        val newFilter = when (action.kind) {
+                            FilterKind.Human -> currentState.filter.copy(showHuman = !currentState.filter.showHuman)
+                            FilterKind.Junie -> currentState.filter.copy(showJunie = !currentState.filter.showJunie)
+                            FilterKind.Thought -> currentState.filter.copy(showThoughts = !currentState.filter.showThoughts)
+                            FilterKind.Tool -> currentState.filter.copy(showTools = !currentState.filter.showTools)
+                            FilterKind.Patch -> currentState.filter.copy(showPatches = !currentState.filter.showPatches)
+                            FilterKind.Terminal -> currentState.filter.copy(showTerminal = !currentState.filter.showTerminal)
+                        }
+                        currentState.copy(filter = newFilter)
+                    }
+                    filterMessages(_state.value.searchQuery)
+                }
             }
+        } catch (t: Throwable) {
+            logger.e(t) { "Error processing action: $action" }
+            FatalErrorManager.reportFatalError(t)
         }
     }
 
@@ -102,7 +113,7 @@ class ConversationViewModel(
     }
 
     private fun loadSessions() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             try {
                 val sessions = withContext(ioDispatcher) {
                     repository.listSessions(_state.value.junieHomePath)
@@ -122,7 +133,7 @@ class ConversationViewModel(
         val homePath = _state.value.junieHomePath
         
         logger.i { "Loading messages for session: $sessionId" }
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             _state.update { it.copy(isLoading = true) }
             try {
                 val messages = withContext(ioDispatcher) {

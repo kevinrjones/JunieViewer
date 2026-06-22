@@ -54,8 +54,25 @@ class SessionRepositoryImpl : SessionRepository {
     }
 
     override fun listSessions(homePath: String): List<SessionInfo> {
-        val expandedHome = expandPath(homePath)
-        val sessionsDir = expandedHome.toPath().div("sessions")
+        if (homePath.isBlank()) {
+            logger.w { "listSessions called with blank homePath" }
+            return emptyList()
+        }
+
+        val expandedHome = try {
+            expandPath(homePath)
+        } catch (e: Exception) {
+            logger.e(e) { "Error expanding path: $homePath" }
+            return emptyList()
+        }
+
+        val sessionsDir = try {
+            expandedHome.toPath().div("sessions")
+        } catch (e: Exception) {
+            logger.e(e) { "Invalid sessions directory path: $expandedHome" }
+            return emptyList()
+        }
+
         logger.d { "Listing sessions from: $sessionsDir" }
         
         if (!fileSystem.exists(sessionsDir)) {
@@ -63,19 +80,21 @@ class SessionRepositoryImpl : SessionRepository {
             return emptyList()
         }
 
-        val sessions = fileSystem.list(sessionsDir)
-            .filter { fileSystem.metadata(it).isDirectory }
-            .map { dir ->
-                SessionInfo(
-                    id = dir.name,
-                    path = dir.toString(),
-                    lastModified = fileSystem.metadata(dir).lastModifiedAtMillis ?: 0L
-                )
-            }
-            .sortedByDescending { it.lastModified }
-        
-        logger.d { "Found ${sessions.size} sessions" }
-        return sessions
+        return try {
+            fileSystem.list(sessionsDir)
+                .filter { fileSystem.metadata(it).isDirectory }
+                .map { dir ->
+                    SessionInfo(
+                        id = dir.name,
+                        path = dir.toString(),
+                        lastModified = fileSystem.metadata(dir).lastModifiedAtMillis ?: 0L
+                    )
+                }
+                .sortedByDescending { it.lastModified }
+        } catch (e: Exception) {
+            logger.e(e) { "Error listing sessions from $sessionsDir" }
+            emptyList()
+        }
     }
 
     private fun expandPath(path: String): String {

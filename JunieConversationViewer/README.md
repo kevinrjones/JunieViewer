@@ -12,7 +12,8 @@ Junie Conversation Viewer is a Kotlin Multiplatform application (Desktop/JVM) de
     - Code patches and diffs with syntax highlighting.
 - **Metadata Filtering**: Quick toggles to show or hide specific types of events (Human, Junie, Thoughts, Tools, Patches, Terminal).
 - **Full-Text Search**: Filter messages across the entire conversation history.
-- **Observability**: Integrated Kermit logging for easier troubleshooting and session load tracking.
+- **Observability**: Integrated Kermit logging with Logback on the JVM for rolling file logs (date and size based).
+- **Error Handling**: Global uncaught exception handling with user-friendly error dialogs and detailed crash logging.
 - **Persistence**: Remembers your configured home path and the last viewed session for a seamless experience.
 
 ## Getting Started
@@ -39,6 +40,8 @@ For development with hot reload:
 ### Configuration
 
 On the first run, the app defaults to `~/.junie` as the Junie Home Path. You can change this in the **Settings** dialog accessible from the top bar.
+
+The application uses Logback for file logging. By default, logs are stored in `~/.junieviewer/logs`. You can provide a custom `logback.xml` in `~/.junieviewer/logback.xml` to override the default logging configuration (e.g., to change rolling policies or log levels).
 
 ## Project Structure
 
