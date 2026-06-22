@@ -13,6 +13,25 @@ This document outlines the coding standards, architecture, and deployment proced
 - **Small function**: Prefer smaller descriptively named functions over large blocks of code
 - **Naming Style**: Name functions so that they can be read almost as English
     - Use a naming style that would suit a DSL for example
+    - Use names that describe intent.
+  Prefer:   
+    - `LoadPlayerUseCase`
+    - `MatchRepository`
+    - `MatchSetupScreenState`
+    - `ScoringScreenEvent`
+    - `MatchDetailsRoute`
+    - `toDomain`
+    - `toUiState`
+    - `toAppError`
+  - Avoid vague names:
+    - `Manager`
+    - `Helper`
+    - `Util`
+    - `Handler`
+    - `Processor`
+
+  If a utility is necessary, prefer a domain-specific name.
+
 - **Naming**:
     - Classes/Interfaces: PascalCase (e.g., `JooqPartnershipsRepository`)
     - Functions/Properties: camelCase (e.g., `getOverallPartnership`)
@@ -23,6 +42,7 @@ This document outlines the coding standards, architecture, and deployment proced
     - Use common sense, you may not need to comment really simple methods or if the function name describes exactly what it does
     - For example, given the function `printFibonacciSequence` this probably would not need a comment
     - If classes of functions change then update the comments
+- **Desktop Applications**: For desktop applications, use standard desktop patterns such as menus.
 - **Immutability**: Prefer `val` over `var` and `List` over `MutableList`.
 - Prefer immutable data classes, for example prefer
 
@@ -213,8 +233,14 @@ Avoid
 
 ** Sprint Completion or Task Completion **
 
-At the end of each phase - either a sprint has completed or a full task has completed (not just subtasks) update a
-`docs/project_memory.md` file. This file should have several sections
+1. Update `README.md` using the `readme-updater` skill to reflect the current state of the application.
+2. Update `docs/project_memory.md` using the `project-memory` skill with:
+  - What was shipped
+  - Key decisions
+  - Gotchas
+  - Title
+  - Date/time completed
+  - Test coverage areas
 
 Overall (this will be expanded after each sprint/task completion)
 **What was shipped**
@@ -227,3 +253,12 @@ For each sprint/task
 **Key decisions**
 **Gotchas**
 **Test coverage areas**
+
+# project-memory
+- **project-memory** (`.junie/skills/project-memory/SKILL.md`) - Use when completing a task or sprint to ensure `docs/project_memory.md` is updated correctly.
+
+# junie-log-format
+- **junie-log-format** (`.junie/skills/junie-log-format/SKILL.md`) - Use when parsing or analyzing Junie `events.jsonl` files.
+
+# readme-updater
+- **readme-updater** (`.junie/skills/readme-updater/SKILL.md`) - Use at the end of every sprint to ensure `README.md` is up to date.
