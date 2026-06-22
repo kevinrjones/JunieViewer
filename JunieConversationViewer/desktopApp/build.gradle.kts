@@ -10,9 +10,13 @@ dependencies {
     implementation(projects.shared)
 
     implementation(compose.desktop.currentOs)
+    implementation(libs.kotlinx.datetime)
     implementation(libs.kotlinx.coroutinesSwing)
 
     implementation(libs.compose.uiToolingPreview)
+    implementation(libs.kermit)
+    implementation(libs.slf4j.api)
+    implementation(libs.logback.classic)
 }
 
 compose.desktop {
