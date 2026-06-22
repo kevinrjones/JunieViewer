@@ -29,6 +29,13 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.strikt.core)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.turbine)
+            implementation(libs.okio.fakefilesystem)
+            implementation(libs.compose.ui.test)
+            implementation(libs.compose.ui.test.junit4)
+        }
+        jvmTest.dependencies {
+            implementation(compose.desktop.currentOs)
         }
     }
 }

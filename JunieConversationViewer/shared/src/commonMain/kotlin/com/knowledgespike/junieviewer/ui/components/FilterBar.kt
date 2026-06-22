@@ -9,6 +9,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.ui.FilterKind
 import com.knowledgespike.junieviewer.ui.FilterState
@@ -29,32 +30,38 @@ fun FilterBar(
         FilterChip(
             selected = filter.showHuman,
             onClick = { onToggleFilter(FilterKind.Human) },
-            label = { Text("Human") }
+            label = { Text("Human") },
+            modifier = Modifier.testTag("filter_human")
         )
         FilterChip(
             selected = filter.showJunie,
             onClick = { onToggleFilter(FilterKind.Junie) },
-            label = { Text("Junie") }
+            label = { Text("Junie") },
+            modifier = Modifier.testTag("filter_junie")
         )
         FilterChip(
             selected = filter.showThoughts,
             onClick = { onToggleFilter(FilterKind.Thought) },
-            label = { Text("Thoughts") }
+            label = { Text("Thoughts") },
+            modifier = Modifier.testTag("filter_thought")
         )
         FilterChip(
             selected = filter.showTools,
             onClick = { onToggleFilter(FilterKind.Tool) },
-            label = { Text("Tools") }
+            label = { Text("Tools") },
+            modifier = Modifier.testTag("filter_tool")
         )
         FilterChip(
             selected = filter.showPatches,
             onClick = { onToggleFilter(FilterKind.Patch) },
-            label = { Text("Patches") }
+            label = { Text("Patches") },
+            modifier = Modifier.testTag("filter_patch")
         )
         FilterChip(
             selected = filter.showTerminal,
             onClick = { onToggleFilter(FilterKind.Terminal) },
-            label = { Text("Terminal") }
+            label = { Text("Terminal") },
+            modifier = Modifier.testTag("filter_terminal")
         )
     }
 }

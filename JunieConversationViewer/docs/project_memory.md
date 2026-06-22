@@ -163,7 +163,7 @@
 ### Test coverage areas
 - Build verification and manual validation of log file creation and rolling configuration.
 
-## Implement Global Error Handling
+## Implement Sprint 1: Global Error Handling
 **Date/Time:** 2026-06-22 18:15
 
 ### What was shipped
@@ -185,3 +185,29 @@
 
 ### Test coverage areas
 - Build verification and static analysis of error propagation paths.
+
+## Implement Sprint 1 (Testing)
+**Date/Time:** 2026-06-22 19:30
+
+### What was shipped
+- Expanded `JsonlParserTest` with exhaustive edge cases (malformed JSON, missing fields).
+- Implemented `SessionRepositoryTest` with temporary directory isolation for file system logic.
+- Achieved 100% test coverage for `ConversationViewModel` actions and state transitions using `Turbine`.
+- Implemented the **Robot Pattern** for UI testing.
+- Added functional UI tests for `ConversationScreen` verifying search and filtering.
+- Created `docs/TESTING.md` documenting testing standards and patterns.
+
+### Key decisions
+- Adopted the **Robot Pattern** to decouple UI tests from Compose implementation details.
+- Used **Turbine** for state-flow verification, ensuring all intermediate state transitions are correct.
+- Switched from `FakeFileSystem` to temporary directories for repository tests due to binary compatibility issues with Kotlin 2.4.0.
+- Decided to use `UnconfinedTestDispatcher` in ViewModel tests to simplify immediate state verification.
+
+### Gotchas
+- Discovered that `StateFlow` updates in the ViewModel can emit intermediate states (e.g. updating query then updating filtered list), requiring Turbine to consume multiple items.
+- `LibraryLoadException` during UI tests on Desktop was resolved by explicitly adding `compose.desktop.currentOs` native dependencies to `jvmTest`.
+
+### Test coverage areas
+- Data Layer: `JsonlParser`, `SessionRepository`.
+- Presentation Layer: `ConversationViewModel`.
+- UI Layer: `ConversationScreen` (Robot-based).
