@@ -14,9 +14,10 @@ interface SessionRepository {
     fun setSession(sessionId: String, homePath: String)
 }
 
-class SessionRepositoryImpl : SessionRepository {
+class SessionRepositoryImpl(
+    private val fileSystem: FileSystem = FileSystem.SYSTEM
+) : SessionRepository {
     private val logger = Logger.withTag("SessionRepository")
-    private val fileSystem = FileSystem.SYSTEM
     private var currentSessionPath: Path? = null
 
     override fun setSession(sessionId: String, homePath: String) {

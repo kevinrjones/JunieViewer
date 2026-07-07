@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
@@ -70,14 +71,14 @@ fun ConversationScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(
                             onClick = { onAction(ConversationAction.OnToggleSessionPicker) },
-                            modifier = Modifier.padding(end = 8.dp)
+                            modifier = Modifier.padding(end = 8.dp).testTag("session_picker_button")
                         ) {
                             Text(state.selectedSessionId ?: "Select Session")
                         }
 
                         TextButton(
                             onClick = { onAction(ConversationAction.OnToggleSettings) },
-                            modifier = Modifier.padding(end = 16.dp)
+                            modifier = Modifier.padding(end = 16.dp).testTag("settings_button")
                         ) {
                             Text("Settings")
                         }
@@ -88,7 +89,8 @@ fun ConversationScreen(
                     onValueChange = { onAction(ConversationAction.OnSearchQueryChange(it)) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 16.dp)
+                        .testTag("search_field"),
                     placeholder = { Text("Search messages...") }
                 )
                 FilterBar(
@@ -102,7 +104,8 @@ fun ConversationScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .testTag("message_list"),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
