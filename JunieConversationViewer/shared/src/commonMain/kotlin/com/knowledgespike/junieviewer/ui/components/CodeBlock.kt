@@ -2,6 +2,7 @@ package com.knowledgespike.junieviewer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +16,11 @@ import dev.snipme.highlights.Highlights
 import dev.snipme.highlights.model.SyntaxLanguage
 import dev.snipme.highlights.model.SyntaxThemes
 
+/**
+ * Renders a syntax-highlighted code block.
+ * Uses [heightIn] with a max bound to prevent infinite-height measurement crashes
+ * when hosted inside a [LazyColumn] (CodeTextView uses internal vertical scrolling).
+ */
 @Composable
 fun CodeBlock(
     code: String,
@@ -33,6 +39,7 @@ fun CodeBlock(
         highlights = highlights,
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(max = 600.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(8.dp)

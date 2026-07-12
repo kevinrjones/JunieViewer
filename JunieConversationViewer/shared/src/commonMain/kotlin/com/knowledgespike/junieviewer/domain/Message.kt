@@ -12,7 +12,7 @@ data class Message(
 )
 
 enum class MessageKind {
-    Text, Thought, Tool, Patch, Terminal
+    Text, Thought, Tool, Patch, Terminal, Unsupported
 }
 
 /**

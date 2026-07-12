@@ -168,6 +168,7 @@ class ConversationViewModel(
                     MessageKind.Tool -> currentState.filter.showTools
                     MessageKind.Patch -> currentState.filter.showPatches
                     MessageKind.Terminal -> currentState.filter.showTerminal
+                    MessageKind.Unsupported -> true // Always show unsupported events
                 }
 
                 if (!kindMatch) return@filter false

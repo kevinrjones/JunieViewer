@@ -92,6 +92,9 @@ in the later coding work) covers:
 - Compose UI testability (semantic tags, Robot helpers, representative fixtures).
 - Cross-platform desktop behaviour on macOS, Windows, and Linux.
 - HITL visual review at defined checkpoints.
+- Deserialization hardening: tolerant unknown-event fallback (Option B) so unknown JSONL event
+  kinds are preserved and surfaced in the UI rather than silently dropped, followed by adding
+  known event classes for all discovered event kinds (Option A).
 
 # 7. Out of Scope
 
@@ -319,6 +322,53 @@ HITL-verifiable "After". Parts map back to the design sprint Parts A–H.
   distinguish Human Messages from Junie Responses, with long Junie Responses readable and Human
   prompts not dominating.*
 
+## Part 2.5 — Deserialization hardening: unknown-event fallback and known-event coverage
+
+- **Objective:** make the JSONL parser resilient to unknown event kinds so the app renders
+  complete conversations from real Junie sessions, and surface unknown events visibly in the UI
+  so users can report them for future support.
+- **Background:** Investigation (`docs/junie-jsonl-deserialization-investigation.md`) found 17
+  missing event kinds (4 top-level, 13 nested agent events). ~77% of real JSONL lines are
+  silently dropped because `kotlinx.serialization` throws on unknown sealed subtypes and
+  `Either.catch` swallows the error.
+- **Phase B — Tolerant unknown-event fallback:**
+  - Add `UnknownJunieEvent(kind, timestampMs, raw: JsonObject)` to the `JunieEvent` sealed
+    hierarchy and `UnknownAgentEvent(kind, raw: JsonObject)` to the `AgentEvent` sealed hierarchy.
+  - Implement custom `JsonContentPolymorphicSerializer` for both hierarchies that checks the
+    `kind` discriminator and falls back to the unknown class when no registered subtype matches.
+  - Map unknown events to a visible UI element (e.g., a collapsed "Unsupported event: {kind}"
+    card) so the HITL can see what is missing and report it. Unknown events must **not** be
+    silently discarded.
+  - Add logging: count of known vs unknown events per session load.
+  - Add tests for unknown-event fallback parsing and UI rendering.
+- **Phase A — Add known event classes:**
+  - After Phase B is stable, add `@Serializable` classes for all discovered event kinds that
+    are currently falling through to `UnknownJunieEvent` / `UnknownAgentEvent`.
+  - Top-level: `TaskStartedEvent`, `TaskState`, `UserMessagesCommittedToHistory`,
+    `UserAsyncResponseEvent`.
+  - Nested agent: `AvailablePullRequestsEvent`, `LlmResponseMetadataEvent`,
+    `CurrentDirectoryUpdatedEvent`, `EnvironmentVariablesUpdatedEvent`,
+    `ViewFilesBlockUpdatedEvent`, `ContextWindowReportEvent`, `FileChangesBlockUpdatedEvent`,
+    `TipSuggestionCreatedEvent`, `ShowPlanProgressEvent`, `NextPromptSuggestionEvent`,
+    `AskAsyncRequestUpdatedEvent`, `AuthorizationAvailabilityEvent`, `AgentStartedEvent`,
+    `SuggestPlanEvent`.
+  - Decide per event kind whether it maps to a UI `Message` or is metadata-only (still parsed
+    but not rendered). Metadata-only events are parsed correctly but do not appear in the
+    Conversation list.
+  - Add tests for each new event class.
+  - The unknown-event fallback from Phase B remains as a permanent safety net for any future
+    event kinds Junie may add.
+- **Files/areas:** `domain/JunieEvent.kt`, `data/JsonlParser.kt`, `data/SessionRepository.kt`,
+  `domain/Message.kt`, `ui/ConversationScreen.kt` (unknown-event card), test fixtures.
+- **Testing:** unit tests for each new event class; UI test for unknown-event card; integration
+  test loading a real session with mixed known/unknown events; `./gradlew :shared:jvmTest` green.
+- **HITL review:** confirm unknown events appear visibly in the UI; confirm known events parse
+  correctly; confirm no data is silently lost.
+- **After:** *After running this part, the application should load real Junie sessions without
+  silently dropping events. Unknown event kinds should appear as visible "unsupported event"
+  indicators in the Conversation so the user can report them. All previously discovered event
+  kinds should be parsed into their proper classes.*
+
 ## Part 3 — Implement rich content rendering foundations (design Part C)
 
 - **Objective:** render each representative Junie output type per section 12.
@@ -399,6 +449,9 @@ The HITL reviews at these checkpoints; each names what to verify:
 
 - **After Part 2 (layout):** Human vs Junie Messages are distinct, Turns are grouped, long
   Responses are readable, Human prompts do not dominate.
+- **After Part 2.5 (deserialization hardening):** unknown events appear visibly in the UI;
+  all discovered event kinds parse correctly; no data is silently lost; real sessions render
+  complete conversations.
 - **After Part 3 (rich rendering):** every Message Kind is visually identifiable; errors/warnings
   are distinct; copy actions produce clean text; deferred content is still readable.
 - **After Part 4 (search/filter/navigation):** Search + Filters behave as designed and `no_results`
@@ -423,6 +476,10 @@ The HITL reviews at these checkpoints; each names what to verify:
   every unfinished renderer; parts are independently shippable.
 - **R6 — Terminology drift:** *Mitigation:* cross-check all copy/code against
   `docs/UBIQUITOUS-LANGUAGE.md`; add candidate terms there before use.
+- **R7 — JSONL deserialization fragility:** the sealed `JunieEvent`/`AgentEvent` hierarchies
+  break on any unknown event kind. *Mitigation:* Part 2.5 adds a permanent unknown-event
+  fallback (Phase B) before adding known classes (Phase A), so future unknown kinds degrade
+  gracefully to a visible UI indicator instead of being silently dropped.
 
 # 20. Open Questions
 

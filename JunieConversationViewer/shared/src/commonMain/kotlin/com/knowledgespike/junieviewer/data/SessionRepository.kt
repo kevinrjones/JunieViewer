@@ -41,14 +41,24 @@ class SessionRepositoryImpl(
 
         logger.d { "Loading messages from: $path" }
         val events = mutableListOf<JunieEvent>()
+        var parseErrors = 0
         fileSystem.source(path).buffer().use { source ->
             var lineCount = 0
             while (true) {
                 val line = source.readUtf8Line() ?: break
+                if (line.isBlank()) continue
                 lineCount++
-                JsonlParser.parseLine(line).onRight { events.add(it) }
+                JsonlParser.parseLine(line)
+                    .onRight { events.add(it) }
+                    .onLeft { parseErrors++ }
             }
-            logger.d { "Parsed $lineCount lines, found ${events.size} valid events" }
+            val knownCount = events.count { it !is UnknownJunieEvent && (it !is SessionA2uxEvent || it.event.agentEvent !is UnknownAgentEvent) }
+            val unknownTopLevel = events.count { it is UnknownJunieEvent }
+            val unknownNested = events.count { it is SessionA2uxEvent && it.event.agentEvent is UnknownAgentEvent }
+            logger.i { "Session loaded: $lineCount lines, ${events.size} events (known=$knownCount, unknownTopLevel=$unknownTopLevel, unknownNested=$unknownNested, parseErrors=$parseErrors)" }
+            if (unknownTopLevel + unknownNested > 0) {
+                logger.w { "Unknown event kinds found — these will appear as unsupported event indicators in the UI" }
+            }
         }
 
         return mapEventsToMessages(events)
@@ -107,80 +117,112 @@ class SessionRepositoryImpl(
         }
     }
 
+    /**
+     * Maps parsed [JunieEvent] instances to UI [Message] objects.
+     * Unknown events are mapped to visible unsupported-event indicators.
+     * Metadata-only known events are silently skipped (no UI representation needed).
+     */
     private fun mapEventsToMessages(events: List<JunieEvent>): List<Message> {
-        return events.mapNotNull { event ->
+        return events.mapIndexedNotNull { index, event ->
             when (event) {
                 is UserPromptEvent -> Message(
-                    id = event.requestId,
+                    id = "${index}-${event.requestId}",
                     sender = Sender.Human,
                     content = MessageContent.Text(event.prompt),
                     kind = MessageKind.Text
                 )
-                is SessionA2uxEvent -> {
-                    val agentEvent = event.event.agentEvent
-                    when (agentEvent) {
-                        is ResultBlockUpdatedEvent -> {
-                            val content = agentEvent.result
-                            if (!content.isNullOrBlank()) {
-                                Message(
-                                    id = event.timestampMs?.toString() ?: "res-${event.hashCode()}",
-                                    sender = Sender.Junie,
-                                    content = MessageContent.Text(content),
-                                    kind = MessageKind.Text
-                                )
-                            } else null
-                        }
-                        is AgentThoughtBlockUpdatedEvent -> {
-                            val content = agentEvent.text
-                            if (!content.isNullOrBlank()) {
-                                Message(
-                                    id = event.timestampMs?.toString() ?: "thought-${event.hashCode()}",
-                                    sender = Sender.Junie,
-                                    content = MessageContent.Text("> Thought: $content"),
-                                    kind = MessageKind.Thought
-                                )
-                            } else null
-                        }
-                        is AgentPatchCreatedEvent -> {
-                            val content = agentEvent.patch
-                            if (!content.isNullOrBlank()) {
-                                Message(
-                                    id = event.timestampMs?.toString() ?: "patch-${event.hashCode()}",
-                                    sender = Sender.Junie,
-                                    content = MessageContent.Diff(content),
-                                    kind = MessageKind.Patch
-                                )
-                            } else null
-                        }
-                        is ToolBlockUpdatedEvent -> {
-                            val content = agentEvent.toolCall
-                            if (!content.isNullOrBlank()) {
-                                Message(
-                                    id = event.timestampMs?.toString() ?: "tool-${event.hashCode()}",
-                                    sender = Sender.Junie,
-                                    content = MessageContent.Code(content, "json"),
-                                    kind = MessageKind.Tool
-                                )
-                            } else null
-                        }
-                        is TerminalBlockUpdatedEvent -> {
-                            val content = buildString {
-                                if (!agentEvent.command.isNullOrBlank()) append("$ ${agentEvent.command}\n")
-                                if (!agentEvent.output.isNullOrBlank()) append(agentEvent.output)
-                            }
-                            if (content.isNotBlank()) {
-                                Message(
-                                    id = event.timestampMs?.toString() ?: "term-${event.hashCode()}",
-                                    sender = Sender.Junie,
-                                    content = MessageContent.Code(content, "bash"),
-                                    kind = MessageKind.Terminal
-                                )
-                            } else null
-                        }
-                        else -> null
-                    }
-                }
+                is SessionA2uxEvent -> mapAgentEventToMessage(index, event)
+                is UnknownJunieEvent -> Message(
+                    id = "${index}-unknown-${event.timestampMs ?: event.hashCode()}",
+                    sender = Sender.Junie,
+                    content = MessageContent.Text("Unsupported event: ${event.kind}"),
+                    kind = MessageKind.Unsupported
+                )
+                // Metadata-only top-level events — parsed correctly but not rendered
+                is TaskStartedEvent -> null
+                is TaskState -> null
+                is UserMessagesCommittedToHistory -> null
+                is UserAsyncResponseEvent -> null
             }
+        }
+    }
+
+    /**
+     * Maps a [SessionA2uxEvent] to a UI [Message] based on the nested [AgentEvent] type.
+     * UI-relevant events produce messages; metadata-only events return null;
+     * unknown events produce visible unsupported-event indicators.
+     */
+    private fun mapAgentEventToMessage(index: Int, event: SessionA2uxEvent): Message? {
+        val agentEvent = event.event.agentEvent
+        val ts = event.timestampMs
+
+        return when (agentEvent) {
+            is ResultBlockUpdatedEvent -> {
+                val content = agentEvent.result
+                if (!content.isNullOrBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "res-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Text(content),
+                        kind = MessageKind.Text
+                    )
+                } else null
+            }
+            is AgentThoughtBlockUpdatedEvent -> {
+                val content = agentEvent.text
+                if (!content.isNullOrBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "thought-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Text("> Thought: $content"),
+                        kind = MessageKind.Thought
+                    )
+                } else null
+            }
+            is AgentPatchCreatedEvent -> {
+                val content = agentEvent.patch
+                if (!content.isNullOrBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "patch-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Diff(content),
+                        kind = MessageKind.Patch
+                    )
+                } else null
+            }
+            is ToolBlockUpdatedEvent -> {
+                val content = agentEvent.toolCall
+                if (!content.isNullOrBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "tool-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Code(content, "json"),
+                        kind = MessageKind.Tool
+                    )
+                } else null
+            }
+            is TerminalBlockUpdatedEvent -> {
+                val content = buildString {
+                    if (!agentEvent.command.isNullOrBlank()) append("$ ${agentEvent.command}\n")
+                    if (!agentEvent.output.isNullOrBlank()) append(agentEvent.output)
+                }
+                if (content.isNotBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "term-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Code(content, "bash"),
+                        kind = MessageKind.Terminal
+                    )
+                } else null
+            }
+            is UnknownAgentEvent -> Message(
+                id = "${index}-${ts ?: "unknown-agent-${event.hashCode()}"}",
+                sender = Sender.Junie,
+                content = MessageContent.Text("Unsupported event: ${agentEvent.kind}"),
+                kind = MessageKind.Unsupported
+            )
+            // Metadata-only agent events — parsed correctly but not rendered
+            else -> null
         }
     }
 }

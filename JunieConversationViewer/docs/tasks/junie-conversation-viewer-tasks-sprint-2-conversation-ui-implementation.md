@@ -45,7 +45,8 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 |---|---|---|---|
 | 1 | Sprint Alignment and Traceability | Complete | 10 |
 | 2 | UI Implementation Baseline | Complete | 8 |
-| 3 | Asymmetric Human/Junie Conversation Layout | In progress | 10 |
+| 3 | Asymmetric Human/Junie Conversation Layout | In progress | 18 |
+| 3.5 | Deserialization Hardening (Option B + Option A) | In progress | 10 |
 | 4 | Rich Content Rendering | Not started | 13 |
 | 5 | Search, Filters, and Navigation | Not started | 12 |
 | 6 | Session Context, Empty, Loading, and Error States | Not started | 8 |
@@ -53,7 +54,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 | 8 | Automated Testing | Not started | 13 |
 | 9 | HITL Review and Documentation | Not started | 12 |
 | 10 | Final Sprint Completion | Not started | 7 |
-| | **Total** | | **106** |
+| | **Total** | | **124** |
 
 ## 6. Task Status Legend
 
@@ -609,6 +610,302 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 **Testing expectations:** No automated tests; HITL visual review.
 
 **HITL-visible outcome:** The HITL can open a Session and immediately distinguish Human Messages from Junie Responses, with long Junie Responses readable and Human prompts not dominating.
+
+#### 3.11 Stabilize Conversation loading for real Junie session data
+
+*Source: `desktopApp/logs/viewer.log` crash report (2026-07-12). Two crash causes found after Area 3.5 hardening.*
+
+##### 3.11.1 Inspect latest viewer.log crash exceptions
+
+- [x] Inspect latest `desktopApp/logs/viewer.log` crash exceptions
+
+**Description:** Read the latest crash log to identify all exceptions. Two root causes found: (1) `NextPromptSuggestionEvent.suggestion` typed as `String?` but real data is `JsonArray` — 11 parse failures; (2) `CodeTextView` (kodeview library) uses internal `verticalScroll` which crashes with infinite height constraints when hosted inside `LazyColumn`.
+
+**Source:** `desktopApp/logs/viewer.log`, 2026-07-12.
+
+**Completion criteria:** All crash exceptions identified and root causes documented.
+
+**Testing expectations:** No automated tests required for inspection.
+
+##### 3.11.2 Identify crash path
+
+- [x] Identify whether the crash is caused by parsing, mapping, repository loading, ViewModel state handling, or UI rendering
+
+**Description:** Crash 1 (parse error) occurs in `JsonlParser.parseLine()` → `NextPromptSuggestionEvent$$serializer.deserialize()` — a known event class with wrong field type. Crash 2 (fatal) occurs in Compose layout measurement — `CodeTextView` inside `LazyColumn` item triggers `IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints`.
+
+**Completion criteria:** Crash paths documented with file/class/function.
+
+**Testing expectations:** No automated tests required for identification.
+
+##### 3.11.3 Add tests reproducing the latest crash
+
+- [x] Add tests reproducing the latest crash
+
+**Description:** Add a parser test for `NextPromptSuggestionEvent` with real-world `JsonArray` suggestion format to confirm it no longer fails.
+
+**Source:** `desktopApp/logs/viewer.log` — `NextPromptSuggestionEvent` parse failure.
+
+**Likely files / areas:** `shared/src/commonTest/kotlin/.../data/JsonlParserTest.kt`.
+
+**Completion criteria:** Test parses the real-world JSON format successfully.
+
+**Testing expectations:** `./gradlew :shared:jvmTest` passes. `Test Required`
+
+##### 3.11.4 Fix NextPromptSuggestionEvent field type mismatch
+
+- [x] Fix NextPromptSuggestionEvent field type mismatch
+
+**Description:** Change `NextPromptSuggestionEvent.suggestion` from `String?` to `JsonElement?` to match the real data format (a `JsonArray` of objects, not a primitive string).
+
+**Source:** `desktopApp/logs/viewer.log` — `Expected JsonPrimitive, but had JsonArray`.
+
+**Likely files / areas:** `domain/JunieEvent.kt`.
+
+**Completion criteria:** `NextPromptSuggestionEvent` with array suggestion parses without error.
+
+**Testing expectations:** Parser test confirms successful parsing. `Test Required`
+
+##### 3.11.5 Fix CodeBlock infinite height crash inside LazyColumn
+
+- [x] Fix CodeBlock infinite height crash inside LazyColumn
+
+**Description:** Add `heightIn(max = 600.dp)` to `CodeTextView` modifier in `CodeBlock.kt` to prevent infinite-height measurement when the component (which uses internal `verticalScroll`) is hosted inside a `LazyColumn` item.
+
+**Source:** `desktopApp/logs/viewer.log` — `IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints`.
+
+**Likely files / areas:** `ui/components/CodeBlock.kt`.
+
+**Completion criteria:** Application does not crash when rendering code blocks in the conversation list.
+
+**Testing expectations:** Manual verification by running the app. Compose layout crash cannot be reproduced in headless unit tests.
+
+##### 3.11.6 Verify supported conversation content still renders
+
+- [x] Verify supported conversation content still renders
+
+**Description:** Run the test suite to confirm existing parsing, mapping, and UI tests still pass after the fixes.
+
+**Completion criteria:** `./gradlew :shared:jvmTest` — BUILD SUCCESSFUL, 0 failures.
+
+**Testing expectations:** `./gradlew :shared:jvmTest` passes. `Test Required`
+
+##### 3.11.7 Run the relevant test suite
+
+- [x] Run the relevant test suite
+
+**Description:** Run `./gradlew :shared:jvmTest` after all fixes.
+
+**Completion criteria:** All tests pass.
+
+**Testing expectations:** BUILD SUCCESSFUL.
+
+##### 3.11.8 Record remaining deferred deserialization or rendering work
+
+- [x] Record remaining deferred deserialization or rendering work
+
+**Description:** Document that other event classes may have similar field type mismatches if Junie's real data format differs from the assumed schema. The `JsonElement?` approach used for `NextPromptSuggestionEvent.suggestion` should be applied to any field whose real format is uncertain.
+
+**Completion criteria:** Note added to Notes / Decisions Log.
+
+**Testing expectations:** No automated tests required.
+
+---
+
+### Area 3.5 — Deserialization Hardening (Option B + Option A)
+
+*Source: Delivery Part 2.5. Ensures the JSONL parser handles unknown event kinds gracefully and surfaces them in the UI, then adds proper classes for all discovered event kinds. See `docs/junie-jsonl-deserialization-investigation.md`.*
+
+#### 3.5.1 Add UnknownJunieEvent and UnknownAgentEvent fallback classes
+
+- [x] Add UnknownJunieEvent and UnknownAgentEvent fallback classes
+
+**Description:** Add `UnknownJunieEvent(kind: String, timestampMs: Long, raw: JsonObject)` to the `JunieEvent` sealed hierarchy and `UnknownAgentEvent(kind: String, raw: JsonObject)` to the `AgentEvent` sealed hierarchy. These classes preserve the raw JSON so no data is lost.
+
+**Source:** Implementation sprint, Part 2.5 (Phase B); `docs/junie-jsonl-deserialization-investigation.md`, Option B.
+
+**Dependencies:** None.
+
+**Likely files / areas:** `domain/JunieEvent.kt`.
+
+**Completion criteria:**
+- `UnknownJunieEvent` and `UnknownAgentEvent` exist in the sealed hierarchies.
+- Both preserve the original `kind` string and raw `JsonObject`.
+
+**Testing expectations:** Unit tests confirming construction and field access. `Test Required`
+
+#### 3.5.2 Implement custom JsonContentPolymorphicSerializer for JunieEvent and AgentEvent
+
+- [x] Implement custom JsonContentPolymorphicSerializer for JunieEvent and AgentEvent
+
+**Description:** Replace the default sealed-class serializer with a custom `JsonContentPolymorphicSerializer` for both `JunieEvent` and `AgentEvent`. The serializer checks the `kind` discriminator field and delegates to the matching registered subtype serializer, or falls back to `UnknownJunieEvent` / `UnknownAgentEvent` when no match is found.
+
+**Source:** Implementation sprint, Part 2.5 (Phase B).
+
+**Dependencies:** Task 3.5.1.
+
+**Likely files / areas:** `domain/JunieEvent.kt` or new serializer files, `data/JsonlParser.kt`.
+
+**Completion criteria:**
+- Unknown `kind` values do not throw `SerializationException`.
+- Known `kind` values still deserialize to their proper classes.
+- The `Json` instance in `JsonlParser` uses the custom serializers.
+
+**Testing expectations:** Unit tests: parse a line with a known kind, parse a line with an unknown kind, parse a `SessionA2uxEvent` with an unknown nested agent event kind. `Test Required`
+
+#### 3.5.3 Map unknown events to a visible UI element
+
+- [x] Map unknown events to a visible UI element
+
+**Description:** In `SessionRepository.mapEventsToMessages()`, map `UnknownJunieEvent` and `UnknownAgentEvent` to a `Message` that renders as a visible "Unsupported event: {kind}" card in the Conversation UI. The card should be visually distinct (e.g., muted/warning style) and collapsed by default, but clearly present so the HITL can see what events are not yet supported and report them. Unknown events must **not** be silently discarded.
+
+**Source:** Implementation sprint, Part 2.5 (Phase B); HITL requirement: "I do not want to skip unknown events and blindly throw them away."
+
+**Dependencies:** Tasks 3.5.1, 3.5.2.
+
+**Likely files / areas:** `data/SessionRepository.kt`, `domain/Message.kt` (may need a new `MessageKind` or content type), `ui/ConversationScreen.kt` (unknown-event card composable).
+
+**Completion criteria:**
+- Unknown events appear as visible items in the Conversation list.
+- The event kind name is displayed so the user can report it.
+- The card is visually distinct from normal messages.
+
+**Testing expectations:** UI test confirming unknown-event card renders with the kind name visible. `Test Required`
+
+**HITL-visible outcome:** Unknown events are visible in the Conversation, not silently dropped.
+
+#### 3.5.4 Add logging for known vs unknown event counts per session load
+
+- [x] Add logging for known vs unknown event counts per session load
+
+**Description:** When a session is loaded, log the count of known events, unknown events, and total events. This helps diagnose data coverage without requiring the user to inspect the UI.
+
+**Source:** Implementation sprint, Part 2.5 (Phase B).
+
+**Dependencies:** Tasks 3.5.1, 3.5.2.
+
+**Likely files / areas:** `data/SessionRepository.kt`.
+
+**Completion criteria:**
+- Session load logs include counts of known, unknown, and total events.
+- Log level is INFO or WARN for unknown events.
+
+**Testing expectations:** No automated test required; verify via manual log inspection.
+
+#### 3.5.5 Add tests for Phase B unknown-event fallback
+
+- [x] Add tests for Phase B unknown-event fallback
+
+**Description:** Comprehensive tests for the unknown-event fallback: parsing unknown top-level events, parsing unknown nested agent events, verifying raw JSON is preserved, verifying the UI renders unknown-event cards, verifying known events still parse correctly.
+
+**Source:** Implementation sprint, Part 2.5 (Phase B).
+
+**Dependencies:** Tasks 3.5.1–3.5.3.
+
+**Likely files / areas:** `shared/src/commonTest/kotlin/...` (parser tests, UI tests).
+
+**Completion criteria:**
+- Tests cover unknown top-level event parsing.
+- Tests cover unknown nested agent event parsing.
+- Tests cover UI rendering of unknown-event cards.
+- All tests pass: `./gradlew :shared:jvmTest`.
+
+**Testing expectations:** `./gradlew :shared:jvmTest` green. `Test Required`
+
+#### 3.5.6 Add @Serializable classes for missing top-level event kinds
+
+- [x] Add @Serializable classes for missing top-level event kinds
+
+**Description:** Add proper `@Serializable` classes for the 4 missing top-level event kinds: `TaskStartedEvent`, `TaskState`, `UserMessagesCommittedToHistory`, `UserAsyncResponseEvent`. Inspect real JSONL payloads to determine the correct fields for each. Decide whether each maps to a UI `Message` or is metadata-only.
+
+**Source:** Implementation sprint, Part 2.5 (Phase A); `docs/junie-jsonl-deserialization-investigation.md`, event kind inventory.
+
+**Dependencies:** Tasks 3.5.1–3.5.5 (Phase B must be stable first).
+
+**Likely files / areas:** `domain/JunieEvent.kt`, `data/SessionRepository.kt` (mapping).
+
+**Completion criteria:**
+- All 4 top-level event kinds have proper `@Serializable` classes.
+- Each is registered in the custom serializer.
+- Mapping decision (UI-visible vs metadata-only) is documented per event kind.
+
+**Testing expectations:** Unit tests for each new event class. `Test Required`
+
+#### 3.5.7 Add @Serializable classes for missing nested agent event kinds
+
+- [x] Add @Serializable classes for missing nested agent event kinds
+
+**Description:** Add proper `@Serializable` classes for the 13 missing nested agent event kinds: `AvailablePullRequestsEvent`, `LlmResponseMetadataEvent`, `CurrentDirectoryUpdatedEvent`, `EnvironmentVariablesUpdatedEvent`, `ViewFilesBlockUpdatedEvent`, `ContextWindowReportEvent`, `FileChangesBlockUpdatedEvent`, `TipSuggestionCreatedEvent`, `ShowPlanProgressEvent`, `NextPromptSuggestionEvent`, `AskAsyncRequestUpdatedEvent`, `AuthorizationAvailabilityEvent`, `AgentStartedEvent`, `SuggestPlanEvent`. Inspect real JSONL payloads to determine the correct fields. Decide per event kind whether it maps to a UI `Message` or is metadata-only.
+
+**Source:** Implementation sprint, Part 2.5 (Phase A); `docs/junie-jsonl-deserialization-investigation.md`, event kind inventory.
+
+**Dependencies:** Task 3.5.6.
+
+**Likely files / areas:** `domain/JunieEvent.kt`, `data/SessionRepository.kt` (mapping).
+
+**Completion criteria:**
+- All 13 nested agent event kinds have proper `@Serializable` classes.
+- Each is registered in the custom serializer.
+- Mapping decision (UI-visible vs metadata-only) is documented per event kind.
+
+**Testing expectations:** Unit tests for each new event class. `Test Required`
+
+#### 3.5.8 Add tests for Phase A known event classes
+
+- [x] Add tests for Phase A known event classes
+
+**Description:** Tests for all 17 new event classes: verify deserialization from representative JSON payloads, verify correct field mapping, verify the custom serializer routes to the proper class instead of the unknown fallback.
+
+**Source:** Implementation sprint, Part 2.5 (Phase A).
+
+**Dependencies:** Tasks 3.5.6, 3.5.7.
+
+**Likely files / areas:** `shared/src/commonTest/kotlin/...` (parser tests).
+
+**Completion criteria:**
+- Each of the 17 new event classes has at least one deserialization test.
+- All tests pass: `./gradlew :shared:jvmTest`.
+
+**Testing expectations:** `./gradlew :shared:jvmTest` green. `Test Required`
+
+#### 3.5.9 Verify real session loading with complete event coverage
+
+- [ ] Verify real session loading with complete event coverage
+
+**Description:** Load a real Junie session (e.g., `session-260709-111457-1utg`) and verify that the event count matches the JSONL line count (minus blank lines). Confirm that no events are silently dropped. Any remaining unknown events should be visible in the UI as unsupported-event cards.
+
+**Source:** Implementation sprint, Part 2.5.
+
+**Dependencies:** Tasks 3.5.1–3.5.8.
+
+**Likely files / areas:** Manual verification or integration test.
+
+**Completion criteria:**
+- Real session loads with 0 silently dropped events.
+- Unknown events (if any remain) are visible in the UI.
+- Log output confirms known/unknown/total counts.
+
+**Testing expectations:** Manual verification or integration test. `Manual Review Required`
+
+#### 3.5.10 HITL review of deserialization hardening
+
+- [ ] HITL review of deserialization hardening — `HITL Review`
+
+**Description:** HITL reviews the deserialization hardening work: confirms unknown events are visible in the UI, confirms known events parse correctly, confirms no data is silently lost, confirms real sessions render complete conversations.
+
+**Source:** Implementation sprint, Part 2.5.
+
+**Dependencies:** Tasks 3.5.1–3.5.9.
+
+**Likely files / areas:** Running application, real session data.
+
+**Completion criteria:**
+- HITL confirms unknown events are visible, not silently dropped.
+- HITL confirms known events render correctly.
+- HITL confirms real sessions show complete conversations.
+
+**Testing expectations:** No automated tests required.
+
+**HITL-visible outcome:** The HITL can load a real Junie session and see all events — known events render normally, unknown events appear as visible indicators.
 
 ---
 
@@ -2081,6 +2378,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 - [ ] HITL confirms every sprint "After" section maps to a reviewable task outcome.
 - [ ] HITL confirms the Human/Junie conversation layout is readable and asymmetric.
 - [ ] HITL confirms long Junie responses remain readable.
+- [ ] HITL confirms unknown events are visible in the UI and known events parse correctly (Part 2.5).
 - [ ] HITL confirms rich content types are visually identifiable.
 - [ ] HITL confirms search and filters are understandable.
 - [ ] HITL confirms empty/loading/error states are understandable.
@@ -2141,7 +2439,7 @@ Items from the implementation sprint's Out of Scope section (section 7), plus op
 |---|---|
 | 2026-07-09 | **Area 1 complete.** All source documents read: implementation sprint (8 delivery parts, 21 sections), design sprint (Parts A–H), design tasks (67/68 complete — only final HITL approval pending, does not block implementation), UBIQUITOUS-LANGUAGE.md (17 canonical terms + candidate additions noted), RECAP.md, TESTING.md, project_memory.md. |
 | 2026-07-09 | **Scope verified.** All 9 in-scope items from sprint section 6 have corresponding task areas. All 9 out-of-scope items from sprint section 7 are listed in Deferred/Out-of-Scope (D1–D9). D10 (screenshot testing) added from design sprint deferrals. |
-| 2026-07-09 | **Delivery part mapping verified.** Part 1 → Areas 1–2, Part 2 → Area 3, Part 3 → Area 4, Part 4 → Area 5, Part 5 → Area 6, Part 6 → Area 7, Part 7 → Area 8, Part 8 → Areas 9–10. Every "After" section has at least one HITL-visible outcome in the task list. |
+| 2026-07-09 | **Delivery part mapping verified.** Part 1 → Areas 1–2, Part 2 → Area 3, Part 2.5 → Area 3.5, Part 3 → Area 4, Part 4 → Area 5, Part 5 → Area 6, Part 6 → Area 7, Part 7 → Area 8, Part 8 → Areas 9–10. Every "After" section has at least one HITL-visible outcome in the task list. |
 | 2026-07-09 | **Open questions Q1–Q5 confirmed** in Deferred/Out-of-Scope section. No blockers found — all open questions can be resolved during implementation without blocking Area 2. |
 | 2026-07-09 | **Design task 10.5 (final HITL approval of design tasks)** is the only incomplete design task. This does not block implementation since all design content exists in the sprint document. |
 | 2026-07-09 | **Candidate ubiquitous language additions noted:** Match, Match Cursor, Turn Header, Empty State / Loading State / Error State. These must be added to UBIQUITOUS-LANGUAGE.md before appearing in shipped code (per sprint section 5). |
@@ -2152,3 +2450,6 @@ Items from the implementation sprint's Out of Scope section (section 7), plus op
 | 2026-07-09 | **Ubiquitous language mismatch found:** Sender label in MessageItem says "You" for Human messages. Should be "Human" per UBIQUITOUS-LANGUAGE.md. To be fixed in Area 3 (task 3.3 sender labels). |
 | 2026-07-09 | **Area 3 implemented.** Asymmetric layout: Human messages compact right-aligned (max 480dp, primaryContainer), Junie messages full-width (secondaryContainer). Sender labels fixed to "Human"/"Junie" per ubiquitous language. Message Kind markers added (icon + text). Turn grouping with TurnHeader divider for consecutive Junie messages. Spacing uses theme tokens (12dp between turns, 8dp Junie internal padding). 5 new UI tests added. All tests green. Task 3.10 (HITL visual review) left unchecked — awaiting HITL review. |
 | 2026-07-11 | **⚠️ BLOCKER — Deserialization data loss.** Investigation found 17 missing event kinds (4 top-level, 13 nested agent events). ~77% of real JSONL lines are silently dropped. The app does not crash fatally (Either.catch prevents that) but renders severely incomplete conversations. See `docs/junie-jsonl-deserialization-investigation.md`. **Recommendation:** Implement Option B (unknown-event fallback with custom serializer) as a hardening task before Area 4. Effort: 0.5–1 day, low risk. Awaiting HITL decision. |
+| 2026-07-12 | **HITL decision: implement both Option B and Option A as Area 3.5.** Unknown events must be visible in the UI (not silently dropped) so users can report them. Phase B (tolerant fallback) first, then Phase A (add all 17 known event classes). Added as delivery Part 2.5 in sprint doc and Area 3.5 (10 tasks) in this task doc. Blocker resolved — work can proceed. |
+| 2026-07-12 | **Area 3.5 implemented (tasks 3.5.1–3.5.8).** Phase B: replaced `@JsonClassDiscriminator` with custom `JsonContentPolymorphicSerializer` for both `JunieEvent` and `AgentEvent`. `UnknownJunieEvent`/`UnknownAgentEvent` preserve raw `JsonObject`. Unknown events map to visible "Unsupported event: {kind}" cards using `MessageKind.Unsupported` + `errorContainer` Surface. Session load logs known/unknown/total counts. Phase A: added all 4 top-level (`TaskStartedEvent`, `TaskState`, `UserMessagesCommittedToHistory`, `UserAsyncResponseEvent`) and all 13 nested agent event classes. All 4 top-level are metadata-only (no UI message). All 13 nested agent events are metadata-only (no UI message) — the unknown-event fallback remains as a permanent safety net. 20 new/updated tests added (parser + repository). `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, 50 tests, 0 failures. Tasks 3.5.9 (manual real-session verification) and 3.5.10 (HITL review) left unchecked. **Deserialization blocker is resolved — UI sprint can continue.** |
+| 2026-07-12 | **Crash fix (Area 3, tasks 3.11.1–3.11.8).** Two crash causes found in `desktopApp/logs/viewer.log`: (1) `NextPromptSuggestionEvent.suggestion` typed as `String?` but real data is `JsonArray` — fixed by changing to `JsonElement?`; (2) `CodeTextView` (kodeview) uses internal `verticalScroll` causing `IllegalStateException` inside `LazyColumn` — fixed by adding `heightIn(max = 600.dp)`. 1 new regression test added. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL. **Other event classes may have similar field type mismatches** — the `JsonElement?` approach should be used for any field whose real format is uncertain. **UI sprint is unblocked.** |

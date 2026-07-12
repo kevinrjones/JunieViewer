@@ -214,6 +214,7 @@ fun messageKindLabel(kind: MessageKind): String = when (kind) {
     MessageKind.Tool -> "🔧 Tool"
     MessageKind.Patch -> "📝 Patch"
     MessageKind.Terminal -> "⌨ Terminal"
+    MessageKind.Unsupported -> "⚠ Unsupported"
 }
 
 /**
@@ -320,5 +321,24 @@ fun MessageBody(message: Message) {
             code = content.diff,
             language = SyntaxLanguage.DEFAULT
         )
+    }
+
+    // Unsupported event kind indicator — visually distinct warning card
+    if (message.kind == MessageKind.Unsupported) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+                .testTag("unsupported_event_card"),
+            color = MaterialTheme.colorScheme.errorContainer,
+            shape = MaterialTheme.shapes.small
+        ) {
+            Text(
+                text = (message.content as? MessageContent.Text)?.text ?: "Unsupported event",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
     }
 }
