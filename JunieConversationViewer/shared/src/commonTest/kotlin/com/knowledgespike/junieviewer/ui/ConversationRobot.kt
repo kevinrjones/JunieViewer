@@ -2,6 +2,9 @@ package com.knowledgespike.junieviewer.ui
 
 import androidx.compose.ui.test.*
 
+/**
+ * Robot-pattern test helper for ConversationScreen interactions and assertions.
+ */
 class ConversationRobot(private val semanticMatcher: SemanticsNodeInteractionsProvider) {
 
     fun typeSearchQuery(query: String) {
@@ -38,12 +41,26 @@ class ConversationRobot(private val semanticMatcher: SemanticsNodeInteractionsPr
     }
 
     // Assertions
-    fun assertMessageCount(count: Int) {
-        // onChildren() only counts currently composed items. 
-        // For tests with few messages this is fine.
-        semanticMatcher.onNodeWithTag("message_list")
-            .onChildren()
+
+    /** Counts Human message items in the list */
+    fun assertHumanMessageCount(count: Int) {
+        semanticMatcher.onAllNodesWithTag("message_item_human")
             .assertCountEquals(count)
+    }
+
+    /** Counts Junie message items in the list */
+    fun assertJunieMessageCount(count: Int) {
+        semanticMatcher.onAllNodesWithTag("message_item_junie")
+            .assertCountEquals(count)
+    }
+
+    /** Counts total message items (Human + Junie) */
+    fun assertMessageCount(count: Int) {
+        val humanCount = semanticMatcher.onAllNodesWithTag("message_item_human").fetchSemanticsNodes().size
+        val junieCount = semanticMatcher.onAllNodesWithTag("message_item_junie").fetchSemanticsNodes().size
+        assert(humanCount + junieCount == count) {
+            "Expected $count messages but found ${humanCount + junieCount} (human=$humanCount, junie=$junieCount)"
+        }
     }
 
     fun assertMessageVisible(text: String) {
@@ -51,9 +68,38 @@ class ConversationRobot(private val semanticMatcher: SemanticsNodeInteractionsPr
             .onFirst()
             .assertExists()
     }
-    
+
     fun assertSearchText(text: String) {
         semanticMatcher.onNodeWithTag("search_field")
             .assertTextContains(text)
+    }
+
+    /** Asserts that a sender label with the given text exists */
+    fun assertSenderLabelVisible(senderName: String) {
+        semanticMatcher.onAllNodesWithTag("sender_marker")
+            .filter(hasText(senderName))
+            .onFirst()
+            .assertExists()
+    }
+
+    /** Asserts that at least one Turn Header is visible */
+    fun assertTurnHeaderVisible() {
+        semanticMatcher.onAllNodesWithTag("turn_header")
+            .onFirst()
+            .assertExists()
+    }
+
+    /** Counts Turn Headers in the list */
+    fun assertTurnHeaderCount(count: Int) {
+        semanticMatcher.onAllNodesWithTag("turn_header")
+            .assertCountEquals(count)
+    }
+
+    /** Asserts that a Message Kind marker with the given text exists */
+    fun assertMessageKindMarkerVisible(kindLabel: String) {
+        semanticMatcher.onAllNodesWithTag("message_kind_marker")
+            .filter(hasText(kindLabel, substring = true))
+            .onFirst()
+            .assertExists()
     }
 }

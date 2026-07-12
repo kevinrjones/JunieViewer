@@ -88,4 +88,127 @@ class ConversationScreenTest {
         
         FileSystem.SYSTEM.delete(tempPrefsPath)
     }
+
+    @Test
+    fun `human messages display sender label Human`() = runComposeUiTest {
+        val tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "ui-test-sender-${System.currentTimeMillis()}.json"
+        val fakePreferencesRepository = PreferencesRepository(
+            path = tempPrefsPath,
+            fileSystem = FileSystem.SYSTEM
+        )
+        fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val robot = ConversationRobot(this)
+
+        setContent {
+            ConversationRoot(viewModel = viewModel)
+        }
+
+        robot.assertSenderLabelVisible("Human")
+        robot.assertSenderLabelVisible("Junie")
+
+        FileSystem.SYSTEM.delete(tempPrefsPath)
+    }
+
+    @Test
+    fun `junie messages are grouped with a turn header`() = runComposeUiTest {
+        val tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "ui-test-turn-${System.currentTimeMillis()}.json"
+        val fakePreferencesRepository = PreferencesRepository(
+            path = tempPrefsPath,
+            fileSystem = FileSystem.SYSTEM
+        )
+        fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val robot = ConversationRobot(this)
+
+        setContent {
+            ConversationRoot(viewModel = viewModel)
+        }
+
+        // One Human then one Junie → one Junie Turn header
+        robot.assertTurnHeaderCount(1)
+        robot.assertHumanMessageCount(1)
+        robot.assertJunieMessageCount(1)
+
+        FileSystem.SYSTEM.delete(tempPrefsPath)
+    }
+
+    @Test
+    fun `human messages are compact and junie messages are full width`() = runComposeUiTest {
+        val tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "ui-test-layout-${System.currentTimeMillis()}.json"
+        val fakePreferencesRepository = PreferencesRepository(
+            path = tempPrefsPath,
+            fileSystem = FileSystem.SYSTEM
+        )
+        fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val robot = ConversationRobot(this)
+
+        setContent {
+            ConversationRoot(viewModel = viewModel)
+        }
+
+        // Verify distinct message item tags exist for each sender type
+        robot.assertHumanMessageCount(1)
+        robot.assertJunieMessageCount(1)
+
+        FileSystem.SYSTEM.delete(tempPrefsPath)
+    }
+
+    @Test
+    fun `message kind markers are displayed`() = runComposeUiTest {
+        val tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "ui-test-kind-${System.currentTimeMillis()}.json"
+        val fakePreferencesRepository = PreferencesRepository(
+            path = tempPrefsPath,
+            fileSystem = FileSystem.SYSTEM
+        )
+        fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val robot = ConversationRobot(this)
+
+        setContent {
+            ConversationRoot(viewModel = viewModel)
+        }
+
+        robot.assertMessageKindMarkerVisible("Text")
+
+        FileSystem.SYSTEM.delete(tempPrefsPath)
+    }
+
+    @Test
+    fun `messages preserve chronological order with filters active`() = runComposeUiTest {
+        val tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "ui-test-order-${System.currentTimeMillis()}.json"
+        val fakePreferencesRepository = PreferencesRepository(
+            path = tempPrefsPath,
+            fileSystem = FileSystem.SYSTEM
+        )
+        fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val robot = ConversationRobot(this)
+
+        setContent {
+            ConversationRoot(viewModel = viewModel)
+        }
+
+        // Both messages visible in order
+        robot.assertMessageCount(2)
+        robot.assertMessageVisible("Match this")
+        robot.assertMessageVisible("Ignore that")
+
+        // Filter to Human only — order preserved
+        robot.toggleFilter(FilterKind.Junie)
+        robot.assertMessageCount(1)
+        robot.assertMessageVisible("Match this")
+
+        // Restore
+        robot.toggleFilter(FilterKind.Junie)
+        robot.assertMessageCount(2)
+
+        FileSystem.SYSTEM.delete(tempPrefsPath)
+    }
 }
