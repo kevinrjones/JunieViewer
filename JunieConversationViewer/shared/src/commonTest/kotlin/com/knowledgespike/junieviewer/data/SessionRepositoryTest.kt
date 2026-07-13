@@ -1,15 +1,16 @@
 package com.knowledgespike.junieviewer.data
 
+import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
 import okio.FileSystem
 import okio.Path
-import okio.Path.Companion.toPath
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import strikt.api.expectThat
 import strikt.assertions.hasSize
+import strikt.assertions.isA
 import strikt.assertions.isEqualTo
 import kotlin.random.Random
 
@@ -91,5 +92,238 @@ class SessionRepositoryTest {
         repository.setSession("missing", testDir.toString())
         val messages = repository.getMessages()
         expectThat(messages).hasSize(0)
+    }
+
+    @Test
+    fun `given a session with unknown events when getMessages then unknown events appear as unsupported messages`() {
+        val sessionId = "test-unknown"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        val content = """
+            {"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hello"}
+            {"kind":"TaskStartedEvent","taskId":"task-1","timestampMs":100}
+            {"kind":"FutureTopLevelEvent","data":"something","timestampMs":200}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ResultBlockUpdatedEvent","result":"Done"}},"timestampMs":300}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"FutureAgentEvent","x":1}},"timestampMs":400}
+        """.trimIndent()
+
+        fileSystem.write(eventsFile) {
+            writeUtf8(content)
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        // Human prompt + result + unknown top-level + unknown nested = 4 messages
+        // TaskStartedEvent is metadata-only (no message)
+        expectThat(messages).hasSize(4)
+        expectThat(messages[0].sender).isEqualTo(Sender.Human)
+        expectThat(messages[0].kind).isEqualTo(MessageKind.Text)
+
+        expectThat(messages[1].kind).isEqualTo(MessageKind.Unsupported)
+        expectThat(messages[1].content).isA<MessageContent.Text>()
+            .get { text }.isEqualTo("Unsupported event: FutureTopLevelEvent")
+
+        expectThat(messages[2].sender).isEqualTo(Sender.Junie)
+        expectThat(messages[2].kind).isEqualTo(MessageKind.Text)
+
+        expectThat(messages[3].kind).isEqualTo(MessageKind.Unsupported)
+        expectThat(messages[3].content).isA<MessageContent.Text>()
+            .get { text }.isEqualTo("Unsupported event: FutureAgentEvent")
+    }
+
+    @Test
+    fun `given a session with mixed known and unknown events when getMessages then no events are silently dropped`() {
+        val sessionId = "test-mixed"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        val content = """
+            {"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hi"}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentThoughtBlockUpdatedEvent","text":"Thinking"}},"timestampMs":1}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AvailablePullRequestsEvent"}},"timestampMs":2}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"LlmResponseMetadataEvent","model":"gpt-4"}},"timestampMs":3}
+            {"kind":"UserMessagesCommittedToHistory","requestId":"req-1","timestampMs":4}
+            {"kind":"TaskState","taskId":"t1","state":"DONE","timestampMs":5}
+        """.trimIndent()
+
+        fileSystem.write(eventsFile) {
+            writeUtf8(content)
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        // Human prompt + Thought = 2 messages
+        // AvailablePullRequestsEvent, LlmResponseMetadataEvent, UserMessagesCommittedToHistory, TaskState are metadata-only
+        expectThat(messages).hasSize(2)
+        expectThat(messages[0].sender).isEqualTo(Sender.Human)
+        expectThat(messages[1].kind).isEqualTo(MessageKind.Thought)
+    }
+
+    @Test
+    fun `given a session with SystemMessageEvent when getMessages then it renders as SystemMessage`() {
+        val sessionId = "test-system"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        fileSystem.write(eventsFile) {
+            writeUtf8("""{"kind":"SystemMessageEvent","text":"Free Google AI","details":"Powered by Google"}""")
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        expectThat(messages).hasSize(1)
+        expectThat(messages[0]).and {
+            get { sender }.isEqualTo(Sender.Junie)
+            get { kind }.isEqualTo(MessageKind.SystemMessage)
+            get { content }.isA<MessageContent.Text>()
+                .get { text }.isEqualTo("Free Google AI\n\nPowered by Google")
+        }
+    }
+
+    @Test
+    fun `given a session with CancelAgentEvent when getMessages then it renders as Cancelled`() {
+        val sessionId = "test-cancel"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        fileSystem.write(eventsFile) {
+            writeUtf8("""{"kind":"CancelAgentEvent"}""")
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        expectThat(messages).hasSize(1)
+        expectThat(messages[0].kind).isEqualTo(MessageKind.Cancelled)
+        expectThat(messages[0].sender).isEqualTo(Sender.Human)
+    }
+
+    @Test
+    fun `given a session with UserResponseEvent when getMessages then it renders as Human text`() {
+        val sessionId = "test-response"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        fileSystem.write(eventsFile) {
+            writeUtf8("""{"kind":"UserResponseEvent","prompt":"Confirm the plan","isChoice":true}""")
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        expectThat(messages).hasSize(1)
+        expectThat(messages[0]).and {
+            get { sender }.isEqualTo(Sender.Human)
+            get { kind }.isEqualTo(MessageKind.Text)
+            get { content }.isA<MessageContent.Text>()
+                .get { text }.isEqualTo("Confirm the plan")
+        }
+    }
+
+    @Test
+    fun `given a session with metadata-only new events when getMessages then they are not rendered`() {
+        val sessionId = "test-metadata"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        val content = """
+            {"kind":"SendToAgentEvent"}
+            {"kind":"SessionTitleSetEvent","name":"LogViewer","timestampMs":1000}
+            {"kind":"SkillsStatusEvent","newSkills":["android-data-layer"]}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentStateUpdatedEvent","blob":"{}"}},"timestampMs":100}
+        """.trimIndent()
+
+        fileSystem.write(eventsFile) {
+            writeUtf8(content)
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        expectThat(messages).hasSize(0)
+    }
+
+    @Test
+    fun `given a session with new agent events when getMessages then UI-visible ones render correctly`() {
+        val sessionId = "test-new-agent"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        val content = """
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"TestRunBlockUpdatedEvent","name":"MyTest","status":"COMPLETED"}},"timestampMs":1}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentFailureEvent","message":"Connection failed"}},"timestampMs":2}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"MarkdownBlockUpdatedEvent","text":"Some markdown"}},"timestampMs":3}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"McpBlockUpdatedEvent","toolName":"Context7/query","status":"COMPLETED"}},"timestampMs":4}
+            {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CustomAgentBlockUpdatedEvent","name":"qa-agent","status":"STARTED"}},"timestampMs":5}
+        """.trimIndent()
+
+        fileSystem.write(eventsFile) {
+            writeUtf8(content)
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        expectThat(messages).hasSize(5)
+        expectThat(messages[0].kind).isEqualTo(MessageKind.TestRun)
+        expectThat(messages[1].kind).isEqualTo(MessageKind.Error)
+        expectThat(messages[2].kind).isEqualTo(MessageKind.Markdown)
+        expectThat(messages[3].kind).isEqualTo(MessageKind.Mcp)
+        expectThat(messages[4].kind).isEqualTo(MessageKind.SubAgent)
+    }
+
+    @Test
+    fun `given a session with AskRequestUpdatedEvent when getMessages then it renders as Question`() {
+        val sessionId = "test-ask"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        fileSystem.write(eventsFile) {
+            writeUtf8("""{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AskRequestUpdatedEvent","title":"Junie asks","askRequest":{"id":"a1","question":"What next?"},"status":"IN_PROGRESS"}},"timestampMs":1}""")
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        expectThat(messages).hasSize(1)
+        expectThat(messages[0]).and {
+            get { kind }.isEqualTo(MessageKind.Question)
+            get { content }.isA<MessageContent.Text>()
+                .get { text }.isEqualTo("Junie asks\nWhat next?")
+        }
+    }
+
+    @Test
+    fun `given a session with ChoiceRequestUpdatedEvent when getMessages then it renders as Choice`() {
+        val sessionId = "test-choice"
+        val sessionDir = testDir / "sessions" / sessionId
+        fileSystem.createDirectories(sessionDir)
+
+        val eventsFile = sessionDir / "events.jsonl"
+        fileSystem.write(eventsFile) {
+            writeUtf8("""{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ChoiceRequestUpdatedEvent","title":"How to proceed?","choiceRequest":{"id":"c1","options":[{"id":"Agree","description":"Confirm plan"}]},"status":"IN_PROGRESS"}},"timestampMs":1}""")
+        }
+
+        repository.setSession(sessionId, testDir.toString())
+        val messages = repository.getMessages()
+
+        expectThat(messages).hasSize(1)
+        expectThat(messages[0]).and {
+            get { kind }.isEqualTo(MessageKind.Choice)
+            get { content }.isA<MessageContent.Text>()
+                .get { text }.isEqualTo("How to proceed?\n• Confirm plan\n")
+        }
     }
 }

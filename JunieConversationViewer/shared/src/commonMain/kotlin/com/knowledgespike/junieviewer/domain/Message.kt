@@ -11,17 +11,32 @@ data class Message(
     val timestamp: Long = 0L
 )
 
+/** Classifies the semantic kind of a Message for filtering and rendering. */
 enum class MessageKind {
-    Text, Thought, Tool, Patch, Terminal
+    Text, Markdown, Thought, Tool, Patch, Terminal,
+    StructuredOutput, Error, Warning, Unsupported,
+    TestRun, Mcp, SubAgent, Question, Choice,
+    SystemMessage, Cancelled, Status
 }
 
 /**
  * Represents the content of a message.
  */
 sealed interface MessageContent {
+    /** Plain or Markdown-formatted text. */
     data class Text(val text: String) : MessageContent
+
+    /** Syntax-highlighted code block with an optional language hint. */
     data class Code(val code: String, val language: String = "kotlin") : MessageContent
+
+    /** Unified diff / patch content. */
     data class Diff(val diff: String) : MessageContent
+
+    /** Terminal / shell output with preserved whitespace. */
+    data class Terminal(val output: String) : MessageContent
+
+    /** Structured output such as JSON or key-value data. */
+    data class Structured(val data: String) : MessageContent
 }
 
 /**
