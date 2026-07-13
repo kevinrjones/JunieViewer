@@ -47,7 +47,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 | 2 | UI Implementation Baseline | Complete | 8 |
 | 3 | Asymmetric Human/Junie Conversation Layout | In progress | 18 |
 | 3.5 | Deserialization Hardening (Option B + Option A) | In progress | 10 |
-| 4 | Rich Content Rendering | Not started | 13 |
+| 4 | Rich Content Rendering | In progress | 13 |
 | 5 | Search, Filters, and Navigation | Not started | 12 |
 | 6 | Session Context, Empty, Loading, and Error States | Not started | 8 |
 | 7 | Accessibility and Cross-Platform Desktop Polish | Not started | 13 |
@@ -915,7 +915,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.1 Render plain text messages
 
-- [ ] Render plain text messages — `Test Required`
+- [x] Render plain text messages — `Test Required`
 
 **Description:** Ensure plain text messages render with wrapped, selectable body typography via theme tokens.
 
@@ -934,7 +934,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.2 Render Markdown core subset
 
-- [ ] Render Markdown core subset — `Test Required`
+- [x] Render Markdown core subset — `Test Required`
 
 **Description:** Implement rendering for the agreed Markdown core subset: headings, bold/italic, lists, inline code, and links-as-text. Complex tables are deferred.
 
@@ -952,7 +952,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.3 Render fenced code blocks with copy affordance
 
-- [ ] Render fenced code blocks with copy affordance — `Test Required`
+- [x] Render fenced code blocks with copy affordance — `Test Required`
 
 **Description:** Reuse `components/CodeBlock.kt` (`dev.snipme.highlights`) for fenced code blocks with horizontal scroll and add a copy affordance that copies clean plain text.
 
@@ -971,7 +971,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.4 Render Patch/Diff content with styling
 
-- [ ] Render Patch/Diff content with styling — `Test Required`
+- [x] Render Patch/Diff content with styling — `Test Required`
 
 **Description:** Extend `MessageContent.Diff` rendering with unified-diff styling (added/removed emphasis) and a copy affordance.
 
@@ -990,7 +990,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.5 Render Terminal Output
 
-- [ ] Render Terminal Output — `Test Required`
+- [x] Render Terminal Output — `Test Required`
 
 **Description:** Add a Terminal Output renderer: monospace block, `$`-prefixed command line, preserved whitespace, and copy affordance.
 
@@ -1010,7 +1010,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.6 Render Tool Call summaries (collapsible)
 
-- [ ] Render Tool Call summaries — `Test Required`
+- [x] Render Tool Call summaries — `Test Required`
 
 **Description:** Add a Tool Call renderer with structured-output (JSON-style) formatting and a collapsible header showing the tool name. Collapse/expand behaviour per open question Q2.
 
@@ -1029,7 +1029,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.7 Render Structured Output fallback
 
-- [ ] Render Structured Output fallback — `Test Required`
+- [x] Render Structured Output fallback — `Test Required`
 
 **Description:** Add a Structured Output renderer for JSON/code formatting. Rich tables/plans are deferred; content remains readable as text.
 
@@ -1047,7 +1047,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.8 Render errors and warnings distinctly
 
-- [ ] Render errors and warnings distinctly — `Test Required`
+- [x] Render errors and warnings distinctly — `Test Required`
 
 **Description:** Add visually distinct rendering for error/warning messages with accent colour **plus** icon/label (never blended silently into plain text).
 
@@ -1065,7 +1065,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.9 Render Thought messages (de-emphasised)
 
-- [ ] Render Thought messages — `Test Required`
+- [x] Render Thought messages — `Test Required`
 
 **Description:** Render Thought messages in a de-emphasised style. Thoughts are collapsible per implementation principle 4 (progressive disclosure).
 
@@ -1083,7 +1083,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.10 Implement malformed content fallback
 
-- [ ] Implement malformed content fallback — `Test Required`
+- [x] Implement malformed content fallback — `Test Required`
 
 **Description:** Ensure any Message Kind or malformed content that has no dedicated renderer degrades to readable text (principle 5 — fallback over failure). Nothing becomes invisible or crashes the list.
 
@@ -1101,7 +1101,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.11 Create representative test fixtures per Message Kind
 
-- [ ] Create representative test fixtures per Message Kind — `Test Required`
+- [x] Create representative test fixtures per Message Kind — `Test Required`
 
 **Description:** Create a fixture Session exercising every Message Kind (Human Text, Junie Text/Markdown, fenced code, Patch/Diff, Terminal Output, Tool Call, Thought, Structured Output, error) that renders without crashing with correct Kind markers.
 
@@ -1120,7 +1120,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.12 Document deferred rich rendering enhancements
 
-- [ ] Document deferred rich rendering enhancements
+- [x] Document deferred rich rendering enhancements
 
 **Description:** Document which rich rendering features are deferred (complex Markdown tables, advanced syntax highlighting, rich plans/summaries) in the Deferred / Out-of-Scope section.
 
@@ -2453,3 +2453,4 @@ Items from the implementation sprint's Out of Scope section (section 7), plus op
 | 2026-07-12 | **HITL decision: implement both Option B and Option A as Area 3.5.** Unknown events must be visible in the UI (not silently dropped) so users can report them. Phase B (tolerant fallback) first, then Phase A (add all 17 known event classes). Added as delivery Part 2.5 in sprint doc and Area 3.5 (10 tasks) in this task doc. Blocker resolved — work can proceed. |
 | 2026-07-12 | **Area 3.5 implemented (tasks 3.5.1–3.5.8).** Phase B: replaced `@JsonClassDiscriminator` with custom `JsonContentPolymorphicSerializer` for both `JunieEvent` and `AgentEvent`. `UnknownJunieEvent`/`UnknownAgentEvent` preserve raw `JsonObject`. Unknown events map to visible "Unsupported event: {kind}" cards using `MessageKind.Unsupported` + `errorContainer` Surface. Session load logs known/unknown/total counts. Phase A: added all 4 top-level (`TaskStartedEvent`, `TaskState`, `UserMessagesCommittedToHistory`, `UserAsyncResponseEvent`) and all 13 nested agent event classes. All 4 top-level are metadata-only (no UI message). All 13 nested agent events are metadata-only (no UI message) — the unknown-event fallback remains as a permanent safety net. 20 new/updated tests added (parser + repository). `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, 50 tests, 0 failures. Tasks 3.5.9 (manual real-session verification) and 3.5.10 (HITL review) left unchecked. **Deserialization blocker is resolved — UI sprint can continue.** |
 | 2026-07-12 | **Crash fix (Area 3, tasks 3.11.1–3.11.8).** Two crash causes found in `desktopApp/logs/viewer.log`: (1) `NextPromptSuggestionEvent.suggestion` typed as `String?` but real data is `JsonArray` — fixed by changing to `JsonElement?`; (2) `CodeTextView` (kodeview) uses internal `verticalScroll` causing `IllegalStateException` inside `LazyColumn` — fixed by adding `heightIn(max = 600.dp)`. 1 new regression test added. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL. **Other event classes may have similar field type mismatches** — the `JsonElement?` approach should be used for any field whose real format is uncertain. **UI sprint is unblocked.** |
+| 2026-07-12 | **Area 4 implemented (tasks 4.1–4.12).** Rich content renderers added: `MarkdownContent` (headings, bold, italic, lists, inline code, links-as-text with block parser + inline renderer), `CodeBlockWithCopy` (wraps existing `CodeBlock` with `CopyButton`), `DiffBlock` (unified diff with green/red line backgrounds + structural prefix indicators), `TerminalOutputBlock` (dark background, `$`-prefixed command highlighting), `ToolCallBlock` (collapsible, collapsed by default, header shows tool name), `ThoughtBlock` (collapsible, collapsed by default, de-emphasised italic style with preview), `ErrorWarningBlock` (errorContainer/tertiaryContainer with icon+label), `StructuredOutputBlock` (monospace formatted), `CopyButton` (clipboard text button). Domain model extended: `MessageKind` now has 10 values (added Markdown, StructuredOutput, Error, Warning); `MessageContent` now has 5 variants (added Terminal, Structured). `MessageBody` dispatches by kind first (Thought, Error/Warning, Tool, Unsupported) then by content type. `looksLikeMarkdown()` heuristic auto-detects Markdown in Text content. Fixtures updated to 12 messages covering all kinds. 12 new UI tests + 10 Markdown parser unit tests added. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, 73 tests, 0 failures. **Collapse defaults:** Thoughts and Tool Calls collapse by default (Q2 resolved conservatively per progressive disclosure). **Deferred:** Complex Markdown tables, advanced syntax highlighting, rich plan/table visualisation. Task 4.13 (HITL visual review) left unchecked. |

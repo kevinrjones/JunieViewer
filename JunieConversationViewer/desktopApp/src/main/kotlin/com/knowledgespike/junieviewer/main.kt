@@ -2,9 +2,9 @@ package com.knowledgespike.junieviewer
 
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -13,7 +13,7 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.domain.AppPreferences
-import com.knowledgespike.junieviewer.domain.WindowPreferences
+import com.knowledgespike.junieviewer.domain.WindowStatePreferences
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -45,43 +45,44 @@ fun main() {
     }
 
     application {
-        val prefsRepo = remember { PreferencesRepository() }
+        val prefsRepository = remember { PreferencesRepository() }
         val initialPrefs = remember {
             try {
-                prefsRepo.load()
+                prefsRepository.load()
             } catch (e: Exception) {
                 Logger.e(e) { "Failed to load initial preferences" }
-                com.knowledgespike.junieviewer.domain.AppPreferences()
+                AppPreferences()
             }
         }
 
         val windowState = rememberWindowState(
+            width = initialPrefs.window.width.dp,
+            height = initialPrefs.window.height.dp,
             position = if (initialPrefs.window.x != null && initialPrefs.window.y != null) {
                 WindowPosition(initialPrefs.window.x!!.dp, initialPrefs.window.y!!.dp)
             } else {
-                WindowPosition.Aligned(Alignment.Center)
+                WindowPosition(Alignment.Center)
             },
-            size = DpSize(initialPrefs.window.width.dp, initialPrefs.window.height.dp)
+            placement =
+                if (initialPrefs.window.isMaximized) WindowPlacement.Maximized else WindowPlacement.Floating
         )
 
-        Window(
-            onCloseRequest = {
-                val position = windowState.position
-                val size = windowState.size
-                val x = (position as? WindowPosition.Absolute)?.x?.value?.toInt()
-                val y = (position as? WindowPosition.Absolute)?.y?.value?.toInt()
-
-                val finalPrefs = AppPreferences(
-                    window = WindowPreferences(
-                        x = x,
-                        y = y,
-                        width = size.width.value.toInt(),
-                        height = size.height.value.toInt()
-                    )
+        fun saveAndExit() {
+            val finalPrefs = AppPreferences(
+                window = WindowStatePreferences(
+                    x = (windowState.position as? WindowPosition.Absolute)?.x?.value?.toInt(),
+                    y = (windowState.position as? WindowPosition.Absolute)?.y?.value?.toInt(),
+                    width = windowState.size.width.value.toInt(),
+                    height = windowState.size.height.value.toInt(),
+                    isMaximized = windowState.placement == WindowPlacement.Maximized
                 )
-                prefsRepo.save(finalPrefs)
-                exitApplication()
-            },
+            )
+            prefsRepository.save(finalPrefs)
+            exitApplication()
+        }
+
+        Window(
+            onCloseRequest = ::saveAndExit,
             state = windowState,
             title = "Junie Conversation Viewer",
         ) {

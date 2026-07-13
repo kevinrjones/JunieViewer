@@ -160,14 +160,15 @@ class ConversationViewModel(
         _state.update { currentState ->
             val filtered = currentState.messages.filter { message ->
                 val kindMatch = when (message.kind) {
-                    MessageKind.Text -> {
+                    MessageKind.Text, MessageKind.Markdown -> {
                         if (message.sender == Sender.Human) currentState.filter.showHuman
                         else currentState.filter.showJunie
                     }
                     MessageKind.Thought -> currentState.filter.showThoughts
-                    MessageKind.Tool -> currentState.filter.showTools
+                    MessageKind.Tool, MessageKind.StructuredOutput -> currentState.filter.showTools
                     MessageKind.Patch -> currentState.filter.showPatches
                     MessageKind.Terminal -> currentState.filter.showTerminal
+                    MessageKind.Error, MessageKind.Warning -> true // Always show errors/warnings
                     MessageKind.Unsupported -> true // Always show unsupported events
                 }
 
@@ -175,13 +176,18 @@ class ConversationViewModel(
 
                 if (query.isBlank()) return@filter true
 
-                when (val content = message.content) {
-                    is MessageContent.Text -> content.text.contains(query, ignoreCase = true)
-                    is MessageContent.Code -> content.code.contains(query, ignoreCase = true)
-                    is MessageContent.Diff -> content.diff.contains(query, ignoreCase = true)
-                }
+                messageContentText(message.content).contains(query, ignoreCase = true)
             }
             currentState.copy(filteredMessages = filtered)
         }
+    }
+
+    /** Extracts searchable plain text from any MessageContent variant. */
+    private fun messageContentText(content: MessageContent): String = when (content) {
+        is MessageContent.Text -> content.text
+        is MessageContent.Code -> content.code
+        is MessageContent.Diff -> content.diff
+        is MessageContent.Terminal -> content.output
+        is MessageContent.Structured -> content.data
     }
 }

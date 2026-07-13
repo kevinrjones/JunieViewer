@@ -174,7 +174,7 @@ class SessionRepositoryImpl(
                     Message(
                         id = "${index}-${ts ?: "thought-${event.hashCode()}"}",
                         sender = Sender.Junie,
-                        content = MessageContent.Text("> Thought: $content"),
+                        content = MessageContent.Text(content),
                         kind = MessageKind.Thought
                     )
                 } else null
@@ -210,7 +210,7 @@ class SessionRepositoryImpl(
                     Message(
                         id = "${index}-${ts ?: "term-${event.hashCode()}"}",
                         sender = Sender.Junie,
-                        content = MessageContent.Code(content, "bash"),
+                        content = MessageContent.Terminal(content),
                         kind = MessageKind.Terminal
                     )
                 } else null

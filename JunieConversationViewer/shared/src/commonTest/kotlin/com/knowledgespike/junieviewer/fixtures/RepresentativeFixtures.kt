@@ -7,8 +7,8 @@ import com.knowledgespike.junieviewer.domain.Sender
 
 /**
  * Representative fixture data exercising every Message Kind for use in implementation and testing.
- * Covers: Human Text, Junie Text, fenced code, Patch/Diff, Terminal Output (as Code),
- * Tool Call (as Text), Thought (as Text), and error content.
+ * Covers: Human Text, Junie Text, Markdown, fenced code, Patch/Diff, Terminal Output,
+ * Tool Call, Thought, Structured Output, Error, Warning, malformed/unsupported content.
  *
  * These fixtures are designed to be used in both unit tests and Compose UI tests to verify
  * that every Message Kind renders without crashing and with correct Kind markers.
@@ -24,22 +24,41 @@ object RepresentativeFixtures {
         timestamp = 1000L
     )
 
-    /** A Junie text response (plain text / Markdown-like) */
+    /** A Junie plain text response (no Markdown markers) */
     val junieTextMessage = Message(
         id = "fixture-junie-text",
         sender = Sender.Junie,
         content = MessageContent.Text(
-            """I'll refactor the authentication module to use JWT tokens. Here's my plan:
-
-1. Replace session-based auth with JWT token generation
-2. Add token validation middleware
-3. Update the login endpoint to return JWT tokens
-4. Add refresh token support
-
-Let me start with the token generation logic."""
+            "I have completed the refactoring. The authentication module now uses JWT tokens " +
+                "for both access and refresh flows. All existing tests pass."
         ),
         kind = MessageKind.Text,
         timestamp = 1001L
+    )
+
+    /** A Junie Markdown response with headings, bold, italic, lists, inline code, and a link */
+    val junieMarkdownMessage = Message(
+        id = "fixture-junie-markdown",
+        sender = Sender.Junie,
+        content = MessageContent.Text(
+            """## Refactoring Plan
+
+Here's my plan for the **authentication module**:
+
+1. Replace session-based auth with *JWT token generation*
+2. Add `TokenValidator` middleware
+3. Update the login endpoint to return JWT tokens
+4. Add refresh token support
+
+See [JWT docs](https://jwt.io) for details.
+
+### Next Steps
+
+- Review the `AuthService` class
+- Update integration tests"""
+        ),
+        kind = MessageKind.Text,
+        timestamp = 1002L
     )
 
     /** A Junie fenced code block */
@@ -61,7 +80,7 @@ Let me start with the token generation logic."""
             language = "kotlin"
         ),
         kind = MessageKind.Text,
-        timestamp = 1002L
+        timestamp = 1003L
     )
 
     /** A Junie Patch/Diff message */
@@ -83,37 +102,36 @@ Let me start with the token generation logic."""
  }"""
         ),
         kind = MessageKind.Patch,
-        timestamp = 1003L
+        timestamp = 1004L
     )
 
-    /** A Junie Terminal Output message (rendered as Code with shell language) */
+    /** A Junie Terminal Output message */
     val junieTerminalMessage = Message(
         id = "fixture-junie-terminal",
         sender = Sender.Junie,
-        content = MessageContent.Code(
-            code = """$ ./gradlew :auth:test
+        content = MessageContent.Terminal(
+            output = """$ ./gradlew :auth:test
 > Task :auth:compileKotlin UP-TO-DATE
 > Task :auth:compileTestKotlin
 > Task :auth:test
 
 BUILD SUCCESSFUL in 4s
-3 actionable tasks: 2 executed, 1 up-to-date""",
-            language = "bash"
+3 actionable tasks: 2 executed, 1 up-to-date"""
         ),
         kind = MessageKind.Terminal,
-        timestamp = 1004L
+        timestamp = 1005L
     )
 
     /** A Junie Tool Call message */
     val junieToolCallMessage = Message(
         id = "fixture-junie-tool",
         sender = Sender.Junie,
-        content = MessageContent.Text(
-            """Tool: search_contents_by_grep
-Arguments: {"path": "src/main/kotlin", "regex": "class AuthService", "file_extension_list": "[*.kt]"}"""
+        content = MessageContent.Code(
+            code = """{"name": "search_contents_by_grep", "arguments": {"path": "src/main/kotlin", "regex": "class AuthService", "file_extension_list": "[*.kt]"}}""",
+            language = "json"
         ),
         kind = MessageKind.Tool,
-        timestamp = 1005L
+        timestamp = 1006L
     )
 
     /** A Junie Thought message */
@@ -125,19 +143,56 @@ Arguments: {"path": "src/main/kotlin", "regex": "class AuthService", "file_exten
                 "Let me search the build files first."
         ),
         kind = MessageKind.Thought,
-        timestamp = 1006L
+        timestamp = 1007L
     )
 
-    /** A Junie error/warning message (rendered as Text with error kind indicator) */
+    /** A Junie Structured Output message */
+    val junieStructuredOutputMessage = Message(
+        id = "fixture-junie-structured",
+        sender = Sender.Junie,
+        content = MessageContent.Structured(
+            data = """{
+  "status": "complete",
+  "files_changed": 3,
+  "tests_passed": 12,
+  "tests_failed": 0
+}"""
+        ),
+        kind = MessageKind.StructuredOutput,
+        timestamp = 1008L
+    )
+
+    /** A Junie error message */
     val junieErrorMessage = Message(
         id = "fixture-junie-error",
         sender = Sender.Junie,
         content = MessageContent.Text(
-            "Error: Could not resolve dependency 'io.jsonwebtoken:jjwt-api:0.12.0'. " +
+            "Could not resolve dependency 'io.jsonwebtoken:jjwt-api:0.12.0'. " +
                 "Check your network connection and repository configuration."
         ),
-        kind = MessageKind.Text,
-        timestamp = 1007L
+        kind = MessageKind.Error,
+        timestamp = 1009L
+    )
+
+    /** A Junie warning message */
+    val junieWarningMessage = Message(
+        id = "fixture-junie-warning",
+        sender = Sender.Junie,
+        content = MessageContent.Text(
+            "The deprecated SessionStore API is still referenced in 2 test files. " +
+                "These should be updated before the next release."
+        ),
+        kind = MessageKind.Warning,
+        timestamp = 1010L
+    )
+
+    /** A malformed/unsupported content fallback message */
+    val malformedContentMessage = Message(
+        id = "fixture-malformed",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Unsupported event: SomeNewEventKind"),
+        kind = MessageKind.Unsupported,
+        timestamp = 1011L
     )
 
     /**
@@ -151,7 +206,11 @@ Arguments: {"path": "src/main/kotlin", "regex": "class AuthService", "file_exten
         junieTerminalMessage,
         junieCodeMessage,
         junieDiffMessage,
+        junieMarkdownMessage,
         junieTextMessage,
-        junieErrorMessage
+        junieStructuredOutputMessage,
+        junieErrorMessage,
+        junieWarningMessage,
+        malformedContentMessage
     )
 }

@@ -1,7 +1,7 @@
 package com.knowledgespike.junieviewer.data
 
 import com.knowledgespike.junieviewer.domain.AppPreferences
-import com.knowledgespike.junieviewer.domain.WindowPreferences
+import com.knowledgespike.junieviewer.domain.WindowStatePreferences
 import okio.FileSystem
 import org.junit.After
 import org.junit.Before
@@ -35,7 +35,7 @@ class PreferencesRepositoryTest {
     @Test
     fun `given preferences saved when loading then it returns saved preferences`() {
         val preferences = AppPreferences(
-            window = WindowPreferences(x = 100, y = 200, width = 1024, height = 768)
+            window = WindowStatePreferences(x = 100, y = 200, width = 1024, height = 768)
         )
         
         repository.save(preferences)
