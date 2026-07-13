@@ -246,3 +246,32 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - Tag coverage: all important controls findable by stable testTag (1 test).
 - Long response: smoke test for crash-free rendering (1 test).
 - Non-colour-only indicators: error/warning text labels, unsupported event card (2 tests).
+
+
+## Code quality refactoring — all 10 thermo-nuclear findings
+**Date/Time:** 2026-07-13 15:30
+
+### What was shipped
+- Fixed all 10 findings from the thermo-nuclear code quality review
+- ConversationScreen.kt: 728→343 lines (split into 5 files)
+- JunieEvent.kt: 600→21 lines (split into TopLevelEvents.kt, AgentEvents.kt, EventSerializers.kt)
+- SessionRepository.kt: 405→168 lines (extracted EventToMessageMapper.kt)
+- Serializer dispatch tables replaced with map-based lookups
+- FilterCategory enum added to MessageKind, eliminating rotting when-expression
+- FatalErrorManager made injectable with per-error tracking
+- Unified HumanMessageItem/JunieMessageItem via shared MessageCard
+- MessageBody flattened — no nested when-in-when or post-when escape hatch
+- Preferences save made atomic with synchronized block
+
+### Key decisions
+- Kept looksLikeMarkdown in UI layer (MessageFormatting.kt) rather than moving to mapping time — changing it would alter message kinds in existing test fixtures
+- FatalErrorManager kept as global singleton for main.kt compatibility but backed by injectable DefaultFatalErrorReporter
+- Turn and groupMessagesIntoTurns moved to domain package since they are domain logic not UI
+
+### Gotchas
+- TurnGroupingTest needed import fix after Turn moved from ui to domain package
+- EventSerializers map types needed to match covariant DeserializationStrategy — no cast needed
+
+### Test coverage areas
+- All 142 existing tests pass unchanged (except one import fix)
+- No new tests added — this was a pure refactoring with no behaviour change

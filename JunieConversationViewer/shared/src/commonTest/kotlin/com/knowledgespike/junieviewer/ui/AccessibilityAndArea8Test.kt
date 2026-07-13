@@ -33,6 +33,7 @@ class AccessibilityAndArea8Test {
         override fun getMessages(): List<Message> = messages
         override fun listSessions(homePath: String): List<SessionInfo> = emptyList()
         override fun setSession(sessionId: String, homePath: String) {}
+        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
     }
 
     private fun tempPrefs(suffix: String): PreferencesRepository {

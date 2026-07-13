@@ -36,6 +36,8 @@ class ConversationViewModelTest {
         override fun setSession(sessionId: String, homePath: String) {
             lastSessionId = sessionId
         }
+        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
+            SessionInfo(sessionId, "/path/$sessionId", 123L, createdAt = 1000L, workingDirectory = "/projects/test")
     }
 
     private lateinit var tempPrefsPath: okio.Path
@@ -163,6 +165,22 @@ class ConversationViewModelTest {
         
         assertEquals("/new/home", viewModel.state.value.junieHomePath)
         assertEquals("/new/home", fakePreferencesRepository.load().junieHomePath)
+    }
+
+    @Test
+    fun `selectedSession is populated on startup when preferences contain a saved session`() = runTest {
+        fakePreferencesRepository.save(AppPreferences(lastSessionId = "startup-session"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        // The bug was that selectedSession was null on startup even though messages loaded fine
+        assertEquals("startup-session", state.selectedSessionId)
+        kotlin.test.assertNotNull(state.selectedSession, "selectedSession must be populated on startup")
+        assertEquals("startup-session", state.selectedSession!!.id)
+        assertEquals(1000L, state.selectedSession!!.createdAt)
+        assertEquals("/projects/test", state.selectedSession!!.workingDirectory)
     }
 
     @Test

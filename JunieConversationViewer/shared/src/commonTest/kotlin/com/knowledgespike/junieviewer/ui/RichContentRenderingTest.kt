@@ -37,6 +37,7 @@ class RichContentRenderingTest {
             override fun getMessages(): List<Message> = messages
             override fun listSessions(homePath: String): List<SessionInfo> = emptyList()
             override fun setSession(sessionId: String, homePath: String) {}
+            override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
         }
 
         return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher) to tempPrefsPath

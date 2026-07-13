@@ -6,8 +6,8 @@ import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
+import com.knowledgespike.junieviewer.domain.FilterCategory
 import com.knowledgespike.junieviewer.domain.MessageContent
-import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -121,12 +121,14 @@ class ConversationViewModel(
         loadMessages()
     }
 
-    private fun saveLastSession(sessionId: String) {
+    private val prefsMutex = Any()
+
+    private fun saveLastSession(sessionId: String) = synchronized(prefsMutex) {
         val currentPrefs = preferencesRepository.load()
         preferencesRepository.save(currentPrefs.copy(lastSessionId = sessionId))
     }
 
-    private fun saveHomePath(path: String) {
+    private fun saveHomePath(path: String) = synchronized(prefsMutex) {
         val currentPrefs = preferencesRepository.load()
         preferencesRepository.save(currentPrefs.copy(junieHomePath = path))
     }
@@ -155,16 +157,19 @@ class ConversationViewModel(
         viewModelScope.launch(exceptionHandler) {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val messages = withContext(ioDispatcher) {
+                val (messages, sessionInfo) = withContext(ioDispatcher) {
                     repository.setSession(sessionId, homePath)
-                    repository.getMessages()
+                    val msgs = repository.getMessages()
+                    val info = repository.getSessionInfo(sessionId, homePath)
+                    msgs to info
                 }
                 _state.update { 
                     it.copy(
                         messages = messages,
                         filteredMessages = messages,
                         isLoading = false,
-                        errorMessage = null
+                        errorMessage = null,
+                        selectedSession = sessionInfo ?: it.selectedSession
                     )
                 }
                 filterMessages(_state.value.searchQuery)
@@ -182,20 +187,17 @@ class ConversationViewModel(
     private fun filterMessages(query: String) {
         _state.update { currentState ->
             val filtered = currentState.messages.filter { message ->
-                val kindMatch = when (message.kind) {
-                    MessageKind.Text, MessageKind.Markdown -> {
+                val kindMatch = when (message.kind.filterCategory) {
+                    FilterCategory.Human -> currentState.filter.showHuman
+                    FilterCategory.Junie -> {
                         if (message.sender == Sender.Human) currentState.filter.showHuman
                         else currentState.filter.showJunie
                     }
-                    MessageKind.Thought -> currentState.filter.showThoughts
-                    MessageKind.Tool, MessageKind.StructuredOutput, MessageKind.Mcp -> currentState.filter.showTools
-                    MessageKind.Patch -> currentState.filter.showPatches
-                    MessageKind.Terminal, MessageKind.TestRun -> currentState.filter.showTerminal
-                    MessageKind.Error, MessageKind.Warning -> true // Always show errors/warnings
-                    MessageKind.Unsupported -> true // Always show unsupported events
-                    MessageKind.SystemMessage, MessageKind.Cancelled, MessageKind.Status -> true
-                    MessageKind.SubAgent -> currentState.filter.showTools
-                    MessageKind.Question, MessageKind.Choice -> true // Always show interactive events
+                    FilterCategory.Thought -> currentState.filter.showThoughts
+                    FilterCategory.Tool -> currentState.filter.showTools
+                    FilterCategory.Patch -> currentState.filter.showPatches
+                    FilterCategory.Terminal -> currentState.filter.showTerminal
+                    FilterCategory.AlwaysShow -> true
                 }
 
                 if (!kindMatch) return@filter false

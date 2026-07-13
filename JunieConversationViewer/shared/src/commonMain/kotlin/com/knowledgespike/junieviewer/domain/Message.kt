@@ -11,12 +11,31 @@ data class Message(
     val timestamp: Long = 0L
 )
 
+/** Categories used by the filter bar — each MessageKind maps to exactly one. */
+enum class FilterCategory {
+    Human, Junie, Thought, Tool, Patch, Terminal, AlwaysShow
+}
+
 /** Classifies the semantic kind of a Message for filtering and rendering. */
-enum class MessageKind {
-    Text, Markdown, Thought, Tool, Patch, Terminal,
-    StructuredOutput, Error, Warning, Unsupported,
-    TestRun, Mcp, SubAgent, Question, Choice,
-    SystemMessage, Cancelled, Status
+enum class MessageKind(val filterCategory: FilterCategory) {
+    Text(FilterCategory.Junie),
+    Markdown(FilterCategory.Junie),
+    Thought(FilterCategory.Thought),
+    Tool(FilterCategory.Tool),
+    Patch(FilterCategory.Patch),
+    Terminal(FilterCategory.Terminal),
+    StructuredOutput(FilterCategory.Tool),
+    Error(FilterCategory.AlwaysShow),
+    Warning(FilterCategory.AlwaysShow),
+    Unsupported(FilterCategory.AlwaysShow),
+    TestRun(FilterCategory.Terminal),
+    Mcp(FilterCategory.Tool),
+    SubAgent(FilterCategory.Tool),
+    Question(FilterCategory.AlwaysShow),
+    Choice(FilterCategory.AlwaysShow),
+    SystemMessage(FilterCategory.AlwaysShow),
+    Cancelled(FilterCategory.AlwaysShow),
+    Status(FilterCategory.AlwaysShow)
 }
 
 /**

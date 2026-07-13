@@ -27,7 +27,7 @@ fun main() {
         throwable.printStackTrace(System.err)
 
         // If the error was already reported through the UI manager, don't show another dialog
-        if (com.knowledgespike.junieviewer.ui.FatalErrorManager.isErrorReported) {
+        if (com.knowledgespike.junieviewer.ui.FatalErrorManager.hasBeenReported(throwable)) {
             Logger.i { "Error already reported via FatalErrorManager, suppressing global dialog" }
             return@setDefaultUncaughtExceptionHandler
         }

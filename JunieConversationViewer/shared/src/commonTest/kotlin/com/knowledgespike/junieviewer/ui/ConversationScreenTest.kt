@@ -22,6 +22,7 @@ class ConversationScreenTest {
         override fun getMessages(): List<Message> = testMessages
         override fun listSessions(homePath: String): List<SessionInfo> = emptyList()
         override fun setSession(sessionId: String, homePath: String) {}
+        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
     }
 
     private val testDispatcher = UnconfinedTestDispatcher()

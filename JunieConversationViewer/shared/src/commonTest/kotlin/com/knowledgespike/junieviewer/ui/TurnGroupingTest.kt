@@ -4,6 +4,7 @@ import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
+import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import org.junit.Test
 
 /**
