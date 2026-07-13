@@ -72,6 +72,26 @@ fun SessionSelector(
     }
 }
 
+/**
+ * Formats an epoch-millis timestamp as a human-readable local date/time string.
+ */
+private fun formatTimestamp(epochMillis: Long): String {
+    return try {
+        val tz = try { TimeZone.currentSystemDefault() } catch (_: Throwable) { TimeZone.UTC }
+        Instant.fromEpochMilliseconds(epochMillis)
+            .toLocalDateTime(tz)
+            .toString()
+            .replace("T", " ")
+            .substringBefore(".")
+    } catch (_: Throwable) {
+        "Unknown"
+    }
+}
+
+/**
+ * A single row in the Session selector list, showing the session id,
+ * directory context, and the best available timestamp.
+ */
 @Composable
 fun SessionItem(
     session: SessionInfo,
@@ -86,42 +106,43 @@ fun SessionItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
         ) {
-//            Icon(
-//                imageVector = Icons.Default.DateRange,
-//                contentDescription = null,
-//                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-//            )
-//
-//            Spacer(modifier = Modifier.width(16.dp))
+            // Session id
+            Text(
+                text = session.id,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
 
-            Column {
+            // Working directory — the directory Junie was operating in
+            if (!session.workingDirectory.isNullOrBlank()) {
                 Text(
-                    text = session.id,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
-                
-                val dateTime = try {
-                    val tz = try { TimeZone.currentSystemDefault() } catch (e: Throwable) { TimeZone.UTC }
-                    Instant.fromEpochMilliseconds(session.lastModified)
-                        .toLocalDateTime(tz)
-                        .toString()
-                        .replace("T", " ")
-                        .substringBefore(".")
-                } catch (e: Throwable) {
-                    "Unknown"
-                }
-                
-                Text(
-                    text = "Last modified: $dateTime",
+                    text = "Project: ${session.workingDirectory}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+
+            // Timestamp — prefer created time when available, fall back to last modified
+            val timestampLabel = if (session.createdAt != null && session.createdAt > 0L) {
+                "Created: ${formatTimestamp(session.createdAt)}"
+            } else if (session.lastModified > 0L) {
+                "Last modified: ${formatTimestamp(session.lastModified)}"
+            } else {
+                null
+            }
+
+            if (timestampLabel != null) {
+                Text(
+                    text = timestampLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }

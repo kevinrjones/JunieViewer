@@ -3,6 +3,9 @@ package com.knowledgespike.junieviewer.data
 import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
 import com.knowledgespike.junieviewer.getPlatform
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -95,16 +98,60 @@ class SessionRepositoryImpl(
             fileSystem.list(sessionsDir)
                 .filter { fileSystem.metadata(it).isDirectory }
                 .map { dir ->
+                    val meta = fileSystem.metadata(dir)
                     SessionInfo(
                         id = dir.name,
                         path = dir.toString(),
-                        lastModified = fileSystem.metadata(dir).lastModifiedAtMillis ?: 0L
+                        lastModified = meta.lastModifiedAtMillis ?: 0L,
+                        createdAt = meta.createdAtMillis,
+                        workingDirectory = extractWorkingDirectory(dir)
                     )
                 }
                 .sortedByDescending { it.lastModified }
         } catch (e: Exception) {
             logger.e(e) { "Error listing sessions from $sessionsDir" }
             emptyList()
+        }
+    }
+
+    /**
+     * Scans a session's events.jsonl for the first AgentStateUpdatedEvent containing
+     * a `currentDirectory` field and returns it. This is the directory Junie was
+     * operating in during the session.
+     */
+    private fun extractWorkingDirectory(sessionDir: Path): String? {
+        val eventsFile = sessionDir / "events.jsonl"
+        if (!fileSystem.exists(eventsFile)) return null
+
+        return try {
+            fileSystem.source(eventsFile).buffer().use { source ->
+                while (true) {
+                    val line = source.readUtf8Line() ?: break
+                    if (!line.contains("currentDirectory")) continue
+                    try {
+                        val root = Json.parseToJsonElement(line).jsonObject
+                        val agentEvent = root["event"]?.jsonObject?.get("agentEvent")?.jsonObject
+
+                        // Try direct field first (CurrentDirectoryUpdatedEvent)
+                        val directDir = agentEvent?.get("currentDirectory")?.jsonPrimitive?.content
+                        if (!directDir.isNullOrBlank()) return@use directDir
+
+                        // Try nested blob (AgentStateUpdatedEvent)
+                        val blob = agentEvent?.get("blob")?.jsonPrimitive?.content
+                        if (blob != null) {
+                            val blobJson = Json.parseToJsonElement(blob).jsonObject
+                            val dir = blobJson["currentDirectory"]?.jsonPrimitive?.content
+                            if (!dir.isNullOrBlank()) return@use dir
+                        }
+                    } catch (_: Exception) {
+                        // Skip malformed lines
+                    }
+                }
+                null
+            }
+        } catch (e: Exception) {
+            logger.d { "Could not extract working directory from $eventsFile: ${e.message}" }
+            null
         }
     }
 
