@@ -14,6 +14,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
@@ -79,13 +82,14 @@ fun ConversationScreen(
                     Text(
                         text = "Junie Conversation Viewer",
                         style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(16.dp).semantics { heading() }
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(
                             onClick = { onAction(ConversationAction.OnToggleSessionPicker) },
                             modifier = Modifier.padding(end = 8.dp).testTag("session_picker_button")
+                                .semantics { contentDescription = "Select Session" }
                         ) {
                             Text(state.selectedSessionId ?: "Select Session")
                         }
@@ -93,6 +97,7 @@ fun ConversationScreen(
                         TextButton(
                             onClick = { onAction(ConversationAction.OnToggleSettings) },
                             modifier = Modifier.padding(end = 16.dp).testTag("settings_button")
+                                .semantics { contentDescription = "Settings" }
                         ) {
                             Text("Settings")
                         }
@@ -119,6 +124,7 @@ fun ConversationScreen(
                             IconButton(
                                 onClick = { onAction(ConversationAction.OnSearchQueryChange("")) },
                                 modifier = Modifier.testTag("search_clear_button")
+                                    .semantics { contentDescription = "Clear search" }
                             ) {
                                 Text("✕")
                             }
@@ -167,12 +173,14 @@ fun ConversationScreen(
                             IconButton(
                                 onClick = { onAction(ConversationAction.OnPreviousMatch) },
                                 modifier = Modifier.size(32.dp).testTag("prev_match_button")
+                                    .semantics { contentDescription = "Previous match" }
                             ) {
                                 Text("▲", style = MaterialTheme.typography.labelSmall)
                             }
                             IconButton(
                                 onClick = { onAction(ConversationAction.OnNextMatch) },
                                 modifier = Modifier.size(32.dp).testTag("next_match_button")
+                                    .semantics { contentDescription = "Next match" }
                             ) {
                                 Text("▼", style = MaterialTheme.typography.labelSmall)
                             }
@@ -206,7 +214,8 @@ fun ConversationScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .testTag("loading_indicator"),
+                            .testTag("loading_indicator")
+                            .semantics { contentDescription = "Loading Conversation" },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -225,7 +234,8 @@ fun ConversationScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .testTag("error_state"),
+                            .testTag("error_state")
+                            .semantics { contentDescription = "Error loading Conversation" },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -243,6 +253,7 @@ fun ConversationScreen(
                             Button(
                                 onClick = { onAction(ConversationAction.OnRetryClick) },
                                 modifier = Modifier.testTag("retry_button")
+                                    .semantics { contentDescription = "Retry loading" }
                             ) {
                                 Text("Retry")
                             }
@@ -254,7 +265,8 @@ fun ConversationScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .testTag("no_session_state"),
+                            .testTag("no_session_state")
+                            .semantics { contentDescription = "No Session selected" },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -277,7 +289,8 @@ fun ConversationScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .testTag("empty_conversation"),
+                            .testTag("empty_conversation")
+                            .semantics { contentDescription = "Empty Conversation" },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -300,7 +313,8 @@ fun ConversationScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .testTag("no_results"),
+                            .testTag("no_results")
+                            .semantics { contentDescription = "No matching Messages" },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

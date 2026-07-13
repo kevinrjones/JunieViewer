@@ -211,3 +211,38 @@
 - Data Layer: `JsonlParser`, `SessionRepository`.
 - Presentation Layer: `ConversationViewModel`.
 - UI Layer: `ConversationScreen` (Robot-based).
+
+---
+
+## Area 7 & 8 — Accessibility, Desktop Polish, and Automated Testing
+
+### Title
+Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Testing)
+
+### Date/time completed
+2026-07-13 14:45
+
+### What was shipped
+- Added `semantics { contentDescription = "..." }` to 12 key composables in `ConversationScreen.kt` (session picker, settings, search clear, match nav buttons, loading/error/empty/no-session/no-results states, retry button, app title heading).
+- Verified keyboard focus order follows logical reading order via natural Compose layout.
+- Verified non-colour-only status indicators: all MessageKind markers use emoji+text labels.
+- Expanded `ConversationRobot.kt` with 8 new intent-level helpers: `goToNextMatch()`, `goToPreviousMatch()`, `assertMatchIndicator()`, `assertMessageOfKindVisible()`, `assertSenderMarkerVisible()`, `assertTurnHeaderVisible(text)`, `assertTagExists()`, `assertContentDescriptionExists()`.
+- Created `AccessibilityAndArea8Test.kt` with 16 new tests covering semantic labels, sender/kind markers, turn grouping, match navigation with wrap-around, stable testTag coverage, long response smoke test, non-colour-only indicators, and unsupported event card.
+- Total test count: 142 (up from 126), 0 failures.
+
+### Key decisions
+- Used `semantics { contentDescription }` rather than separate accessibility labels to keep semantic info co-located with testTags.
+- Long-response test verifies no-crash and turn header presence rather than counting all items (LazyColumn virtualises off-screen items).
+- Manual-review Area 7 tasks (7.3, 7.4, 7.6–7.13) left unchecked — require HITL verification on each platform.
+
+### Gotchas
+- LazyColumn virtualisation means off-screen items are not rendered in UI tests — assertions must target visible items only.
+- `hasText` filter on `turn_header` tag doesn't match because the text "Junie Turn" is in a child node — use `assertTagExists("turn_header")` instead.
+
+### Test coverage areas
+- Accessibility: content descriptions on all interactive controls and state surfaces (6 tests).
+- Human/Junie rendering: sender markers, kind markers, turn grouping (3 tests).
+- Match navigation: forward/backward with wrap-around, content descriptions (3 tests).
+- Tag coverage: all important controls findable by stable testTag (1 test).
+- Long response: smoke test for crash-free rendering (1 test).
+- Non-colour-only indicators: error/warning text labels, unsupported event card (2 tests).

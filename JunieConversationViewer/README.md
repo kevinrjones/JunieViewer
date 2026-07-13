@@ -11,7 +11,8 @@ Junie Conversation Viewer is a Kotlin Multiplatform application (Desktop/JVM) de
     - Tool calls and terminal output.
     - Code patches and diffs with syntax highlighting.
 - **Metadata Filtering**: Quick toggles to show or hide specific types of events (Human, Junie, Thoughts, Tools, Patches, Terminal).
-- **Full-Text Search**: Filter messages across the entire conversation history.
+- **Full-Text Search**: Filter messages across the entire conversation history with match-to-match navigation.
+- **Accessibility**: Screen-reader-friendly semantic labels on all interactive controls and state surfaces; non-colour-only status indicators (emoji+text labels); keyboard-navigable focus order; Cmd+F / Ctrl+F search shortcut.
 - **Observability**: Integrated Kermit logging with Logback on the JVM for rolling file logs (date and size based).
 - **Error Handling**: Global uncaught exception handling with user-friendly error dialogs and detailed crash logging.
 - **Persistence**: Remembers your configured home path and the last viewed session for a seamless experience.

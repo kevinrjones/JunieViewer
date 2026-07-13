@@ -172,4 +172,65 @@ class ConversationRobot(private val semanticMatcher: SemanticsNodeInteractionsPr
         semanticMatcher.onNodeWithTag("retry_button")
             .performClick()
     }
+
+    // -- Match navigation --
+
+    /** Clicks the next match button */
+    fun goToNextMatch() {
+        semanticMatcher.onNodeWithTag("next_match_button")
+            .performClick()
+    }
+
+    /** Clicks the previous match button */
+    fun goToPreviousMatch() {
+        semanticMatcher.onNodeWithTag("prev_match_button")
+            .performClick()
+    }
+
+    /** Asserts the match position indicator shows the expected text (e.g. "1 / 3") */
+    fun assertMatchIndicator(expected: String) {
+        semanticMatcher.onNodeWithTag("match_position")
+            .assertTextContains(expected, substring = true)
+    }
+
+    // -- Message kind assertions --
+
+    /** Asserts at least one message with the given kind label is visible */
+    fun assertMessageOfKindVisible(kindLabel: String) {
+        semanticMatcher.onAllNodesWithTag("message_kind_marker")
+            .filter(hasText(kindLabel, substring = true))
+            .onFirst()
+            .assertExists()
+    }
+
+    /** Asserts a sender marker with the given name is visible */
+    fun assertSenderMarkerVisible(senderName: String) {
+        semanticMatcher.onAllNodesWithTag("sender_marker")
+            .filter(hasText(senderName))
+            .onFirst()
+            .assertExists()
+    }
+
+    /** Asserts a turn header with the given text is visible */
+    fun assertTurnHeaderVisible(text: String = "Junie Turn") {
+        semanticMatcher.onAllNodesWithTag("turn_header")
+            .filter(hasText(text, substring = true))
+            .onFirst()
+            .assertExists()
+    }
+
+    // -- Semantic / accessibility assertions --
+
+    /** Asserts a node with the given testTag exists */
+    fun assertTagExists(tag: String) {
+        semanticMatcher.onNodeWithTag(tag)
+            .assertExists()
+    }
+
+    /** Asserts a node with the given content description exists */
+    fun assertContentDescriptionExists(description: String) {
+        semanticMatcher.onAllNodesWithContentDescription(description)
+            .onFirst()
+            .assertExists()
+    }
 }

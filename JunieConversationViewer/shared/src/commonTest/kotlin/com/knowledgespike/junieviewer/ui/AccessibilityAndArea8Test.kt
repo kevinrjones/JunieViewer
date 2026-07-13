@@ -1,0 +1,287 @@
+package com.knowledgespike.junieviewer.ui
+
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.runComposeUiTest
+import com.knowledgespike.junieviewer.data.PreferencesRepository
+import com.knowledgespike.junieviewer.data.SessionRepository
+import com.knowledgespike.junieviewer.domain.*
+import com.knowledgespike.junieviewer.fixtures.RepresentativeFixtures
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import okio.FileSystem
+import org.junit.Test
+
+/**
+ * Area 7 (Accessibility) and Area 8 (Automated Testing) coverage.
+ * Tests semantic labels, match navigation, long responses, and tag coverage.
+ */
+@OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
+class AccessibilityAndArea8Test {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    // Three searchable messages for match navigation tests
+    private val searchableMessages = listOf(
+        Message("s1", Sender.Human, MessageContent.Text("alpha beta"), MessageKind.Text, 1000L),
+        Message("s2", Sender.Junie, MessageContent.Text("alpha gamma"), MessageKind.Text, 1001L),
+        Message("s3", Sender.Junie, MessageContent.Text("alpha delta"), MessageKind.Text, 1002L),
+        Message("s4", Sender.Human, MessageContent.Text("no match here"), MessageKind.Text, 1003L)
+    )
+
+    private fun fakeRepo(messages: List<Message> = searchableMessages) = object : SessionRepository {
+        override fun getMessages(): List<Message> = messages
+        override fun listSessions(homePath: String): List<SessionInfo> = emptyList()
+        override fun setSession(sessionId: String, homePath: String) {}
+    }
+
+    private fun tempPrefs(suffix: String): PreferencesRepository {
+        val path = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "a8-test-$suffix-${System.currentTimeMillis()}.json"
+        val repo = PreferencesRepository(path = path, fileSystem = FileSystem.SYSTEM)
+        repo.save(AppPreferences(lastSessionId = "test-session"))
+        return repo
+    }
+
+    // -- Area 7.2: Semantic labels / content descriptions --
+
+    @Test
+    fun `session picker button has content description`() = runComposeUiTest {
+        val prefs = tempPrefs("a7-picker")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        robot.assertContentDescriptionExists("Select Session")
+    }
+
+    @Test
+    fun `settings button has content description`() = runComposeUiTest {
+        val prefs = tempPrefs("a7-settings")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        robot.assertContentDescriptionExists("Settings")
+    }
+
+    @Test
+    fun `no session state has content description`() = runComposeUiTest {
+        val robot = ConversationRobot(this)
+        setContent {
+            ConversationScreen(
+                state = ConversationState(selectedSessionId = null),
+                onAction = {}
+            )
+        }
+
+        robot.assertNoSessionStateVisible()
+        robot.assertContentDescriptionExists("No Session selected")
+    }
+
+    @Test
+    fun `loading state has content description`() = runComposeUiTest {
+        val robot = ConversationRobot(this)
+        setContent {
+            ConversationScreen(
+                state = ConversationState(isLoading = true, selectedSessionId = "s1"),
+                onAction = {}
+            )
+        }
+
+        robot.assertLoadingVisible()
+        robot.assertContentDescriptionExists("Loading Conversation")
+    }
+
+    @Test
+    fun `error state has content description`() = runComposeUiTest {
+        val robot = ConversationRobot(this)
+        setContent {
+            ConversationScreen(
+                state = ConversationState(
+                    errorMessage = "Something went wrong",
+                    selectedSessionId = "s1"
+                ),
+                onAction = {}
+            )
+        }
+
+        robot.assertErrorVisible()
+        robot.assertContentDescriptionExists("Error loading Conversation")
+        robot.assertContentDescriptionExists("Retry loading")
+    }
+
+    @Test
+    fun `empty conversation state has content description`() = runComposeUiTest {
+        val robot = ConversationRobot(this)
+        setContent {
+            ConversationScreen(
+                state = ConversationState(
+                    selectedSessionId = "s1",
+                    messages = emptyList()
+                ),
+                onAction = {}
+            )
+        }
+
+        robot.assertEmptyConversationStateVisible()
+        robot.assertContentDescriptionExists("Empty Conversation")
+    }
+
+    // -- Area 8.5: Human/Junie rendering --
+
+    @Test
+    fun `sender markers show Human and Junie`() = runComposeUiTest {
+        val prefs = tempPrefs("a8-sender")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        robot.assertSenderMarkerVisible("Human")
+        robot.assertSenderMarkerVisible("Junie")
+    }
+
+    @Test
+    fun `message kind markers are visible for first visible fixture kinds`() = runComposeUiTest {
+        // Only test kinds that are visible without scrolling (LazyColumn virtualises off-screen items)
+        val prefs = tempPrefs("a8-kinds")
+        val vm = ConversationViewModel(fakeRepo(RepresentativeFixtures.allMessageKinds), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        // The first few items are always visible: Human text, then Junie turn with Thought, Tool, etc.
+        robot.assertMessageOfKindVisible("Text")
+        robot.assertMessageOfKindVisible("Thought")
+        robot.assertMessageOfKindVisible("Tool")
+    }
+
+    @Test
+    fun `junie messages are grouped with turn headers`() = runComposeUiTest {
+        val prefs = tempPrefs("a8-turns")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        // searchableMessages has Human, Junie, Junie, Human — so 1 Junie turn header
+        robot.assertTagExists("turn_header")
+    }
+
+    // -- Area 8: Match navigation --
+
+    @Test
+    fun `match navigation buttons appear when multiple matches exist`() = runComposeUiTest {
+        val prefs = tempPrefs("a8-matchnav")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        // Search for "alpha" — 3 matches
+        robot.typeSearchQuery("alpha")
+        robot.assertMatchIndicator("1 / 3")
+
+        // Navigate forward
+        robot.goToNextMatch()
+        robot.assertMatchIndicator("2 / 3")
+
+        robot.goToNextMatch()
+        robot.assertMatchIndicator("3 / 3")
+
+        // Wrap around
+        robot.goToNextMatch()
+        robot.assertMatchIndicator("1 / 3")
+
+        // Navigate backward wraps
+        robot.goToPreviousMatch()
+        robot.assertMatchIndicator("3 / 3")
+    }
+
+    @Test
+    fun `match navigation buttons have content descriptions`() = runComposeUiTest {
+        val prefs = tempPrefs("a8-matchcd")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        robot.typeSearchQuery("alpha")
+        robot.assertContentDescriptionExists("Previous match")
+        robot.assertContentDescriptionExists("Next match")
+    }
+
+    @Test
+    fun `clear search button has content description`() = runComposeUiTest {
+        val prefs = tempPrefs("a8-clearcd")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        robot.typeSearchQuery("alpha")
+        robot.assertContentDescriptionExists("Clear search")
+    }
+
+    // -- Area 8.4: Semantic tag coverage --
+
+    @Test
+    fun `important controls have stable test tags`() = runComposeUiTest {
+        val prefs = tempPrefs("a8-tags")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        onNodeWithTag("search_field").assertExists()
+        onNodeWithTag("session_picker_button").assertExists()
+        onNodeWithTag("settings_button").assertExists()
+        onNodeWithTag("filter_human").assertExists()
+        onNodeWithTag("filter_junie").assertExists()
+        onNodeWithTag("filter_thought").assertExists()
+        onNodeWithTag("filter_tool").assertExists()
+        onNodeWithTag("filter_patch").assertExists()
+        onNodeWithTag("filter_terminal").assertExists()
+        onNodeWithTag("message_list").assertExists()
+    }
+
+    // -- Area 8.10: Long Junie response --
+
+    @Test
+    fun `long junie response renders without crashing and preserves turn grouping`() = runComposeUiTest {
+        val longText = "Line of text. ".repeat(500)
+        val longMessages = listOf(
+            Message("l1", Sender.Human, MessageContent.Text("Start"), MessageKind.Text, 1L),
+            Message("l2", Sender.Junie, MessageContent.Text(longText), MessageKind.Text, 2L),
+            Message("l3", Sender.Junie, MessageContent.Text("Follow-up"), MessageKind.Text, 3L)
+        )
+        val prefs = tempPrefs("a8-long")
+        val vm = ConversationViewModel(fakeRepo(longMessages), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        // LazyColumn virtualises — not all items rendered. Verify it doesn't crash and turn header exists.
+        robot.assertTagExists("turn_header")
+        robot.assertSenderMarkerVisible("Human")
+    }
+
+    // -- Area 7.5: Non-colour-only status indicators --
+
+    @Test
+    fun `error and warning messages have text labels not just colour`() = runComposeUiTest {
+        val messages = listOf(
+            RepresentativeFixtures.junieErrorMessage,
+            RepresentativeFixtures.junieWarningMessage
+        )
+        val prefs = tempPrefs("a7-noncolour")
+        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        // Kind markers include emoji+text, not colour alone
+        robot.assertMessageOfKindVisible("Error")
+        robot.assertMessageOfKindVisible("Warning")
+    }
+
+    @Test
+    fun `unsupported event has text label and card`() = runComposeUiTest {
+        val messages = listOf(RepresentativeFixtures.malformedContentMessage)
+        val prefs = tempPrefs("a7-unsup")
+        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        onNodeWithTag("unsupported_event_card").assertExists()
+    }
+}
