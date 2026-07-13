@@ -55,7 +55,7 @@ fun DiffBlock(
                 .horizontalScroll(rememberScrollState())
         ) {
             diff.lines().forEach { line ->
-                val (bgColor, prefix) = when {
+                val (bgColor, _) = when {
                     line.startsWith("+") && !line.startsWith("+++") ->
                         Color(0x3300AA00) to "+"
                     line.startsWith("-") && !line.startsWith("---") ->

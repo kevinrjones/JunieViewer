@@ -2,7 +2,6 @@ package com.knowledgespike.junieviewer.domain
 
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
@@ -254,7 +253,7 @@ data class AgentPlanUpdatedEvent(
 @Serializable
 data class AvailablePullRequestsEvent(
     val pullRequests: JsonElement? = null,
-    val agent: String? = null
+    val agent: JsonElement? = null
 ) : AgentEvent {
     override val kind: String get() = "AvailablePullRequestsEvent"
 }
@@ -360,7 +359,7 @@ data class AskAsyncRequestUpdatedEvent(
 @Serializable
 data class AuthorizationAvailabilityEvent(
     val available: Boolean? = null,
-    val agent: String? = null,
+    val agent: JsonElement? = null,
     val authorized: Boolean? = null
 ) : AgentEvent {
     override val kind: String get() = "AuthorizationAvailabilityEvent"
@@ -370,7 +369,7 @@ data class AuthorizationAvailabilityEvent(
 @Serializable
 data class AgentStartedEvent(
     val agentId: String? = null,
-    val agent: String? = null,
+    val agent: JsonElement? = null,
     val stepId: String? = null,
     val agentType: String? = null
 ) : AgentEvent {

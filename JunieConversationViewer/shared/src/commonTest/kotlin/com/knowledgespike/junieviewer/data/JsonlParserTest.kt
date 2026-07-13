@@ -446,6 +446,59 @@ class JsonlParserTest {
         event.get { errorCode }.isEqualTo("NONE")
     }
 
+    // -- Regression: agent field as JSON object (viewer.log 2026-07-13) --
+
+    @Test
+    fun `given AuthorizationAvailabilityEvent with agent as object when parsed then it succeeds`() {
+        val line = """{"kind":"SessionA2uxEvent","event":{"state":"IN_PROGRESS","agentEvent":{"kind":"AuthorizationAvailabilityEvent","agent":{"kind":"MainAgent","id":"main","name":"main"},"authorized":true}},"timestampMs":1783947457317}"""
+        val result = JsonlParser.parseLine(line)
+
+        expectThat(result.getOrNull()).isA<SessionA2uxEvent>()
+            .get { event.agentEvent }.isA<AuthorizationAvailabilityEvent>()
+            .and {
+                get { authorized }.isEqualTo(true)
+                get { agent }.isNotNull()
+            }
+    }
+
+    @Test
+    fun `given AvailablePullRequestsEvent with agent as object when parsed then it succeeds`() {
+        val line = """{"kind":"SessionA2uxEvent","event":{"state":"IN_PROGRESS","agentEvent":{"kind":"AvailablePullRequestsEvent","agent":{"kind":"MainAgent","id":"main","name":"main"},"pullRequests":[]}},"timestampMs":1783947457391}"""
+        val result = JsonlParser.parseLine(line)
+
+        expectThat(result.getOrNull()).isA<SessionA2uxEvent>()
+            .get { event.agentEvent }.isA<AvailablePullRequestsEvent>()
+            .and {
+                get { agent }.isNotNull()
+                get { pullRequests }.isNotNull()
+            }
+    }
+
+    @Test
+    fun `given UserPromptEvent without requestId when parsed then it succeeds`() {
+        val line = """{"kind":"UserPromptEvent","prompt":"quit","presentablePrompt":"quit","customAttachments":[{"kind":"BashCommandAttachment","mode":"Direct"}]}"""
+        val result = JsonlParser.parseLine(line)
+
+        expectThat(result.getOrNull()).isA<UserPromptEvent>()
+            .and {
+                get { prompt }.isEqualTo("quit")
+                get { requestId }.isEqualTo(null)
+            }
+    }
+
+    @Test
+    fun `given AgentStartedEvent with agent as object when parsed then it succeeds`() {
+        val line = """{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentStartedEvent","agent":{"kind":"MainAgent","id":"main","name":"main"},"stepId":"s1"}},"timestampMs":100}"""
+        val result = JsonlParser.parseLine(line)
+
+        expectThat(result.getOrNull()).isA<SessionA2uxEvent>()
+            .get { event.agentEvent }.isA<AgentStartedEvent>()
+            .and {
+                get { agent }.isNotNull()
+                get { stepId }.isEqualTo("s1")
+            }
+    }
+
     // -- Crash-fix regression tests --
 
     @Test

@@ -5,7 +5,6 @@ import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
 import okio.FileSystem
 import okio.Path
-import okio.Path.Companion.toPath
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
