@@ -7,11 +7,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
@@ -20,6 +21,9 @@ import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.components.*
 import dev.snipme.highlights.model.SyntaxLanguage
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Root composable that collects ViewModel state and delegates to ConversationScreen.
@@ -61,6 +65,9 @@ fun ConversationScreen(
         )
     }
 
+    val searchFocusRequester = remember { FocusRequester() }
+    val isSearchOrFilterActive = state.searchQuery.isNotBlank() || !state.filter.isDefault()
+
     Scaffold(
         topBar = {
             Column {
@@ -91,71 +98,297 @@ fun ConversationScreen(
                         }
                     }
                 }
+                // Session context header — visible when a Session is selected
+                if (state.selectedSessionId != null) {
+                    SessionContextHeader(
+                        state = state,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                    )
+                }
                 OutlinedTextField(
                     value = state.searchQuery,
                     onValueChange = { onAction(ConversationAction.OnSearchQueryChange(it)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
+                        .focusRequester(searchFocusRequester)
                         .testTag("search_field"),
-                    placeholder = { Text("Search messages...") }
+                    placeholder = { Text("Search Messages...") },
+                    trailingIcon = {
+                        if (state.searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { onAction(ConversationAction.OnSearchQueryChange("")) },
+                                modifier = Modifier.testTag("search_clear_button")
+                            ) {
+                                Text("✕")
+                            }
+                        }
+                    },
+                    singleLine = true
                 )
                 FilterBar(
                     filter = state.filter,
                     onToggleFilter = { onAction(ConversationAction.OnToggleFilter(it)) },
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
+                // Result count and match navigation when Search or Filters are active
+                if (isSearchOrFilterActive) {
+                    val matchCount = state.filteredMessages.size
+                    val totalCount = state.messages.size
+                    val countText = if (matchCount == 0) {
+                        "No matching Messages"
+                    } else {
+                        "$matchCount of $totalCount Messages"
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = countText,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("result_count")
+                        )
+                        if (matchCount > 1) {
+                            val matchLabel = if (state.currentMatchIndex >= 0) {
+                                "${state.currentMatchIndex + 1} / $matchCount"
+                            } else ""
+                            Text(
+                                text = matchLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(end = 4.dp).testTag("match_position")
+                            )
+                            IconButton(
+                                onClick = { onAction(ConversationAction.OnPreviousMatch) },
+                                modifier = Modifier.size(32.dp).testTag("prev_match_button")
+                            ) {
+                                Text("▲", style = MaterialTheme.typography.labelSmall)
+                            }
+                            IconButton(
+                                onClick = { onAction(ConversationAction.OnNextMatch) },
+                                modifier = Modifier.size(32.dp).testTag("next_match_button")
+                            ) {
+                                Text("▼", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        modifier = Modifier.onPreviewKeyEvent { keyEvent ->
+            // Cmd+F (macOS) / Ctrl+F (Windows/Linux) focuses the search field
+            if (keyEvent.type == KeyEventType.KeyDown &&
+                keyEvent.key == Key.F &&
+                (keyEvent.isMetaPressed || keyEvent.isCtrlPressed)
+            ) {
+                searchFocusRequester.requestFocus()
+                true
+            } else {
+                false
             }
         }
     ) { paddingValues ->
-        val turns = groupMessagesIntoTurns(state.filteredMessages)
-        val listState = rememberLazyListState()
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("message_list"),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                turns.forEach { turn ->
-                    if (turn.sender == Sender.Human) {
-                        // Human messages render individually — compact, right-inset
-                        items(
-                            items = turn.messages,
-                            key = { it.id }
-                        ) { message ->
-                            HumanMessageItem(message = message)
-                        }
-                    } else {
-                        // Junie Turn: header + grouped messages
-                        item(key = "turn-header-${turn.messages.first().id}") {
-                            TurnHeader()
-                        }
-                        items(
-                            items = turn.messages,
-                            key = { it.id }
-                        ) { message ->
-                            JunieMessageItem(message = message)
+            // State priority: Loading > Error > No Session > Empty Conversation > No Results > Normal
+            when {
+                state.isLoading -> {
+                    // Loading state
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("loading_indicator"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading Conversation\u2026",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
-            }
+                state.errorMessage != null -> {
+                    // Recoverable error state
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("error_state"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "⚠",
+                                style = MaterialTheme.typography.headlineLarge
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = state.errorMessage,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { onAction(ConversationAction.OnRetryClick) },
+                                modifier = Modifier.testTag("retry_button")
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                }
+                state.selectedSessionId == null -> {
+                    // No Session selected state
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("no_session_state"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "No Session selected",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Choose a Session to view its Conversation.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                state.messages.isEmpty() -> {
+                    // Empty Conversation state — session selected but no messages
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("empty_conversation"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "This Session has no Messages",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "The selected Session loaded successfully, but no Conversation Messages were found.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                state.filteredMessages.isEmpty() -> {
+                    // No-results state from search/filter
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("no_results"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No Messages match the current Search Query and Filters.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                else -> {
+                    // Normal conversation list
+                    val turns = groupMessagesIntoTurns(state.filteredMessages)
+                    val listState = rememberLazyListState()
 
-            VerticalScrollbar(
-                adapter = rememberScrollbarAdapter(listState),
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxHeight()
-            )
+                    // Auto-scroll to the current match when it changes
+                    LaunchedEffect(state.currentMatchIndex) {
+                        val matchIdx = state.currentMatchIndex
+                        if (matchIdx >= 0 && matchIdx < state.filteredMessages.size) {
+                            val lazyItemIndex = lazyColumnIndexForMessage(turns, matchIdx)
+                            listState.animateScrollToItem(lazyItemIndex)
+                        }
+                    }
+
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("message_list"),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        turns.forEach { turn ->
+                            if (turn.sender == Sender.Human) {
+                                items(
+                                    items = turn.messages,
+                                    key = { it.id }
+                                ) { message ->
+                                    HumanMessageItem(message = message)
+                                }
+                            } else {
+                                item(key = "turn-header-${turn.messages.first().id}") {
+                                    TurnHeader()
+                                }
+                                items(
+                                    items = turn.messages,
+                                    key = { it.id }
+                                ) { message ->
+                                    JunieMessageItem(message = message)
+                                }
+                            }
+                        }
+                    }
+
+                    VerticalScrollbar(
+                        adapter = rememberScrollbarAdapter(listState),
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                    )
+                }
+            }
         }
     }
+}
+
+/**
+ * Computes the LazyColumn item index for the message at [messageIndex] in the flat
+ * filteredMessages list, accounting for Junie Turn headers inserted before each Junie turn.
+ */
+fun lazyColumnIndexForMessage(turns: List<Turn>, messageIndex: Int): Int {
+    var flatIdx = 0
+    var lazyIdx = 0
+    for (turn in turns) {
+        if (turn.sender == Sender.Junie) {
+            // Junie turns have a header item before the messages
+            if (flatIdx + turn.messages.size > messageIndex) {
+                return lazyIdx + 1 + (messageIndex - flatIdx) // +1 for header
+            }
+            lazyIdx += 1 + turn.messages.size // header + messages
+        } else {
+            if (flatIdx + turn.messages.size > messageIndex) {
+                return lazyIdx + (messageIndex - flatIdx)
+            }
+            lazyIdx += turn.messages.size
+        }
+        flatIdx += turn.messages.size
+    }
+    return lazyIdx // fallback
 }
 
 /**
@@ -233,6 +466,14 @@ fun messageKindLabel(kind: MessageKind): String = when (kind) {
     MessageKind.Error -> "❌ Error"
     MessageKind.Warning -> "⚠️ Warning"
     MessageKind.Unsupported -> "⚠ Unsupported"
+    MessageKind.TestRun -> "🧪 Test"
+    MessageKind.Mcp -> "🔌 MCP"
+    MessageKind.SubAgent -> "🤖 SubAgent"
+    MessageKind.Question -> "❓ Question"
+    MessageKind.Choice -> "🔘 Choice"
+    MessageKind.SystemMessage -> "ℹ️ System"
+    MessageKind.Cancelled -> "⛔ Cancelled"
+    MessageKind.Status -> "📋 Status"
 }
 
 /**
@@ -336,7 +577,7 @@ fun MessageBody(message: Message) {
             isWarning = message.kind == MessageKind.Warning,
             modifier = Modifier.testTag("error_warning_block")
         )
-        MessageKind.Tool -> ToolCallBlock(
+        MessageKind.Tool, MessageKind.Mcp -> ToolCallBlock(
             content = when (val c = message.content) {
                 is MessageContent.Code -> c.code
                 is MessageContent.Text -> c.text
@@ -407,6 +648,62 @@ fun MessageBody(message: Message) {
             )
         }
     }
+}
+
+/**
+ * Persistent Session context header showing Session id and timestamp.
+ * Displayed in the top bar when a Session is selected.
+ */
+@Composable
+fun SessionContextHeader(
+    state: ConversationState,
+    modifier: Modifier = Modifier
+) {
+    val session = state.selectedSession
+    val timestampLabel = if (session != null) {
+        val millis = session.createdAt ?: session.lastModified
+        val label = if (session.createdAt != null) "Created" else "Last modified"
+        val formatted = formatTimestamp(millis)
+        "$label: $formatted"
+    } else null
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("session_context_header"),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+            Text(
+                text = "Session: ${state.selectedSessionId.orEmpty()}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (timestampLabel != null) {
+                Text(
+                    text = timestampLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (session?.workingDirectory != null) {
+                Text(
+                    text = "Project: ${session.workingDirectory}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** Formats an epoch-millis timestamp into a human-readable local date/time string. */
+fun formatTimestamp(epochMillis: Long): String {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    return Instant.ofEpochMilli(epochMillis)
+        .atZone(ZoneId.systemDefault())
+        .format(formatter)
 }
 
 /** Heuristic: returns true if the text contains common Markdown formatting markers. */

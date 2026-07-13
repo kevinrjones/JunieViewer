@@ -13,6 +13,10 @@ sealed interface ConversationAction {
     data object OnToggleSettings : ConversationAction
     data class OnHomePathChange(val path: String) : ConversationAction
     data class OnToggleFilter(val kind: FilterKind) : ConversationAction
+    /** Navigate to the next match in the filtered message list. */
+    data object OnNextMatch : ConversationAction
+    /** Navigate to the previous match in the filtered message list. */
+    data object OnPreviousMatch : ConversationAction
 }
 
 enum class FilterKind {

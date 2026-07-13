@@ -102,4 +102,74 @@ class ConversationRobot(private val semanticMatcher: SemanticsNodeInteractionsPr
             .onFirst()
             .assertExists()
     }
+
+    /** Asserts the no-results state is displayed */
+    fun assertNoResultsVisible() {
+        semanticMatcher.onNodeWithTag("no_results")
+            .assertIsDisplayed()
+    }
+
+    /** Asserts the no-results state is not displayed */
+    fun assertNoResultsNotVisible() {
+        semanticMatcher.onNodeWithTag("no_results")
+            .assertDoesNotExist()
+    }
+
+    /** Asserts the result count text matches the expected value */
+    fun assertResultCount(expected: String) {
+        semanticMatcher.onNodeWithTag("result_count")
+            .assertTextContains(expected, substring = true)
+    }
+
+    /** Asserts the result count is not displayed */
+    fun assertResultCountNotVisible() {
+        semanticMatcher.onNodeWithTag("result_count")
+            .assertDoesNotExist()
+    }
+
+    /** Asserts a filter chip label is visible */
+    fun assertFilterLabelVisible(label: String) {
+        semanticMatcher.onAllNodesWithText(label)
+            .onFirst()
+            .assertExists()
+    }
+
+    /** Asserts the session context header is visible with the given session id */
+    fun assertSessionContextVisible(sessionId: String) {
+        semanticMatcher.onNodeWithTag("session_context_header")
+            .assertIsDisplayed()
+        semanticMatcher.onAllNodesWithText("Session: $sessionId", substring = true)
+            .onFirst()
+            .assertExists()
+    }
+
+    /** Asserts the no-session-selected state is displayed */
+    fun assertNoSessionStateVisible() {
+        semanticMatcher.onNodeWithTag("no_session_state")
+            .assertIsDisplayed()
+    }
+
+    /** Asserts the empty conversation state is displayed */
+    fun assertEmptyConversationStateVisible() {
+        semanticMatcher.onNodeWithTag("empty_conversation")
+            .assertIsDisplayed()
+    }
+
+    /** Asserts the loading indicator is displayed */
+    fun assertLoadingVisible() {
+        semanticMatcher.onNodeWithTag("loading_indicator")
+            .assertIsDisplayed()
+    }
+
+    /** Asserts the error state is displayed */
+    fun assertErrorVisible() {
+        semanticMatcher.onNodeWithTag("error_state")
+            .assertIsDisplayed()
+    }
+
+    /** Clicks the retry button in the error state */
+    fun clickRetry() {
+        semanticMatcher.onNodeWithTag("retry_button")
+            .performClick()
+    }
 }

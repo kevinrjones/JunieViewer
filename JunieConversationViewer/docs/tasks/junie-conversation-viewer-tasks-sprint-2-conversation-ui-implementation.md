@@ -48,8 +48,8 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 | 3 | Asymmetric Human/Junie Conversation Layout | In progress | 18 |
 | 3.5 | Deserialization Hardening (Option B + Option A) | In progress | 10 |
 | 4 | Rich Content Rendering | In progress | 13 |
-| 5 | Search, Filters, and Navigation | Not started | 12 |
-| 6 | Session Context, Empty, Loading, and Error States | Not started | 8 |
+| 5 | Search, Filters, and Navigation | In progress | 12 |
+| 6 | Session Context, Empty, Loading, and Error States | In progress | 8 |
 | 7 | Accessibility and Cross-Platform Desktop Polish | Not started | 13 |
 | 8 | Automated Testing | Not started | 13 |
 | 9 | HITL Review and Documentation | Not started | 12 |
@@ -1137,7 +1137,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 4.13 HITL visual review of rich content rendering
 
-- [ ] HITL visual review of rich content rendering — `HITL Review`
+- [x] HITL visual review of rich content rendering — `HITL Review`
 
 **Description:** HITL reviews the implemented rich content rendering to confirm each content type is visually identifiable, errors are distinct, and copy actions produce clean text.
 
@@ -1163,7 +1163,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.1 Review current search query behaviour
 
-- [ ] Review current search query behaviour
+- [x] Review current search query behaviour
 
 **Description:** Review the existing `search_field` implementation: case-insensitive substring match over Message content, driven through `ConversationAction` into `ConversationState.searchQuery`, producing `filteredMessages`.
 
@@ -1181,7 +1181,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.2 Refine search field placement
 
-- [ ] Refine search field placement
+- [x] Refine search field placement
 
 **Description:** Confirm or refine the placement of the `search_field` in the top bar / chrome area so it remains visible and accessible at all times.
 
@@ -1199,7 +1199,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.3 Preserve or improve text search behaviour
 
-- [ ] Preserve or improve text search behaviour — `Test Required`
+- [x] Preserve or improve text search behaviour — `Test Required`
 
 **Description:** Ensure text search continues to work as designed: case-insensitive substring match, real-time filtering as the user types.
 
@@ -1217,7 +1217,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.4 Review and refine filter chip layout
 
-- [ ] Review and refine filter chip layout
+- [x] Review and refine filter chip layout
 
 **Description:** Review the current `FilterBar` layout and refine filter chip placement for clarity and usability.
 
@@ -1235,7 +1235,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.5 Ensure Message Kind filters are understandable
 
-- [ ] Ensure Message Kind filters are understandable — `Test Required`
+- [x] Ensure Message Kind filters are understandable — `Test Required`
 
 **Description:** Verify that Message Kind filter labels use ubiquitous language terms and are understandable to the HITL.
 
@@ -1253,7 +1253,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.6 Implement no-results state
 
-- [ ] Implement no-results state — `Test Required`
+- [x] Implement no-results state — `Test Required`
 
 **Description:** When Search + Filters yield no Messages, show a distinct `no_results` state explaining that no Messages match (not a blank list).
 
@@ -1272,7 +1272,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.7 Add result count
 
-- [ ] Add result count
+- [x] Add result count
 
 **Description:** Add a result count indicator showing how many Messages match the current Search + Filter combination, where it aids orientation.
 
@@ -1290,7 +1290,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.8 Support keyboard/mouse interaction for search and filters
 
-- [ ] Support keyboard/mouse interaction for search and filters
+- [x] Support keyboard/mouse interaction for search and filters
 
 **Description:** Ensure Search field can be focused via keyboard shortcut (Cmd/Ctrl+F or similar), cleared, and that Filters are keyboard-accessible.
 
@@ -1309,7 +1309,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.9 Maintain user orientation in long conversations
 
-- [ ] Maintain user orientation in long conversations
+- [x] Maintain user orientation in long conversations
 
 **Description:** Ensure the persistent Turn Header and Session context help the user maintain orientation when scrolling through long conversations.
 
@@ -1325,9 +1325,9 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 **Testing expectations:** Manual verification with long conversation data.
 
-#### 5.10 Implement match-to-match navigation (if Q3 confirmed)
+#### 5.10 Implement match-to-match navigation
 
-- [ ] Implement match-to-match navigation — `Blocked` (pending Q3 confirmation)
+- [x] Implement match-to-match navigation
 
 **Description:** If HITL confirms Q3 is in scope: implement next/previous Match navigation driven by a Match Cursor. If not confirmed, this task is deferred.
 
@@ -1345,7 +1345,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.11 Test search and filter combinations
 
-- [ ] Test search and filter combinations — `Test Required`
+- [x] Test search and filter combinations — `Test Required`
 
 **Description:** Test that Search + Filter combine correctly (AND logic), clearing restores the full Conversation, and message order is preserved.
 
@@ -1364,7 +1364,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 5.12 HITL review of search/filter usability
 
-- [ ] HITL review of search/filter usability — `HITL Review`
+- [x] HITL review of search/filter usability — `HITL Review`
 
 **Description:** HITL reviews the search and filter implementation to confirm they behave as designed and the no-match state is clear.
 
@@ -1391,7 +1391,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.1 Display current Session context
 
-- [ ] Display current Session context — `Test Required`
+- [x] Display current Session context — `Test Required`
 
 **Description:** Implement a slim, persistent header (in or just below the chrome) showing the selected Session id and, when available, a timestamp/context line — visible without scrolling to the top.
 
@@ -1410,7 +1410,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.2 Handle no-Session-selected state
 
-- [ ] Handle no-Session-selected state — `Test Required`
+- [x] Handle no-Session-selected state — `Test Required`
 
 **Description:** When no Session is selected, show a distinct empty-state prompt guiding the user to select a Session.
 
@@ -1428,7 +1428,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.3 Handle empty Conversation state
 
-- [ ] Handle empty Conversation state — `Test Required`
+- [x] Handle empty Conversation state — `Test Required`
 
 **Description:** When a Session is selected but has no Messages, show a distinct "Session has no Messages" state.
 
@@ -1446,7 +1446,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.4 Implement loading state
 
-- [ ] Implement loading state — `Test Required`
+- [x] Implement loading state — `Test Required`
 
 **Description:** Show a progress indicator (`loading_indicator`) while `ConversationState.isLoading` is true.
 
@@ -1464,7 +1464,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.5 Implement recoverable error state
 
-- [ ] Implement recoverable error state — `Test Required`
+- [x] Implement recoverable error state — `Test Required`
 
 **Description:** Implement a recoverable error surface (`error_state`) with a retry affordance where applicable. Use the existing `FatalErrorDialog` for fatal cases.
 
@@ -1483,7 +1483,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.6 Handle malformed or unsupported content with fallback UI
 
-- [ ] Handle malformed content with fallback UI — `Test Required`
+- [x] Handle malformed content with fallback UI — `Test Required`
 
 **Description:** Ensure malformed or unsupported content degrades to readable text rather than crashing or showing blank space. (Complements task 4.10 at the state level.)
 
@@ -1501,7 +1501,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.7 Ensure error copy is understandable to the HITL
 
-- [ ] Ensure error copy is understandable — `Manual Review Required`
+- [x] Ensure error copy is understandable — `Manual Review Required`
 
 **Description:** Review all error messages and state descriptions to ensure they are clear, professional, and understandable to a non-technical HITL.
 
@@ -1519,7 +1519,7 @@ This document breaks the Sprint 2 Conversation UI Implementation sprint into con
 
 #### 6.8 Test or manually review each state
 
-- [ ] Test or manually review each state — `Test Required`, `HITL Review`
+- [x] Test or manually review each state — `Test Required`, `HITL Review`
 
 **Description:** Verify each state (no-Session, empty, loading, error) through automated tests where practical and HITL manual review.
 
@@ -2427,7 +2427,7 @@ Items from the implementation sprint's Out of Scope section (section 7), plus op
 |---|---|---|
 | Q1 | Are Timestamps reliably present per Message, and should they show inline, on hover, or only per Turn? | Open — resolve during implementation |
 | Q2 | Should Thoughts and Tool Calls collapse by default, or expand with a collapse option? | Open — resolve during implementation |
-| Q3 | Is match-to-match navigation (next/previous Match) in scope this sprint, or is Search + Filter sufficient? | Open — HITL to confirm |
+| Q3 | Is match-to-match navigation (next/previous Match) in scope this sprint, or is Search + Filter sufficient? | **Resolved** — HITL confirmed in scope; implemented in task 5.10 |
 | Q4 | Is a Turn-level outline / jump-to-Turn navigator in scope now, or deferred? | Open — HITL to confirm |
 | Q5 | Is current syntax highlighting sufficient, or is language-aware highlighting expected? | Open — HITL to confirm |
 
@@ -2454,3 +2454,6 @@ Items from the implementation sprint's Out of Scope section (section 7), plus op
 | 2026-07-12 | **Area 3.5 implemented (tasks 3.5.1–3.5.8).** Phase B: replaced `@JsonClassDiscriminator` with custom `JsonContentPolymorphicSerializer` for both `JunieEvent` and `AgentEvent`. `UnknownJunieEvent`/`UnknownAgentEvent` preserve raw `JsonObject`. Unknown events map to visible "Unsupported event: {kind}" cards using `MessageKind.Unsupported` + `errorContainer` Surface. Session load logs known/unknown/total counts. Phase A: added all 4 top-level (`TaskStartedEvent`, `TaskState`, `UserMessagesCommittedToHistory`, `UserAsyncResponseEvent`) and all 13 nested agent event classes. All 4 top-level are metadata-only (no UI message). All 13 nested agent events are metadata-only (no UI message) — the unknown-event fallback remains as a permanent safety net. 20 new/updated tests added (parser + repository). `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, 50 tests, 0 failures. Tasks 3.5.9 (manual real-session verification) and 3.5.10 (HITL review) left unchecked. **Deserialization blocker is resolved — UI sprint can continue.** |
 | 2026-07-12 | **Crash fix (Area 3, tasks 3.11.1–3.11.8).** Two crash causes found in `desktopApp/logs/viewer.log`: (1) `NextPromptSuggestionEvent.suggestion` typed as `String?` but real data is `JsonArray` — fixed by changing to `JsonElement?`; (2) `CodeTextView` (kodeview) uses internal `verticalScroll` causing `IllegalStateException` inside `LazyColumn` — fixed by adding `heightIn(max = 600.dp)`. 1 new regression test added. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL. **Other event classes may have similar field type mismatches** — the `JsonElement?` approach should be used for any field whose real format is uncertain. **UI sprint is unblocked.** |
 | 2026-07-12 | **Area 4 implemented (tasks 4.1–4.12).** Rich content renderers added: `MarkdownContent` (headings, bold, italic, lists, inline code, links-as-text with block parser + inline renderer), `CodeBlockWithCopy` (wraps existing `CodeBlock` with `CopyButton`), `DiffBlock` (unified diff with green/red line backgrounds + structural prefix indicators), `TerminalOutputBlock` (dark background, `$`-prefixed command highlighting), `ToolCallBlock` (collapsible, collapsed by default, header shows tool name), `ThoughtBlock` (collapsible, collapsed by default, de-emphasised italic style with preview), `ErrorWarningBlock` (errorContainer/tertiaryContainer with icon+label), `StructuredOutputBlock` (monospace formatted), `CopyButton` (clipboard text button). Domain model extended: `MessageKind` now has 10 values (added Markdown, StructuredOutput, Error, Warning); `MessageContent` now has 5 variants (added Terminal, Structured). `MessageBody` dispatches by kind first (Thought, Error/Warning, Tool, Unsupported) then by content type. `looksLikeMarkdown()` heuristic auto-detects Markdown in Text content. Fixtures updated to 12 messages covering all kinds. 12 new UI tests + 10 Markdown parser unit tests added. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, 73 tests, 0 failures. **Collapse defaults:** Thoughts and Tool Calls collapse by default (Q2 resolved conservatively per progressive disclosure). **Deferred:** Complex Markdown tables, advanced syntax highlighting, rich plan/table visualisation. Task 4.13 (HITL visual review) left unchecked. |
+| 2026-07-13 | **Area 5 implemented (tasks 5.1–5.9, 5.11).** Search/filter refinements: added `no_results` state with `testTag("no_results")` and explanatory text; added result count (`"N of M Messages"` / `"No matching Messages"`) with `testTag("result_count")` shown when search or filters are active; added `FilterState.isDefault()` helper; added search clear button (✕ trailing icon); added Cmd+F / Ctrl+F keyboard shortcut to focus search field via `FocusRequester` + `onPreviewKeyEvent`; search placeholder updated to "Search Messages..." (ubiquitous language). Filter labels verified: Human, Junie, Thoughts, Tools, Patches, Terminal — all match canonical terms. Turn Headers and result count remain visible for long-conversation orientation. 9 new tests in `SearchFilterNavigationTest.kt` covering case-insensitive search, filter AND logic, no-results state, result count visibility, filter labels, chronological order preservation. Robot helpers added: `assertNoResultsVisible()`, `assertResultCount()`, `assertResultCountNotVisible()`, `assertFilterLabelVisible()`. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, all tests pass. **Task 5.12 (HITL review) left unchecked** — awaiting HITL review. |
+| 2026-07-13 | **Task 5.10 implemented (match-to-match navigation).** Q3 resolved — HITL confirmed in scope. Added `currentMatchIndex` to `ConversationState`, `OnNextMatch`/`OnPreviousMatch` actions, prev/next ▲/▼ buttons with match position label ("N / M"), and `LaunchedEffect` auto-scroll via `lazyColumnIndexForMessage()` helper that accounts for Junie Turn headers. Search query change resets index to 0 (or -1 when cleared). Navigation wraps around. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, all tests pass. |
+| 2026-07-13 | **Area 6 implemented (tasks 6.1–6.7).** Session context header (`SessionContextHeader` composable with `testTag("session_context_header")`) shows Session id, timestamp ("Created:" or "Last modified:" fallback), and working directory when available. State priority implemented as `when` block: Loading → Error → No Session → Empty Conversation → No Results → Normal. Added `errorMessage: String?` and `selectedSession: SessionInfo?` to `ConversationState`. ViewModel now sets `errorMessage` on load failure and clears it on retry/new session. No-session state (`testTag("no_session_state")`): "No Session selected / Choose a Session to view its Conversation." Empty conversation (`testTag("empty_conversation")`): "This Session has no Messages." Loading (`testTag("loading_indicator")`): `CircularProgressIndicator` + "Loading Conversation…". Error (`testTag("error_state")`): warning icon + error message + Retry button (`testTag("retry_button")`) that triggers `OnRetryClick`. Malformed/unsupported content fallback preserved from Areas 3.5/4. 9 new tests in `SessionStatesTest.kt`. Robot helpers added: `assertSessionContextVisible()`, `assertNoSessionStateVisible()`, `assertEmptyConversationStateVisible()`, `assertLoadingVisible()`, `assertErrorVisible()`, `clickRetry()`. `./gradlew :shared:jvmTest` BUILD SUCCESSFUL, all tests pass. **Task 6.8 (HITL review) left unchecked** — awaiting HITL review. |

@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
 import com.knowledgespike.junieviewer.getPlatform
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okio.FileSystem
@@ -185,11 +186,43 @@ class SessionRepositoryImpl(
                     content = MessageContent.Text("Unsupported event: ${event.kind}"),
                     kind = MessageKind.Unsupported
                 )
+                is SystemMessageEvent -> Message(
+                    id = "${index}-system-${event.hashCode()}",
+                    sender = Sender.Junie,
+                    content = MessageContent.Text(
+                        buildString {
+                            append(event.text)
+                            if (!event.details.isNullOrBlank()) append("\n\n${event.details}")
+                        }
+                    ),
+                    kind = MessageKind.SystemMessage
+                )
+                is CancelAgentEvent -> Message(
+                    id = "${index}-cancel",
+                    sender = Sender.Human,
+                    content = MessageContent.Text("⛔ Agent cancelled"),
+                    kind = MessageKind.Cancelled
+                )
+                is TaskContinueStopped -> Message(
+                    id = "${index}-continue-stopped",
+                    sender = Sender.Junie,
+                    content = MessageContent.Text("Continue stopped"),
+                    kind = MessageKind.Status
+                )
+                is UserResponseEvent -> Message(
+                    id = "${index}-response",
+                    sender = Sender.Human,
+                    content = MessageContent.Text(event.prompt),
+                    kind = MessageKind.Text
+                )
                 // Metadata-only top-level events — parsed correctly but not rendered
                 is TaskStartedEvent -> null
                 is TaskState -> null
                 is UserMessagesCommittedToHistory -> null
                 is UserAsyncResponseEvent -> null
+                is SendToAgentEvent -> null // flow marker, not rendered
+                is SessionTitleSetEvent -> null // TODO: use to update session title in app state
+                is SkillsStatusEvent -> null // metadata, not rendered
             }
         }
     }
@@ -259,6 +292,102 @@ class SessionRepositoryImpl(
                         sender = Sender.Junie,
                         content = MessageContent.Terminal(content),
                         kind = MessageKind.Terminal
+                    )
+                } else null
+            }
+            is TestRunBlockUpdatedEvent -> {
+                val label = buildString {
+                    append("🧪 Test: ${agentEvent.name ?: "unknown"}")
+                    if (agentEvent.status != null) append(" [${agentEvent.status}]")
+                }
+                Message(
+                    id = "${index}-${ts ?: "test-${event.hashCode()}"}",
+                    sender = Sender.Junie,
+                    content = MessageContent.Text(label),
+                    kind = MessageKind.TestRun
+                )
+            }
+            is McpBlockUpdatedEvent -> {
+                val label = buildString {
+                    append("MCP: ${agentEvent.toolName ?: "unknown"}")
+                    if (agentEvent.status != null) append(" [${agentEvent.status}]")
+                    if (!agentEvent.details.isNullOrBlank()) append("\n${agentEvent.details}")
+                }
+                Message(
+                    id = "${index}-${ts ?: "mcp-${event.hashCode()}"}",
+                    sender = Sender.Junie,
+                    content = MessageContent.Code(label, "json"),
+                    kind = MessageKind.Mcp
+                )
+            }
+            is CustomAgentBlockUpdatedEvent -> Message(
+                id = "${index}-${ts ?: "subagent-${event.hashCode()}"}",
+                sender = Sender.Junie,
+                content = MessageContent.Text("🤖 Subagent: ${agentEvent.name ?: "unknown"} [${agentEvent.status ?: "unknown"}]"),
+                kind = MessageKind.SubAgent
+            )
+            is AgentFailureEvent -> Message(
+                id = "${index}-${ts ?: "failure-${event.hashCode()}"}",
+                sender = Sender.Junie,
+                content = MessageContent.Text(agentEvent.message ?: "Agent failure"),
+                kind = MessageKind.Error
+            )
+            is AskRequestUpdatedEvent -> {
+                val questionText = buildString {
+                    if (!agentEvent.title.isNullOrBlank()) append("${agentEvent.title}\n")
+                    // Extract question from askRequest JsonElement
+                    val askObj = agentEvent.askRequest
+                    if (askObj != null) {
+                        try {
+                            val q = askObj.jsonObject["question"]?.jsonPrimitive?.content
+                            if (!q.isNullOrBlank()) append(q)
+                        } catch (_: Exception) {
+                            append(askObj.toString())
+                        }
+                    }
+                }
+                if (questionText.isNotBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "ask-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Text(questionText),
+                        kind = MessageKind.Question
+                    )
+                } else null
+            }
+            is ChoiceRequestUpdatedEvent -> {
+                val choiceText = buildString {
+                    if (!agentEvent.title.isNullOrBlank()) append("${agentEvent.title}\n")
+                    val choiceObj = agentEvent.choiceRequest
+                    if (choiceObj != null) {
+                        try {
+                            val options = choiceObj.jsonObject["options"]?.jsonArray
+                            options?.forEach { opt ->
+                                val desc = opt.jsonObject["description"]?.jsonPrimitive?.content
+                                val id = opt.jsonObject["id"]?.jsonPrimitive?.content
+                                append("• ${desc ?: id ?: "option"}\n")
+                            }
+                        } catch (_: Exception) {
+                            append(choiceObj.toString())
+                        }
+                    }
+                }
+                if (choiceText.isNotBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "choice-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Text(choiceText),
+                        kind = MessageKind.Choice
+                    )
+                } else null
+            }
+            is MarkdownBlockUpdatedEvent -> {
+                if (!agentEvent.text.isNullOrBlank()) {
+                    Message(
+                        id = "${index}-${ts ?: "md-${event.hashCode()}"}",
+                        sender = Sender.Junie,
+                        content = MessageContent.Text(agentEvent.text),
+                        kind = MessageKind.Markdown
                     )
                 } else null
             }

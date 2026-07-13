@@ -45,7 +45,7 @@ class ConversationViewModel(
         try {
             when (action) {
                 is ConversationAction.OnSearchQueryChange -> {
-                    _state.update { it.copy(searchQuery = action.query) }
+                    _state.update { it.copy(searchQuery = action.query, currentMatchIndex = if (action.query.isBlank()) -1 else 0) }
                     filterMessages(action.query)
                 }
                 ConversationAction.OnRetryClick -> loadMessages()
@@ -57,7 +57,12 @@ class ConversationViewModel(
                 }
                 is ConversationAction.OnSessionSelected -> {
                     logger.i { "Session selected: ${action.session.id}" }
-                    _state.update { it.copy(selectedSessionId = action.session.id, isSessionPickerOpen = false) }
+                    _state.update { it.copy(
+                        selectedSessionId = action.session.id,
+                        selectedSession = action.session,
+                        isSessionPickerOpen = false,
+                        errorMessage = null
+                    ) }
                     saveLastSession(action.session.id)
                     loadMessages()
                 }
@@ -82,6 +87,20 @@ class ConversationViewModel(
                         currentState.copy(filter = newFilter)
                     }
                     filterMessages(_state.value.searchQuery)
+                }
+                ConversationAction.OnNextMatch -> {
+                    _state.update { currentState ->
+                        val count = currentState.filteredMessages.size
+                        if (count == 0) currentState.copy(currentMatchIndex = -1)
+                        else currentState.copy(currentMatchIndex = (currentState.currentMatchIndex + 1).mod(count))
+                    }
+                }
+                ConversationAction.OnPreviousMatch -> {
+                    _state.update { currentState ->
+                        val count = currentState.filteredMessages.size
+                        if (count == 0) currentState.copy(currentMatchIndex = -1)
+                        else currentState.copy(currentMatchIndex = (currentState.currentMatchIndex - 1).mod(count))
+                    }
                 }
             }
         } catch (t: Throwable) {
@@ -134,7 +153,7 @@ class ConversationViewModel(
         
         logger.i { "Loading messages for session: $sessionId" }
         viewModelScope.launch(exceptionHandler) {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val messages = withContext(ioDispatcher) {
                     repository.setSession(sessionId, homePath)
@@ -144,14 +163,18 @@ class ConversationViewModel(
                     it.copy(
                         messages = messages,
                         filteredMessages = messages,
-                        isLoading = false
+                        isLoading = false,
+                        errorMessage = null
                     )
                 }
                 filterMessages(_state.value.searchQuery)
                 logger.d { "Successfully loaded ${messages.size} messages" }
             } catch (e: Exception) {
                 logger.e(e) { "Failed to load messages for session $sessionId" }
-                _state.update { it.copy(isLoading = false) }
+                _state.update { it.copy(
+                    isLoading = false,
+                    errorMessage = "Could not load this Conversation. Check that the Session still exists and try again."
+                ) }
             }
         }
     }
@@ -165,11 +188,14 @@ class ConversationViewModel(
                         else currentState.filter.showJunie
                     }
                     MessageKind.Thought -> currentState.filter.showThoughts
-                    MessageKind.Tool, MessageKind.StructuredOutput -> currentState.filter.showTools
+                    MessageKind.Tool, MessageKind.StructuredOutput, MessageKind.Mcp -> currentState.filter.showTools
                     MessageKind.Patch -> currentState.filter.showPatches
-                    MessageKind.Terminal -> currentState.filter.showTerminal
+                    MessageKind.Terminal, MessageKind.TestRun -> currentState.filter.showTerminal
                     MessageKind.Error, MessageKind.Warning -> true // Always show errors/warnings
                     MessageKind.Unsupported -> true // Always show unsupported events
+                    MessageKind.SystemMessage, MessageKind.Cancelled, MessageKind.Status -> true
+                    MessageKind.SubAgent -> currentState.filter.showTools
+                    MessageKind.Question, MessageKind.Choice -> true // Always show interactive events
                 }
 
                 if (!kindMatch) return@filter false

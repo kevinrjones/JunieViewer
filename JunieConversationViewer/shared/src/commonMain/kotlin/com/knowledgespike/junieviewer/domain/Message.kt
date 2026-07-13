@@ -14,7 +14,9 @@ data class Message(
 /** Classifies the semantic kind of a Message for filtering and rendering. */
 enum class MessageKind {
     Text, Markdown, Thought, Tool, Patch, Terminal,
-    StructuredOutput, Error, Warning, Unsupported
+    StructuredOutput, Error, Warning, Unsupported,
+    TestRun, Mcp, SubAgent, Question, Choice,
+    SystemMessage, Cancelled, Status
 }
 
 /**
