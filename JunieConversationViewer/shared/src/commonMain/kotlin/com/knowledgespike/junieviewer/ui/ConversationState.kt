@@ -2,6 +2,7 @@ package com.knowledgespike.junieviewer.ui
 
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.SessionInfo
+import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 
 /**
  * Tracks which Message Kind Filters are active.
@@ -38,5 +39,7 @@ data class ConversationState(
     val junieHomePath: String = "~/.junie",
     val filter: FilterState = FilterState(),
     /** Zero-based index of the currently focused match in filteredMessages, or -1 if none. */
-    val currentMatchIndex: Int = -1
+    val currentMatchIndex: Int = -1,
+    /** The currently active theme mode. */
+    val themeMode: ThemeMode = ThemeMode.System
 )

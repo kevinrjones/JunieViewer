@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
+import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.*
@@ -197,5 +198,36 @@ class ConversationViewModelTest {
             assertFalse(awaitItem().isSettingsOpen)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `changing theme mode updates state and persists preference`() = runTest {
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnThemeModeChange(ThemeMode.Dark))
+
+        assertEquals(ThemeMode.Dark, viewModel.state.value.themeMode)
+        assertEquals("Dark", fakePreferencesRepository.load().themeMode)
+    }
+
+    @Test
+    fun `theme mode is loaded from preferences on startup`() = runTest {
+        fakePreferencesRepository.save(AppPreferences(themeMode = "Light"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        advanceUntilIdle()
+
+        assertEquals(ThemeMode.Light, viewModel.state.value.themeMode)
+    }
+
+    @Test
+    fun `invalid theme mode in preferences defaults to System`() = runTest {
+        fakePreferencesRepository.save(AppPreferences(themeMode = "InvalidValue"))
+
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        advanceUntilIdle()
+
+        assertEquals(ThemeMode.System, viewModel.state.value.themeMode)
     }
 }

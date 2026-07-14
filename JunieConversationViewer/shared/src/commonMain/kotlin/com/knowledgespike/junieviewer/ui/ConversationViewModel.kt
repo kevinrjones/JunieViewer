@@ -9,6 +9,7 @@ import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
 import com.knowledgespike.junieviewer.domain.FilterCategory
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.Sender
+import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -102,6 +103,11 @@ class ConversationViewModel(
                         else currentState.copy(currentMatchIndex = (currentState.currentMatchIndex - 1).mod(count))
                     }
                 }
+                is ConversationAction.OnThemeModeChange -> {
+                    logger.i { "Theme mode changed: ${action.themeMode}" }
+                    _state.update { it.copy(themeMode = action.themeMode) }
+                    saveThemeMode(action.themeMode)
+                }
             }
         } catch (t: Throwable) {
             logger.e(t) { "Error processing action: $action" }
@@ -112,10 +118,16 @@ class ConversationViewModel(
     private fun loadPreferences() {
         val prefs = preferencesRepository.load()
         logger.d { "Applying preferences to state: $prefs" }
+        val themeMode = try {
+            ThemeMode.valueOf(prefs.themeMode)
+        } catch (_: IllegalArgumentException) {
+            ThemeMode.System
+        }
         _state.update { 
             it.copy(
                 junieHomePath = prefs.junieHomePath,
-                selectedSessionId = prefs.lastSessionId
+                selectedSessionId = prefs.lastSessionId,
+                themeMode = themeMode
             )
         }
         loadMessages()
@@ -131,6 +143,11 @@ class ConversationViewModel(
     private fun saveHomePath(path: String) = synchronized(prefsMutex) {
         val currentPrefs = preferencesRepository.load()
         preferencesRepository.save(currentPrefs.copy(junieHomePath = path))
+    }
+
+    private fun saveThemeMode(themeMode: ThemeMode) = synchronized(prefsMutex) {
+        val currentPrefs = preferencesRepository.load()
+        preferencesRepository.save(currentPrefs.copy(themeMode = themeMode.name))
     }
 
     private fun loadSessions() {

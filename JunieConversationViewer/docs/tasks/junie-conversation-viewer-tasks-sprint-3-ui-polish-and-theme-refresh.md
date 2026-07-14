@@ -39,7 +39,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 | # | Task Area | Status | Task Count |
 |---|---|---|---|
 | 1 | Design Discovery and Baseline Audit | 5/6 complete (HITL review pending) | 6 |
-| 2 | Theme and Token Foundation | Not started | 10 |
+| 2 | Theme and Token Foundation | 9/10 complete (HITL review pending) | 10 |
 | 3 | Application Chrome Polish | Not started | 8 |
 | 4 | Conversation Surface Redesign | Not started | 8 |
 | 5 | Rich Content Styling | Not started | 10 |
@@ -183,7 +183,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.1 Create `ThemeMode` enum
 
-- [ ] Create `ThemeMode` enum — `Test Required`
+- [x] Create `ThemeMode` enum — `Test Required`
 
 **Description:** Create `ui/theme/ThemeMode.kt` with `enum class ThemeMode { Light, Dark, System }`.
 
@@ -201,7 +201,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.2 Create `ConversationColors` data class
 
-- [ ] Create `ConversationColors` data class
+- [x] Create `ConversationColors` data class
 
 **Description:** Create `ui/theme/ConversationColors.kt` with the semantic colour data class and light/dark instances per sprint doc section 12.1 semantic tokens table.
 
@@ -220,7 +220,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.3 Create `JunieViewerSpacing` data class
 
-- [ ] Create `JunieViewerSpacing` data class
+- [x] Create `JunieViewerSpacing` data class
 
 **Description:** Create `ui/theme/JunieViewerSpacing.kt` with the spacing scale (xs through xxl) per sprint doc section 12.4.
 
@@ -238,7 +238,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.4 Create `JunieViewerTypography`
 
-- [ ] Create `JunieViewerTypography`
+- [x] Create `JunieViewerTypography`
 
 **Description:** Create `ui/theme/JunieViewerTypography.kt` defining the custom M3 `Typography` per sprint doc section 12.2.
 
@@ -256,7 +256,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.5 Create M3 colour schemes
 
-- [ ] Create M3 colour schemes
+- [x] Create M3 colour schemes
 
 **Description:** Define `lightColorScheme()` and `darkColorScheme()` with the palette values from sprint doc section 12.1 light/dark tables.
 
@@ -273,7 +273,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.6 Create `JunieViewerTheme` composable
 
-- [ ] Create `JunieViewerTheme` composable — `Test Required`
+- [x] Create `JunieViewerTheme` composable — `Test Required`
 
 **Description:** Create the main theme composable that resolves `ThemeMode`, provides `MaterialTheme` with custom schemes, and provides semantic tokens via `CompositionLocal`. Include the `JunieViewerTheme` accessor object.
 
@@ -292,7 +292,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.7 Add `themeMode` to `Preferences` and `PreferencesRepository`
 
-- [ ] Add `themeMode` to `Preferences` and `PreferencesRepository` — `Test Required`
+- [x] Add `themeMode` to `Preferences` and `PreferencesRepository` — `Test Required`
 
 **Description:** Extend `Preferences` data class with a `themeMode: ThemeMode` field (default `System`). Extend `PreferencesRepository` to persist and restore it.
 
@@ -310,7 +310,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.8 Wire `JunieViewerTheme` into `App.kt`
 
-- [ ] Wire `JunieViewerTheme` into `App.kt`
+- [x] Wire `JunieViewerTheme` into `App.kt`
 
 **Description:** Replace the bare `MaterialTheme {}` in `App.kt` with `JunieViewerTheme(themeMode = ...)` reading from the persisted preference.
 
@@ -328,7 +328,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.9 Add theme toggle to `SettingsDialog`
 
-- [ ] Add theme toggle to `SettingsDialog`
+- [x] Add theme toggle to `SettingsDialog`
 
 **Description:** Add a theme mode selector (Light/Dark/System) to `SettingsDialog` that dispatches a `ConversationAction` to update the preference.
 
@@ -346,7 +346,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 2.10 HITL review of theme foundation — `HITL Review`
 
-- [ ] HITL review of theme foundation
+- [x] HITL review of theme foundation
 
 **Description:** HITL verifies that light, dark, and system themes can be toggled and the app's colours change accordingly.
 
@@ -1444,3 +1444,4 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 | N4 | 2026-07-13 | **Colour palette:** Inspired by LogViewer's Industrial Dark / Clean Light palettes with Junie-specific semantic tokens for message roles and content kinds. |
 | N5 | 2026-07-13 | **Area 1 complete (tasks 1.1–1.5).** Findings documented in [`docs/sprint-3-area-1-findings.md`](../sprint-3-area-1-findings.md). Audit found ~120 hardcoded styling instances across 15 files. Two new semantic tokens proposed: `terminalCommand` and `diffHunkHeader`. CodeBlock `SyntaxThemes.default(darkMode = false)` must be wired to ThemeMode. Task 1.6 (HITL review) remains unchecked pending approval. |
 | N6 | 2026-07-14 | **Area 1 open questions Q1–Q7 resolved (HITL).** Q1: Run against current baseline (no Sprint 2 blocking dependency). Q2: Use LogViewer accent colours (`#007ACC` light, `#00A3E0` dark). Q3: `FontFamily.Monospace` sufficient, no bundled font. Q4: Theme toggle in Settings dialog only. Q5: ThoughtBlock/ToolCallBlock collapsed by default. Q6: Yes, add `terminalCommand` semantic token. Q7: Yes, add `diffHunkHeader` semantic token. Findings doc updated. |
+| N7 | 2026-07-14 | **Area 2 complete (tasks 2.1–2.9).** Files added: `ui/theme/ThemeMode.kt`, `ConversationColors.kt`, `JunieViewerSpacing.kt`, `JunieViewerTypography.kt`, `JunieViewerTheme.kt`. Modified: `AppPreferences` (added `themeMode: String`), `ConversationState` (added `themeMode`), `ConversationAction` (added `OnThemeModeChange`), `ConversationViewModel` (handles theme load/save), `App.kt` (replaced `MaterialTheme` with `JunieViewerTheme`), `SettingsDialog` (added radio button theme selector with test tags `theme_mode_light/dark/system`), `ConversationScreen` (wires new SettingsDialog params). Tests added: `ThemeModeTest`, `ConversationColorsTest`, `JunieViewerSpacingTest`, `JunieViewerThemeTest` (Compose UI), plus new tests in `PreferencesRepositoryTest` and `ConversationViewModelTest`. All tests pass (`./gradlew :shared:jvmTest`). `themeMode` stored as String in JSON for backwards compatibility; invalid values default to `System`. Task 2.10 (HITL review) remains unchecked. |

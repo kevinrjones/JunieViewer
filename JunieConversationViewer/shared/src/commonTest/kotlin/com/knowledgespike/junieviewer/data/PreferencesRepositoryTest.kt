@@ -53,4 +53,35 @@ class PreferencesRepositoryTest {
         val result = repository.load()
         expectThat(result).isEqualTo(AppPreferences())
     }
+
+    @Test
+    fun `given preferences with themeMode when loading then it returns saved themeMode`() {
+        val preferences = AppPreferences(themeMode = "Dark")
+        repository.save(preferences)
+        val result = repository.load()
+        expectThat(result.themeMode).isEqualTo("Dark")
+    }
+
+    @Test
+    fun `given preferences without themeMode field when loading then it defaults to System`() {
+        // Simulate a legacy preferences file without the themeMode field
+        fileSystem.write(path) {
+            writeUtf8("""{"window":{},"junieHomePath":"~/.junie"}""")
+        }
+        val result = repository.load()
+        expectThat(result.themeMode).isEqualTo("System")
+    }
+
+    @Test
+    fun `given preferences with all fields when round-tripping then all fields are preserved`() {
+        val preferences = AppPreferences(
+            window = WindowStatePreferences(x = 50, y = 60, width = 1280, height = 720),
+            junieHomePath = "/custom/path",
+            lastSessionId = "session-123",
+            themeMode = "Light"
+        )
+        repository.save(preferences)
+        val result = repository.load()
+        expectThat(result).isEqualTo(preferences)
+    }
 }

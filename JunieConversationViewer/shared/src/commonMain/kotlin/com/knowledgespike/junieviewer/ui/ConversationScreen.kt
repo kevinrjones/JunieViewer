@@ -58,7 +58,9 @@ fun ConversationScreen(
     if (state.isSettingsOpen) {
         SettingsDialog(
             currentHomePath = state.junieHomePath,
+            currentThemeMode = state.themeMode,
             onHomePathChange = { onAction(ConversationAction.OnHomePathChange(it)) },
+            onThemeModeChange = { onAction(ConversationAction.OnThemeModeChange(it)) },
             onDismiss = { onAction(ConversationAction.OnToggleSettings) }
         )
     }

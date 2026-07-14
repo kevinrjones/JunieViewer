@@ -1,6 +1,7 @@
 package com.knowledgespike.junieviewer.ui
 
 import com.knowledgespike.junieviewer.domain.SessionInfo
+import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 
 /**
  * Represents user-triggered actions on the conversation screen.
@@ -17,6 +18,8 @@ sealed interface ConversationAction {
     data object OnNextMatch : ConversationAction
     /** Navigate to the previous match in the filtered message list. */
     data object OnPreviousMatch : ConversationAction
+    /** Change the application theme mode. */
+    data class OnThemeModeChange(val themeMode: ThemeMode) : ConversationAction
 }
 
 enum class FilterKind {

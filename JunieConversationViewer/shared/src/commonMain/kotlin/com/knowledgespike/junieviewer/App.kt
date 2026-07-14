@@ -1,6 +1,5 @@
 package com.knowledgespike.junieviewer
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -8,13 +7,19 @@ import com.knowledgespike.junieviewer.ui.ConversationRoot
 import com.knowledgespike.junieviewer.ui.ConversationViewModel
 import com.knowledgespike.junieviewer.ui.FatalErrorManager
 import com.knowledgespike.junieviewer.ui.components.FatalErrorDialog
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
+/**
+ * Application entry point composable.
+ * Wraps the entire UI in [JunieViewerTheme] with the persisted theme mode from preferences.
+ */
 @Composable
 @Preview
 fun App(onExit: () -> Unit = {}) {
-    MaterialTheme {
-        val viewModel = viewModel { ConversationViewModel() }
+    val viewModel = viewModel { ConversationViewModel() }
+    val state by viewModel.state.collectAsState()
 
+    JunieViewerTheme(themeMode = state.themeMode) {
         var fatalError by remember { mutableStateOf<Throwable?>(null) }
 
         LaunchedEffect(Unit) {
