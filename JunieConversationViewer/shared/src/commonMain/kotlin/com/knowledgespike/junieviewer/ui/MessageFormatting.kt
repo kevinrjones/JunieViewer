@@ -6,27 +6,27 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * Returns a short text label for a Message Kind, used as a non-colour-only marker.
+ * Returns a clean text label for a Message Kind, used alongside a themed visual indicator.
  */
 fun messageKindLabel(kind: MessageKind): String = when (kind) {
-    MessageKind.Text -> "💬 Text"
-    MessageKind.Markdown -> "📄 Markdown"
-    MessageKind.Thought -> "💭 Thought"
-    MessageKind.Tool -> "🔧 Tool"
-    MessageKind.Patch -> "📝 Patch"
-    MessageKind.Terminal -> "⌨ Terminal"
-    MessageKind.StructuredOutput -> "📊 Structured"
-    MessageKind.Error -> "❌ Error"
-    MessageKind.Warning -> "⚠️ Warning"
-    MessageKind.Unsupported -> "⚠ Unsupported"
-    MessageKind.TestRun -> "🧪 Test"
-    MessageKind.Mcp -> "🔌 MCP"
-    MessageKind.SubAgent -> "🤖 SubAgent"
-    MessageKind.Question -> "❓ Question"
-    MessageKind.Choice -> "🔘 Choice"
-    MessageKind.SystemMessage -> "ℹ️ System"
-    MessageKind.Cancelled -> "⛔ Cancelled"
-    MessageKind.Status -> "📋 Status"
+    MessageKind.Text -> "Text"
+    MessageKind.Markdown -> "Markdown"
+    MessageKind.Thought -> "Thought"
+    MessageKind.Tool -> "Tool"
+    MessageKind.Patch -> "Patch"
+    MessageKind.Terminal -> "Terminal"
+    MessageKind.StructuredOutput -> "Structured Output"
+    MessageKind.Error -> "Error"
+    MessageKind.Warning -> "Warning"
+    MessageKind.Unsupported -> "Unsupported"
+    MessageKind.TestRun -> "Test"
+    MessageKind.Mcp -> "MCP"
+    MessageKind.SubAgent -> "SubAgent"
+    MessageKind.Question -> "Question"
+    MessageKind.Choice -> "Choice"
+    MessageKind.SystemMessage -> "System"
+    MessageKind.Cancelled -> "Cancelled"
+    MessageKind.Status -> "Status"
 }
 
 /** Formats an epoch-millis timestamp into a human-readable local date/time string. */

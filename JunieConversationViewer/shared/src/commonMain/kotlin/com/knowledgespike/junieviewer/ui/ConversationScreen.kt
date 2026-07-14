@@ -356,11 +356,13 @@ private fun BoxScope.ConversationList(state: ConversationState) {
         }
     }
 
+    val spacing = JunieViewerTheme.spacing
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().testTag("message_list"),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(spacing.md)
     ) {
         turns.forEach { turn ->
             if (turn.sender == Sender.Human) {
@@ -369,6 +371,7 @@ private fun BoxScope.ConversationList(state: ConversationState) {
                 }
             } else {
                 item(key = "turn-header-${turn.messages.first().id}") {
+                    Spacer(modifier = Modifier.height(spacing.xl))
                     TurnHeader()
                 }
                 items(items = turn.messages, key = { it.id }) { message ->

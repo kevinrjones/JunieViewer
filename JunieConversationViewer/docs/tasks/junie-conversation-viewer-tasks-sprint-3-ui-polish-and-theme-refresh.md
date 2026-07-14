@@ -40,8 +40,8 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 |---|---|------------------------------------|---|
 | 1 | Design Discovery and Baseline Audit | 6/6 complete                       | 6 |
 | 2 | Theme and Token Foundation | 10/10 complete                     | 10 |
-| 3 | Application Chrome Polish | 8/8 complete  | 8 |
-| 4 | Conversation Surface Redesign | Not started                        | 8 |
+| 3 | Application Chrome Polish | 8/8 complete                       | 8 |
+| 4 | Conversation Surface Redesign | 8/8 complete  | 8 |
 | 5 | Rich Content Styling | Not started                        | 10 |
 | 6 | States and Feedback | Not started                        | 6 |
 | 7 | Accessibility and Cross-Platform Polish | Not started                        | 10 |
@@ -517,7 +517,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.1 Apply themed accent colours to Human messages
 
-- [ ] Apply themed accent colours to Human messages
+- [x] Apply themed accent colours to Human messages
 
 **Description:** Replace hardcoded Human message styling with `humanAccent` semantic token, `primaryContainer` background, and themed spacing.
 
@@ -535,7 +535,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.2 Apply themed accent colours to Junie messages
 
-- [ ] Apply themed accent colours to Junie messages
+- [x] Apply themed accent colours to Junie messages
 
 **Description:** Replace hardcoded Junie message styling with `junieAccent` semantic token, `secondaryContainer` background, and themed spacing.
 
@@ -552,7 +552,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.3 Apply themed styling to turn headers
 
-- [ ] Apply themed styling to turn headers
+- [x] Apply themed styling to turn headers
 
 **Description:** Restyle turn headers with theme tokens (typography, colours, spacing).
 
@@ -570,7 +570,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.4 Replace text glyph kind markers with themed markers
 
-- [ ] Replace text glyph kind markers with themed markers
+- [x] Replace text glyph kind markers with themed markers
 
 **Description:** Replace text-glyph Message Kind markers with themed icon + label composables using semantic colours.
 
@@ -588,7 +588,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.5 Apply message card shape and elevation
 
-- [ ] Apply message card shape and elevation
+- [x] Apply message card shape and elevation
 
 **Description:** Apply 8dp rounded corners and appropriate elevation/border per section 12.3 to message cards.
 
@@ -606,7 +606,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.6 Improve long-form readability
 
-- [ ] Improve long-form readability
+- [x] Improve long-form readability
 
 **Description:** Ensure Junie message content uses constrained max-width (~720dp), comfortable line height, and `bodyLarge` typography from theme.
 
@@ -624,7 +624,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.7 Verify no hardcoded styling in conversation surface
 
-- [ ] Verify no hardcoded styling in conversation surface
+- [x] Verify no hardcoded styling in conversation surface
 
 **Description:** Grep message-related files for remaining hardcoded literals and fix.
 
@@ -641,7 +641,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 4.8 HITL review of conversation surface — `HITL Review`
 
-- [ ] HITL review of conversation surface
+- [x] HITL review of conversation surface
 
 **Description:** HITL verifies distinct Human/Junie messages, turn grouping, kind markers, and readability in both themes.
 
@@ -1447,3 +1447,4 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 | N7 | 2026-07-14 | **Area 2 complete (tasks 2.1–2.9).** Files added: `ui/theme/ThemeMode.kt`, `ConversationColors.kt`, `JunieViewerSpacing.kt`, `JunieViewerTypography.kt`, `JunieViewerTheme.kt`. Modified: `AppPreferences` (added `themeMode: String`), `ConversationState` (added `themeMode`), `ConversationAction` (added `OnThemeModeChange`), `ConversationViewModel` (handles theme load/save), `App.kt` (replaced `MaterialTheme` with `JunieViewerTheme`), `SettingsDialog` (added radio button theme selector with test tags `theme_mode_light/dark/system`), `ConversationScreen` (wires new SettingsDialog params). Tests added: `ThemeModeTest`, `ConversationColorsTest`, `JunieViewerSpacingTest`, `JunieViewerThemeTest` (Compose UI), plus new tests in `PreferencesRepositoryTest` and `ConversationViewModelTest`. All tests pass (`./gradlew :shared:jvmTest`). `themeMode` stored as String in JSON for backwards compatibility; invalid values default to `System`. Task 2.10 (HITL review) remains unchecked. |
 | N8 | 2026-07-14 | **Area 3 complete (tasks 3.1–3.7).** Chrome files restyled: `ConversationScreen.kt` (top bar wrapped in `Surface` with tonal elevation + `HorizontalDivider`, search field with `OutlinedTextFieldDefaults.colors`, match nav with themed glyph colours, all spacing via `JunieViewerTheme.spacing`), `SessionContextHeader.kt` (spacing tokens), `FilterBar.kt` (pill-shaped chips via `RoundedCornerShape(50)` + `FilterChipDefaults.filterChipColors` with themed selected/unselected colours), `SessionSelector.kt` (tighter density with `spacing.md`/`spacing.lg`/`spacing.xs`, selected state colours for all text, `shapes.small` for items), `SettingsDialog.kt` (all spacing via theme tokens, explicit surface colour). Intentional remaining literals: `1.dp` tonalElevation (M3 Surface param), `MATCH_NAV_BUTTON_SIZE = 32.dp` (named constant for icon buttons), `RoundedCornerShape(50)` (percent-based pill shape). Glyphs ✕/▲/▼ retained as themed `Text` — no Material Icons dependency available. Non-chrome hardcoded values in `ConversationScreen.kt` content states/list belong to Areas 4/6. All tests pass (`./gradlew :shared:jvmTest`). Task 3.8 (HITL review) remains unchecked. |
 | N9 | 2026-07-14 | **Area 3 HITL feedback — layout restructure.** HITL found top chrome too crowded (title bar + session info + search + filters stacked). Decisions: (1) removed app title/top bar, (2) moved Session metadata from top to a one-line footer (`SessionContextFooter`), (3) top area now focuses on search field + compact Session/Settings `TextButton`s + filter chips, visually separated by dividers. `SessionContextHeader` superseded by `SessionContextFooter.kt`. `ConversationScreen` changed from `Scaffold` to `Column` layout with `SearchAndFilterChrome` + content + footer. Footer shows three evenly-spread fields: Session id, date, project — with `TextOverflow.Ellipsis`. New test tags: `session_context_footer`, `session_footer_log_name`, `session_footer_date`, `session_footer_project`. Robot updated: `assertSessionContextVisible` now uses `session_context_footer`. All tests pass (`./gradlew :shared:jvmTest`). Task 3.8 HITL review remains pending. |
+| N10 | 2026-07-14 | **Area 4 complete (tasks 4.1–4.7).** Files changed: `MessageItems.kt` (accent rails via `humanAccent`/`junieAccent`, `Card` with `MESSAGE_CARD_SHAPE` 8dp rounded corners + 1dp elevation + `outlineVariant` border, `MessageKindMarker` composable with coloured dot + clean label replacing emoji-prefixed glyphs, `JUNIE_READABLE_MAX_WIDTH = 720.dp` for long-form readability, `UnsupportedEventCard` hardcoded dp replaced with spacing tokens, plain text upgraded to `bodyLarge`), `MessageFormatting.kt` (emoji prefixes removed from all `messageKindLabel` values), `ConversationScreen.kt` (conversation list padding/spacing uses `JunieViewerTheme.spacing`, extra `Spacer` before Turn headers for between-turn separation). Turn headers now use `titleMedium` typography, `junieAccent` colour, and `semantics { heading() }`. Kind indicator dot colours mapped to semantic tokens per `MessageKind`. Named layout constants: `HUMAN_MAX_CARD_WIDTH`, `JUNIE_READABLE_MAX_WIDTH`, `MESSAGE_CARD_SHAPE`, `ACCENT_RAIL_WIDTH`. Intentional remaining literals: `8.dp` dot size (visual constant), `1.dp` elevation/border (M3 Card params). All tests pass (`./gradlew :shared:jvmTest`). Task 4.8 (HITL review) remains unchecked. |
