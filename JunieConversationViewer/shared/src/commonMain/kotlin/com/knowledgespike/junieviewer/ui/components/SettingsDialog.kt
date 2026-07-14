@@ -11,8 +11,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 
 /**
@@ -27,19 +27,22 @@ fun SettingsDialog(
     onDismiss: () -> Unit
 ) {
     var path by remember { mutableStateOf(currentHomePath) }
+    val spacing = JunieViewerTheme.spacing
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth(0.8f)
         ) {
             Column(
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier.padding(spacing.xxl)
             ) {
                 Text(
                     text = "Settings",
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = spacing.xl)
                 )
 
                 OutlinedTextField(
@@ -50,12 +53,13 @@ fun SettingsDialog(
                     supportingText = { Text("Default: ~/.junie") }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(spacing.xl))
 
                 Text(
                     text = "Theme",
                     style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = spacing.md)
                 )
 
                 Column(modifier = Modifier.selectableGroup()) {
@@ -68,7 +72,7 @@ fun SettingsDialog(
                                     onClick = { onThemeModeChange(mode) },
                                     role = Role.RadioButton
                                 )
-                                .padding(vertical = 4.dp)
+                                .padding(vertical = spacing.sm)
                                 .testTag("theme_mode_${mode.name.lowercase()}")
                                 .semantics { contentDescription = "${mode.name} theme" },
                             verticalAlignment = Alignment.CenterVertically
@@ -80,7 +84,7 @@ fun SettingsDialog(
                             Text(
                                 text = mode.name,
                                 style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp)
+                                modifier = Modifier.padding(start = spacing.md)
                             )
                         }
                     }
@@ -89,7 +93,7 @@ fun SettingsDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 24.dp),
+                        .padding(top = spacing.xxl),
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {

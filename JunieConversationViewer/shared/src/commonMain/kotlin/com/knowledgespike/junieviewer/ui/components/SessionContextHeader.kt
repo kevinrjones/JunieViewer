@@ -9,9 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.ui.ConversationState
 import com.knowledgespike.junieviewer.ui.formatTimestamp
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
  * Persistent Session context header showing Session id and timestamp.
@@ -30,6 +30,8 @@ fun SessionContextHeader(
         "$label: $formatted"
     } else null
 
+    val spacing = JunieViewerTheme.spacing
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -37,7 +39,7 @@ fun SessionContextHeader(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = MaterialTheme.shapes.small
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+        Column(modifier = Modifier.padding(horizontal = spacing.lg, vertical = spacing.sm)) {
             Text(
                 text = "Session: ${state.selectedSessionId.orEmpty()}",
                 style = MaterialTheme.typography.labelMedium,

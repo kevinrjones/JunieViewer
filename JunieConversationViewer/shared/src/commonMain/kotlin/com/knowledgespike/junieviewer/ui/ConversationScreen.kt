@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Sender
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.domain.lazyColumnIndexForMessage
 import com.knowledgespike.junieviewer.ui.components.*
@@ -39,7 +40,8 @@ fun ConversationRoot(
 }
 
 /**
- * Main Conversation screen with top bar, search, filters, and the asymmetric message list.
+ * Main Conversation screen with search/filter controls at the top,
+ * conversation content in the middle, and a Session metadata footer.
  */
 @Composable
 fun ConversationScreen(
@@ -68,24 +70,27 @@ fun ConversationScreen(
     val searchFocusRequester = remember { FocusRequester() }
     val isSearchOrFilterActive = state.searchQuery.isNotBlank() || !state.filter.isDefault()
 
-    Scaffold(
-        topBar = { ConversationTopBar(state, onAction, searchFocusRequester, isSearchOrFilterActive) },
-        modifier = Modifier.onPreviewKeyEvent { keyEvent ->
-            if (keyEvent.type == KeyEventType.KeyDown &&
-                keyEvent.key == Key.F &&
-                (keyEvent.isMetaPressed || keyEvent.isCtrlPressed)
-            ) {
-                searchFocusRequester.requestFocus()
-                true
-            } else {
-                false
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown &&
+                    keyEvent.key == Key.F &&
+                    (keyEvent.isMetaPressed || keyEvent.isCtrlPressed)
+                ) {
+                    searchFocusRequester.requestFocus()
+                    true
+                } else {
+                    false
+                }
             }
-        }
-    ) { paddingValues ->
+    ) {
+        SearchAndFilterChrome(state, onAction, searchFocusRequester, isSearchOrFilterActive)
+
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+                .fillMaxWidth()
+                .weight(1f)
         ) {
             // State priority: Loading > Error > No Session > Empty Conversation > No Results > Normal
             when {
@@ -97,95 +102,120 @@ fun ConversationScreen(
                 else -> ConversationList(state)
             }
         }
+
+        SessionContextFooter(state = state)
     }
 }
 
 // ---------------------------------------------------------------------------
-// Top bar
+// Search and filter chrome (replaces the former top bar with app title)
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun ConversationTopBar(
+private fun SearchAndFilterChrome(
     state: ConversationState,
     onAction: (ConversationAction) -> Unit,
     searchFocusRequester: FocusRequester,
     isSearchOrFilterActive: Boolean
 ) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Junie Conversation Viewer",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(16.dp).semantics { heading() }
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    val spacing = JunieViewerTheme.spacing
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp
+    ) {
+        Column {
+            // Search row with compact session/settings controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.md, vertical = spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = state.searchQuery,
+                    onValueChange = { onAction(ConversationAction.OnSearchQueryChange(it)) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(searchFocusRequester)
+                        .testTag("search_field"),
+                    placeholder = { Text("Search Messages...") },
+                    trailingIcon = {
+                        if (state.searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { onAction(ConversationAction.OnSearchQueryChange("")) },
+                                modifier = Modifier.testTag("search_clear_button")
+                                    .semantics { contentDescription = "Clear search" }
+                            ) {
+                                Text(
+                                    "✕",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
+                )
                 TextButton(
                     onClick = { onAction(ConversationAction.OnToggleSessionPicker) },
-                    modifier = Modifier.padding(end = 8.dp).testTag("session_picker_button")
+                    modifier = Modifier
+                        .padding(start = spacing.sm)
+                        .testTag("session_picker_button")
                         .semantics { contentDescription = "Select Session" }
                 ) {
-                    Text(state.selectedSessionId ?: "Select Session")
+                    Text(
+                        text = state.selectedSessionId ?: "Session",
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
                 TextButton(
                     onClick = { onAction(ConversationAction.OnToggleSettings) },
-                    modifier = Modifier.padding(end = 16.dp).testTag("settings_button")
+                    modifier = Modifier
+                        .padding(start = spacing.xs)
+                        .testTag("settings_button")
                         .semantics { contentDescription = "Settings" }
                 ) {
-                    Text("Settings")
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
             }
-        }
-        if (state.selectedSessionId != null) {
-            SessionContextHeader(
-                state = state,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // Filter chips row
+            FilterBar(
+                filter = state.filter,
+                onToggleFilter = { onAction(ConversationAction.OnToggleFilter(it)) },
+                modifier = Modifier.padding(vertical = spacing.sm)
             )
-        }
-        OutlinedTextField(
-            value = state.searchQuery,
-            onValueChange = { onAction(ConversationAction.OnSearchQueryChange(it)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .focusRequester(searchFocusRequester)
-                .testTag("search_field"),
-            placeholder = { Text("Search Messages...") },
-            trailingIcon = {
-                if (state.searchQuery.isNotEmpty()) {
-                    IconButton(
-                        onClick = { onAction(ConversationAction.OnSearchQueryChange("")) },
-                        modifier = Modifier.testTag("search_clear_button")
-                            .semantics { contentDescription = "Clear search" }
-                    ) {
-                        Text("✕")
-                    }
-                }
-            },
-            singleLine = true
-        )
-        FilterBar(
-            filter = state.filter,
-            onToggleFilter = { onAction(ConversationAction.OnToggleFilter(it)) },
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        if (isSearchOrFilterActive) {
-            MatchNavigationBar(state, onAction)
+
+            // Match navigation when search/filter is active
+            if (isSearchOrFilterActive) {
+                MatchNavigationBar(state, onAction)
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
 
+/** Match count and previous/next navigation controls. */
 @Composable
 private fun MatchNavigationBar(state: ConversationState, onAction: (ConversationAction) -> Unit) {
+    val spacing = JunieViewerTheme.spacing
     val matchCount = state.filteredMessages.size
     val totalCount = state.messages.size
     val countText = if (matchCount == 0) "No matching Messages" else "$matchCount of $totalCount Messages"
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.xl, vertical = spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -200,25 +230,36 @@ private fun MatchNavigationBar(state: ConversationState, onAction: (Conversation
                 text = matchLabel,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 4.dp).testTag("match_position")
+                modifier = Modifier.padding(end = spacing.sm).testTag("match_position")
             )
             IconButton(
                 onClick = { onAction(ConversationAction.OnPreviousMatch) },
-                modifier = Modifier.size(32.dp).testTag("prev_match_button")
+                modifier = Modifier.size(MATCH_NAV_BUTTON_SIZE).testTag("prev_match_button")
                     .semantics { contentDescription = "Previous match" }
             ) {
-                Text("▲", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "▲",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             IconButton(
                 onClick = { onAction(ConversationAction.OnNextMatch) },
-                modifier = Modifier.size(32.dp).testTag("next_match_button")
+                modifier = Modifier.size(MATCH_NAV_BUTTON_SIZE).testTag("next_match_button")
                     .semantics { contentDescription = "Next match" }
             ) {
-                Text("▼", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "▼",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
+
+/** Fixed size for match navigation icon buttons — not part of the spacing scale. */
+private val MATCH_NAV_BUTTON_SIZE = 32.dp
 
 // ---------------------------------------------------------------------------
 // Content states
