@@ -12,7 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
  * Renders error or warning messages with distinct visual treatment.
@@ -25,34 +25,42 @@ fun ErrorWarningBlock(
     isWarning: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val colors = JunieViewerTheme.conversationColors
+    val spacing = JunieViewerTheme.spacing
+
     val containerColor = if (isWarning)
-        MaterialTheme.colorScheme.tertiaryContainer
+        colors.warningBackground
     else
-        MaterialTheme.colorScheme.errorContainer
+        colors.errorBackground
 
     val contentColor = if (isWarning)
-        MaterialTheme.colorScheme.onTertiaryContainer
+        MaterialTheme.colorScheme.onSurface
     else
-        MaterialTheme.colorScheme.onErrorContainer
+        MaterialTheme.colorScheme.onError
 
-    val icon = if (isWarning) "⚠️" else "❌"
+    val indicator = if (isWarning) "⚠" else "✖"
     val label = if (isWarning) "Warning" else "Error"
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = containerColor,
-        shape = MaterialTheme.shapes.small
+        shape = RICH_CONTENT_SHAPE
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "$icon $label",
+                    text = indicator,
                     style = MaterialTheme.typography.labelMedium,
                     color = contentColor
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(spacing.md))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor
+                )
             }
-            Spacer(modifier = Modifier.padding(top = 4.dp))
+            Spacer(modifier = Modifier.padding(top = spacing.sm))
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,

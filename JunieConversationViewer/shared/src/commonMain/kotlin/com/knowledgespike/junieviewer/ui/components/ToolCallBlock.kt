@@ -2,6 +2,7 @@ package com.knowledgespike.junieviewer.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,9 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
+import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
+
+/** Shape for tool call header (top corners only). */
+private val TOOL_CALL_HEADER_SHAPE = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
+
+/** Shape for tool call body (bottom corners only). */
+private val TOOL_CALL_BODY_SHAPE = RoundedCornerShape(bottomStart = 6.dp, bottomEnd = 6.dp)
+
+/** Maximum height for tool call body to prevent infinite-height measurement in LazyColumn. */
+private val TOOL_CALL_BODY_MAX_HEIGHT = 400.dp
 
 /**
  * Renders a Tool Call summary with a collapsible body.
@@ -38,27 +48,31 @@ fun ToolCallBlock(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val toolName = extractToolName(content)
+    val colors = JunieViewerTheme.conversationColors
+    val spacing = JunieViewerTheme.spacing
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                .background(MaterialTheme.colorScheme.tertiaryContainer)
+                .clip(TOOL_CALL_HEADER_SHAPE)
+                .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.toolCallBorder, shape = TOOL_CALL_HEADER_SHAPE)
+                .background(colors.toolCallBackground)
                 .clickable { expanded = !expanded }
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = spacing.lg, vertical = spacing.md)
                 .testTag("tool_call_header"),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = if (expanded) "▼" else "▶",
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(spacing.md))
             Text(
-                text = "🔧 $toolName",
+                text = "Tool: $toolName",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = content)
@@ -67,16 +81,15 @@ fun ToolCallBlock(
             Text(
                 text = content,
                 style = MaterialTheme.typography.bodySmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
+                    fontFamily = MonospaceFont
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 400.dp)
-                    .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(8.dp)
+                    .heightIn(max = TOOL_CALL_BODY_MAX_HEIGHT)
+                    .clip(TOOL_CALL_BODY_SHAPE)
+                    .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.toolCallBorder, shape = TOOL_CALL_BODY_SHAPE)
+                    .background(colors.codeBackground)
+                    .padding(spacing.md)
                     .testTag("tool_call_body")
             )
         }

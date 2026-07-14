@@ -36,18 +36,18 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 ## 5. Progress Summary
 
-| # | Task Area | Status                             | Task Count |
-|---|---|------------------------------------|---|
-| 1 | Design Discovery and Baseline Audit | 6/6 complete                       | 6 |
-| 2 | Theme and Token Foundation | 10/10 complete                     | 10 |
-| 3 | Application Chrome Polish | 8/8 complete                       | 8 |
-| 4 | Conversation Surface Redesign | 8/8 complete  | 8 |
-| 5 | Rich Content Styling | Not started                        | 10 |
-| 6 | States and Feedback | Not started                        | 6 |
-| 7 | Accessibility and Cross-Platform Polish | Not started                        | 10 |
-| 8 | Testing and Review | Not started                        | 8 |
-| 9 | Documentation and Completion | Not started                        | 7 |
-| | **Total** |                                    | **73** |
+| # | Task Area | Status                               | Task Count |
+|---|---|--------------------------------------|---|
+| 1 | Design Discovery and Baseline Audit | 6/6 complete                         | 6 |
+| 2 | Theme and Token Foundation | 10/10 complete                       | 10 |
+| 3 | Application Chrome Polish | 8/8 complete                         | 8 |
+| 4 | Conversation Surface Redesign | 8/8 complete                         | 8 |
+| 5 | Rich Content Styling | 10/10 complete | 10 |
+| 6 | States and Feedback | Not started                          | 6 |
+| 7 | Accessibility and Cross-Platform Polish | Not started                          | 10 |
+| 8 | Testing and Review | Not started                          | 8 |
+| 9 | Documentation and Completion | Not started                          | 7 |
+| | **Total** |                                      | **73** |
 
 ## 6. Task Status Legend
 
@@ -664,7 +664,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.1 Restyle `CodeBlockWithCopy` with theme tokens
 
-- [ ] Restyle `CodeBlockWithCopy` with theme tokens
+- [x] Restyle `CodeBlockWithCopy` with theme tokens
 
 **Description:** Replace hardcoded colours in `CodeBlockWithCopy.kt` with `codeBackground`/`codeBorder` semantic tokens and monospace typography token.
 
@@ -684,7 +684,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.2 Restyle `DiffBlock` with theme tokens
 
-- [ ] Restyle `DiffBlock` with theme tokens
+- [x] Restyle `DiffBlock` with theme tokens
 
 **Description:** Replace hardcoded diff colours with `diffAdded`/`diffRemoved`/`diffAddedText`/`diffRemovedText` semantic tokens.
 
@@ -703,7 +703,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.3 Restyle `TerminalOutputBlock` with theme tokens
 
-- [ ] Restyle `TerminalOutputBlock` with theme tokens
+- [x] Restyle `TerminalOutputBlock` with theme tokens
 
 **Description:** Replace hardcoded terminal colours with `terminalBackground`/`terminalText` semantic tokens.
 
@@ -721,7 +721,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.4 Restyle `ThoughtBlock` with theme tokens
 
-- [ ] Restyle `ThoughtBlock` with theme tokens
+- [x] Restyle `ThoughtBlock` with theme tokens
 
 **Description:** Replace hardcoded thought colours with `thoughtBackground`/`thoughtBorder` semantic tokens. Ensure de-emphasised styling.
 
@@ -739,7 +739,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.5 Restyle `ToolCallBlock` with theme tokens
 
-- [ ] Restyle `ToolCallBlock` with theme tokens
+- [x] Restyle `ToolCallBlock` with theme tokens
 
 **Description:** Replace hardcoded tool call colours with `toolCallBackground`/`toolCallBorder` semantic tokens.
 
@@ -756,7 +756,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.6 Restyle `StructuredOutputBlock` with theme tokens
 
-- [ ] Restyle `StructuredOutputBlock` with theme tokens
+- [x] Restyle `StructuredOutputBlock` with theme tokens
 
 **Description:** Replace hardcoded styling in `StructuredOutputBlock.kt` with theme tokens, consistent with code block styling.
 
@@ -773,7 +773,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.7 Restyle `ErrorWarningBlock` with theme tokens
 
-- [ ] Restyle `ErrorWarningBlock` with theme tokens
+- [x] Restyle `ErrorWarningBlock` with theme tokens
 
 **Description:** Replace hardcoded error/warning colours with `errorBackground`/`warningBackground` semantic tokens. Ensure icon + label (not colour alone).
 
@@ -791,7 +791,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.8 Restyle `MarkdownContent` with theme tokens
 
-- [ ] Restyle `MarkdownContent` with theme tokens
+- [x] Restyle `MarkdownContent` with theme tokens
 
 **Description:** Replace hardcoded font sizes, spacing, and colours in `MarkdownContent.kt` with theme tokens.
 
@@ -809,7 +809,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.9 Verify no hardcoded styling in rich content blocks
 
-- [ ] Verify no hardcoded styling in rich content blocks
+- [x] Verify no hardcoded styling in rich content blocks
 
 **Description:** Grep all rich content files for remaining hardcoded literals and fix.
 
@@ -826,7 +826,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 5.10 HITL review of rich content styling — `HITL Review`
 
-- [ ] HITL review of rich content styling
+- [x] HITL review of rich content styling
 
 **Description:** HITL verifies all rich content blocks have distinct, themed visual treatments in both light and dark modes.
 
@@ -1448,3 +1448,4 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 | N8 | 2026-07-14 | **Area 3 complete (tasks 3.1–3.7).** Chrome files restyled: `ConversationScreen.kt` (top bar wrapped in `Surface` with tonal elevation + `HorizontalDivider`, search field with `OutlinedTextFieldDefaults.colors`, match nav with themed glyph colours, all spacing via `JunieViewerTheme.spacing`), `SessionContextHeader.kt` (spacing tokens), `FilterBar.kt` (pill-shaped chips via `RoundedCornerShape(50)` + `FilterChipDefaults.filterChipColors` with themed selected/unselected colours), `SessionSelector.kt` (tighter density with `spacing.md`/`spacing.lg`/`spacing.xs`, selected state colours for all text, `shapes.small` for items), `SettingsDialog.kt` (all spacing via theme tokens, explicit surface colour). Intentional remaining literals: `1.dp` tonalElevation (M3 Surface param), `MATCH_NAV_BUTTON_SIZE = 32.dp` (named constant for icon buttons), `RoundedCornerShape(50)` (percent-based pill shape). Glyphs ✕/▲/▼ retained as themed `Text` — no Material Icons dependency available. Non-chrome hardcoded values in `ConversationScreen.kt` content states/list belong to Areas 4/6. All tests pass (`./gradlew :shared:jvmTest`). Task 3.8 (HITL review) remains unchecked. |
 | N9 | 2026-07-14 | **Area 3 HITL feedback — layout restructure.** HITL found top chrome too crowded (title bar + session info + search + filters stacked). Decisions: (1) removed app title/top bar, (2) moved Session metadata from top to a one-line footer (`SessionContextFooter`), (3) top area now focuses on search field + compact Session/Settings `TextButton`s + filter chips, visually separated by dividers. `SessionContextHeader` superseded by `SessionContextFooter.kt`. `ConversationScreen` changed from `Scaffold` to `Column` layout with `SearchAndFilterChrome` + content + footer. Footer shows three evenly-spread fields: Session id, date, project — with `TextOverflow.Ellipsis`. New test tags: `session_context_footer`, `session_footer_log_name`, `session_footer_date`, `session_footer_project`. Robot updated: `assertSessionContextVisible` now uses `session_context_footer`. All tests pass (`./gradlew :shared:jvmTest`). Task 3.8 HITL review remains pending. |
 | N10 | 2026-07-14 | **Area 4 complete (tasks 4.1–4.7).** Files changed: `MessageItems.kt` (accent rails via `humanAccent`/`junieAccent`, `Card` with `MESSAGE_CARD_SHAPE` 8dp rounded corners + 1dp elevation + `outlineVariant` border, `MessageKindMarker` composable with coloured dot + clean label replacing emoji-prefixed glyphs, `JUNIE_READABLE_MAX_WIDTH = 720.dp` for long-form readability, `UnsupportedEventCard` hardcoded dp replaced with spacing tokens, plain text upgraded to `bodyLarge`), `MessageFormatting.kt` (emoji prefixes removed from all `messageKindLabel` values), `ConversationScreen.kt` (conversation list padding/spacing uses `JunieViewerTheme.spacing`, extra `Spacer` before Turn headers for between-turn separation). Turn headers now use `titleMedium` typography, `junieAccent` colour, and `semantics { heading() }`. Kind indicator dot colours mapped to semantic tokens per `MessageKind`. Named layout constants: `HUMAN_MAX_CARD_WIDTH`, `JUNIE_READABLE_MAX_WIDTH`, `MESSAGE_CARD_SHAPE`, `ACCENT_RAIL_WIDTH`. Intentional remaining literals: `8.dp` dot size (visual constant), `1.dp` elevation/border (M3 Card params). All tests pass (`./gradlew :shared:jvmTest`). Task 4.8 (HITL review) remains unchecked. |
+| N11 | 2026-07-14 | **Area 5 complete (tasks 5.1–5.9).** Files changed: `CodeBlock.kt` (uses `codeBackground`/`codeBorder` tokens, `RICH_CONTENT_SHAPE` 6dp, `RICH_CONTENT_BORDER_WIDTH` 1dp, `MonospaceFont`, spacing tokens), `DiffBlock.kt` (uses `diffAdded`/`diffRemoved`/`diffAddedText`/`diffRemovedText`/`diffHunkHeader` tokens, `MonospaceFont`, removed emoji "📝"), `TerminalOutputBlock.kt` (uses `terminalBackground`/`terminalText`/`terminalCommand` tokens, `MonospaceFont`, removed emoji "⌨"), `ThoughtBlock.kt` (uses `thoughtBackground`/`thoughtBorder` tokens, spacing tokens, removed emoji "💭"), `ToolCallBlock.kt` (uses `toolCallBackground`/`toolCallBorder`/`codeBackground` tokens, `MonospaceFont`, removed emoji "🔧", label changed to "Tool: <name>"), `StructuredOutputBlock.kt` (uses `codeBackground`/`codeBorder` tokens, `MonospaceFont`, removed emoji "📊"), `ErrorWarningBlock.kt` (uses `errorBackground`/`warningBackground` tokens, replaced emoji ⚠️/❌ with text indicators ⚠/✖, split indicator and label into separate Text elements), `MarkdownContent.kt` (inline code uses `MonospaceFont` + `codeBackground`, links use themed `primary` colour, spacing uses theme tokens), `CopyButton.kt` (removed emoji "📋" from label). Shared constants `RICH_CONTENT_SHAPE` and `RICH_CONTENT_BORDER_WIDTH` defined in `CodeBlock.kt` as `internal` for reuse. Intentional remaining literals: `600.dp`/`400.dp` max heights (named constants for LazyColumn measurement safety), `6.dp` in `RoundedCornerShape` (inside named constant). Syntax highlighting `SyntaxThemes.default(darkMode = false)` remains hardcoded — wiring to ThemeMode deferred (D4). All tests pass (`./gradlew :shared:jvmTest`). Task 5.10 (HITL review) remains unchecked. |

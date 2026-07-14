@@ -2,6 +2,7 @@ package com.knowledgespike.junieviewer.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
  * Renders a Thought message de-emphasised and collapsible.
@@ -35,15 +35,18 @@ fun ThoughtBlock(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val colors = JunieViewerTheme.conversationColors
+    val spacing = JunieViewerTheme.spacing
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .clip(RICH_CONTENT_SHAPE)
+                .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.thoughtBorder, shape = RICH_CONTENT_SHAPE)
+                .background(colors.thoughtBackground)
                 .clickable { expanded = !expanded }
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = spacing.lg, vertical = spacing.md)
                 .testTag("thought_header"),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -52,15 +55,15 @@ fun ThoughtBlock(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(spacing.md))
             Text(
-                text = "💭 Thought",
+                text = "Thought",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontStyle = FontStyle.Italic
             )
             if (!expanded) {
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(spacing.md))
                 Text(
                     text = text.take(80) + if (text.length > 80) "…" else "",
                     style = MaterialTheme.typography.bodySmall,
@@ -78,7 +81,7 @@ fun ThoughtBlock(
                 fontStyle = FontStyle.Italic,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .padding(horizontal = spacing.lg, vertical = spacing.md)
                     .testTag("thought_body")
             )
         }

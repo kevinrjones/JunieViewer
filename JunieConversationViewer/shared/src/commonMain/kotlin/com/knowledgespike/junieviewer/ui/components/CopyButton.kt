@@ -22,7 +22,7 @@ fun CopyButton(
         modifier = modifier.testTag("copy_button")
     ) {
         Text(
-            text = "📋 Copy",
+            text = "Copy",
             style = MaterialTheme.typography.labelSmall
         )
     }
