@@ -36,18 +36,18 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 ## 5. Progress Summary
 
-| # | Task Area | Status                               | Task Count |
-|---|---|--------------------------------------|---|
-| 1 | Design Discovery and Baseline Audit | 6/6 complete                         | 6 |
-| 2 | Theme and Token Foundation | 10/10 complete                       | 10 |
-| 3 | Application Chrome Polish | 8/8 complete                         | 8 |
-| 4 | Conversation Surface Redesign | 8/8 complete                         | 8 |
+| # | Task Area | Status         | Task Count |
+|---|---|----------------|---|
+| 1 | Design Discovery and Baseline Audit | 6/6 complete   | 6 |
+| 2 | Theme and Token Foundation | 10/10 complete | 10 |
+| 3 | Application Chrome Polish | 8/8 complete   | 8 |
+| 4 | Conversation Surface Redesign | 8/8 complete   | 8 |
 | 5 | Rich Content Styling | 10/10 complete | 10 |
-| 6 | States and Feedback | Not started                          | 6 |
-| 7 | Accessibility and Cross-Platform Polish | Not started                          | 10 |
-| 8 | Testing and Review | Not started                          | 8 |
-| 9 | Documentation and Completion | Not started                          | 7 |
-| | **Total** |                                      | **73** |
+| 6 | States and Feedback | 6/6 complete   | 6 |
+| 7 | Accessibility and Cross-Platform Polish | Not started    | 10 |
+| 8 | Testing and Review | Not started    | 8 |
+| 9 | Documentation and Completion | Not started    | 7 |
+| | **Total** |                | **73** |
 
 ## 6. Task Status Legend
 
@@ -849,7 +849,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 6.1 Restyle loading state with theme tokens
 
-- [ ] Restyle loading state with theme tokens
+- [x] Restyle loading state with theme tokens
 
 **Description:** Replace hardcoded styling in the loading state of `ConversationScreen.kt` with theme tokens.
 
@@ -866,7 +866,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 6.2 Restyle empty states with theme tokens
 
-- [ ] Restyle empty states with theme tokens
+- [x] Restyle empty states with theme tokens
 
 **Description:** Restyle "no Session selected" and "Session has no Messages" empty states with theme tokens.
 
@@ -884,7 +884,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 6.3 Restyle error state with theme tokens
 
-- [ ] Restyle error state with theme tokens
+- [x] Restyle error state with theme tokens
 
 **Description:** Restyle the error state in `ConversationScreen.kt` with theme tokens.
 
@@ -901,7 +901,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 6.4 Restyle `FatalErrorDialog` with theme tokens
 
-- [ ] Restyle `FatalErrorDialog` with theme tokens
+- [x] Restyle `FatalErrorDialog` with theme tokens
 
 **Description:** Replace hardcoded styling in `FatalErrorDialog.kt` with theme tokens.
 
@@ -918,7 +918,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 6.5 Restyle no-results state with theme tokens
 
-- [ ] Restyle no-results state with theme tokens
+- [x] Restyle no-results state with theme tokens
 
 **Description:** Restyle the "no Messages match" state with theme tokens.
 
@@ -935,7 +935,7 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 
 #### 6.6 HITL review of states — `HITL Review`
 
-- [ ] HITL review of states
+- [x] HITL review of states
 
 **Description:** HITL verifies polished loading, empty, error, and no-results states in both themes.
 
@@ -1449,3 +1449,5 @@ This document breaks the Sprint 3 UI Polish and Theme Refresh sprint into concre
 | N9 | 2026-07-14 | **Area 3 HITL feedback — layout restructure.** HITL found top chrome too crowded (title bar + session info + search + filters stacked). Decisions: (1) removed app title/top bar, (2) moved Session metadata from top to a one-line footer (`SessionContextFooter`), (3) top area now focuses on search field + compact Session/Settings `TextButton`s + filter chips, visually separated by dividers. `SessionContextHeader` superseded by `SessionContextFooter.kt`. `ConversationScreen` changed from `Scaffold` to `Column` layout with `SearchAndFilterChrome` + content + footer. Footer shows three evenly-spread fields: Session id, date, project — with `TextOverflow.Ellipsis`. New test tags: `session_context_footer`, `session_footer_log_name`, `session_footer_date`, `session_footer_project`. Robot updated: `assertSessionContextVisible` now uses `session_context_footer`. All tests pass (`./gradlew :shared:jvmTest`). Task 3.8 HITL review remains pending. |
 | N10 | 2026-07-14 | **Area 4 complete (tasks 4.1–4.7).** Files changed: `MessageItems.kt` (accent rails via `humanAccent`/`junieAccent`, `Card` with `MESSAGE_CARD_SHAPE` 8dp rounded corners + 1dp elevation + `outlineVariant` border, `MessageKindMarker` composable with coloured dot + clean label replacing emoji-prefixed glyphs, `JUNIE_READABLE_MAX_WIDTH = 720.dp` for long-form readability, `UnsupportedEventCard` hardcoded dp replaced with spacing tokens, plain text upgraded to `bodyLarge`), `MessageFormatting.kt` (emoji prefixes removed from all `messageKindLabel` values), `ConversationScreen.kt` (conversation list padding/spacing uses `JunieViewerTheme.spacing`, extra `Spacer` before Turn headers for between-turn separation). Turn headers now use `titleMedium` typography, `junieAccent` colour, and `semantics { heading() }`. Kind indicator dot colours mapped to semantic tokens per `MessageKind`. Named layout constants: `HUMAN_MAX_CARD_WIDTH`, `JUNIE_READABLE_MAX_WIDTH`, `MESSAGE_CARD_SHAPE`, `ACCENT_RAIL_WIDTH`. Intentional remaining literals: `8.dp` dot size (visual constant), `1.dp` elevation/border (M3 Card params). All tests pass (`./gradlew :shared:jvmTest`). Task 4.8 (HITL review) remains unchecked. |
 | N11 | 2026-07-14 | **Area 5 complete (tasks 5.1–5.9).** Files changed: `CodeBlock.kt` (uses `codeBackground`/`codeBorder` tokens, `RICH_CONTENT_SHAPE` 6dp, `RICH_CONTENT_BORDER_WIDTH` 1dp, `MonospaceFont`, spacing tokens), `DiffBlock.kt` (uses `diffAdded`/`diffRemoved`/`diffAddedText`/`diffRemovedText`/`diffHunkHeader` tokens, `MonospaceFont`, removed emoji "📝"), `TerminalOutputBlock.kt` (uses `terminalBackground`/`terminalText`/`terminalCommand` tokens, `MonospaceFont`, removed emoji "⌨"), `ThoughtBlock.kt` (uses `thoughtBackground`/`thoughtBorder` tokens, spacing tokens, removed emoji "💭"), `ToolCallBlock.kt` (uses `toolCallBackground`/`toolCallBorder`/`codeBackground` tokens, `MonospaceFont`, removed emoji "🔧", label changed to "Tool: <name>"), `StructuredOutputBlock.kt` (uses `codeBackground`/`codeBorder` tokens, `MonospaceFont`, removed emoji "📊"), `ErrorWarningBlock.kt` (uses `errorBackground`/`warningBackground` tokens, replaced emoji ⚠️/❌ with text indicators ⚠/✖, split indicator and label into separate Text elements), `MarkdownContent.kt` (inline code uses `MonospaceFont` + `codeBackground`, links use themed `primary` colour, spacing uses theme tokens), `CopyButton.kt` (removed emoji "📋" from label). Shared constants `RICH_CONTENT_SHAPE` and `RICH_CONTENT_BORDER_WIDTH` defined in `CodeBlock.kt` as `internal` for reuse. Intentional remaining literals: `600.dp`/`400.dp` max heights (named constants for LazyColumn measurement safety), `6.dp` in `RoundedCornerShape` (inside named constant). Syntax highlighting `SyntaxThemes.default(darkMode = false)` remains hardcoded — wiring to ThemeMode deferred (D4). All tests pass (`./gradlew :shared:jvmTest`). Task 5.10 (HITL review) remains unchecked. |
+
+| N12 | 2026-07-15 | **Area 6 complete (tasks 6.1–6.5).** Files changed: `ConversationScreen.kt` (loading/error/empty/no-results states restyled with theme tokens), `FatalErrorDialog.kt` (uses `errorContainer` colours, `shapes.large`, spacing tokens, added test tags `fatal_error_dialog`/`fatal_error_message`/`fatal_error_close_button`). Error state wrapped in `Surface` with `errorContainer`/`onErrorContainer` + "Error" title. Removed `⚠` glyph. All `dp` replaced with `JunieViewerTheme.spacing`. All tests pass (`./gradlew :shared:jvmTest`). Task 6.6 (HITL review) remains unchecked. |

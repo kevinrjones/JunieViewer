@@ -267,36 +267,59 @@ private val MATCH_NAV_BUTTON_SIZE = 32.dp
 
 @Composable
 private fun LoadingState() {
+    val spacing = JunieViewerTheme.spacing
     Box(
         modifier = Modifier.fillMaxSize().testTag("loading_indicator")
             .semantics { contentDescription = "Loading Conversation" },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Loading Conversation\u2026", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(spacing.lg))
+            Text(
+                "Loading Conversation\u2026",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
 private fun ErrorState(errorMessage: String, onAction: (ConversationAction) -> Unit) {
+    val spacing = JunieViewerTheme.spacing
     Box(
         modifier = Modifier.fillMaxSize().testTag("error_state")
             .semantics { contentDescription = "Error loading Conversation" },
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("⚠", style = MaterialTheme.typography.headlineLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(errorMessage, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = { onAction(ConversationAction.OnRetryClick) },
-                modifier = Modifier.testTag("retry_button").semantics { contentDescription = "Retry loading" }
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.errorContainer,
+            modifier = Modifier.padding(spacing.xl)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(spacing.xl)
             ) {
-                Text("Retry")
+                Text(
+                    "Error",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Spacer(modifier = Modifier.height(spacing.md))
+                Text(
+                    errorMessage,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Spacer(modifier = Modifier.height(spacing.lg))
+                Button(
+                    onClick = { onAction(ConversationAction.OnRetryClick) },
+                    modifier = Modifier.testTag("retry_button").semantics { contentDescription = "Retry loading" }
+                ) {
+                    Text("Retry")
+                }
             }
         }
     }
@@ -304,42 +327,73 @@ private fun ErrorState(errorMessage: String, onAction: (ConversationAction) -> U
 
 @Composable
 private fun NoSessionState() {
+    val spacing = JunieViewerTheme.spacing
     Box(
         modifier = Modifier.fillMaxSize().testTag("no_session_state")
             .semantics { contentDescription = "No Session selected" },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("No Session selected", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Choose a Session to view its Conversation.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "No Session selected",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(spacing.md))
+            Text(
+                "Choose a Session to view its Conversation.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
 private fun EmptyConversationState() {
+    val spacing = JunieViewerTheme.spacing
     Box(
         modifier = Modifier.fillMaxSize().testTag("empty_conversation")
             .semantics { contentDescription = "Empty Conversation" },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("This Session has no Messages", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("The selected Session loaded successfully, but no Conversation Messages were found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "This Session has no Messages",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(spacing.md))
+            Text(
+                "The selected Session loaded successfully, but no Conversation Messages were found.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
 private fun NoResultsState() {
+    val spacing = JunieViewerTheme.spacing
     Box(
         modifier = Modifier.fillMaxSize().testTag("no_results")
             .semantics { contentDescription = "No matching Messages" },
         contentAlignment = Alignment.Center
     ) {
-        Text("No Messages match the current Search Query and Filters.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "No Results",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(spacing.md))
+            Text(
+                "No Messages match the current Search Query and Filters.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
