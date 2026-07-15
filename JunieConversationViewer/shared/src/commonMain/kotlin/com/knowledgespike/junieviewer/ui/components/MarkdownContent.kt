@@ -10,15 +10,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
+import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
 
 /**
  * Lightweight Markdown renderer supporting the core subset:
@@ -31,10 +31,14 @@ fun MarkdownContent(
     modifier: Modifier = Modifier
 ) {
     val blocks = remember(markdown) { parseMarkdownBlocks(markdown) }
+    val spacing = JunieViewerTheme.spacing
+    val colors = JunieViewerTheme.conversationColors
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val codeBackground = colors.codeBackground
 
     Column(modifier = modifier.fillMaxWidth()) {
         blocks.forEachIndexed { index, block ->
-            if (index > 0) Spacer(modifier = Modifier.height(4.dp))
+            if (index > 0) Spacer(modifier = Modifier.height(spacing.sm))
             when (block) {
                 is MarkdownBlock.Heading -> Text(
                     text = block.text,
@@ -47,19 +51,20 @@ fun MarkdownContent(
                     fontWeight = FontWeight.Bold
                 )
                 is MarkdownBlock.Paragraph -> Text(
-                    text = renderInlineMarkdown(block.text),
+                    text = renderInlineMarkdown(block.text, primaryColor, codeBackground),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 is MarkdownBlock.ListItem -> Text(
                     text = buildAnnotatedString {
                         append("  ${block.bullet} ")
-                        append(renderInlineMarkdown(block.text))
+                        append(renderInlineMarkdown(block.text, primaryColor, codeBackground))
                     },
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = spacing.xs)
                 )
                 is MarkdownBlock.CodeFence -> CodeBlockWithCopy(
                     code = block.code,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = spacing.sm)
                 )
             }
         }
@@ -142,7 +147,11 @@ fun parseMarkdownBlocks(markdown: String): List<MarkdownBlock> {
 }
 
 /** Renders inline Markdown formatting (bold, italic, inline code, links-as-text). */
-fun renderInlineMarkdown(text: String): AnnotatedString = buildAnnotatedString {
+fun renderInlineMarkdown(
+    text: String,
+    linkColor: Color = Color.Unspecified,
+    codeBackground: Color = Color.Unspecified
+): AnnotatedString = buildAnnotatedString {
     var i = 0
     while (i < text.length) {
         when {
@@ -150,7 +159,7 @@ fun renderInlineMarkdown(text: String): AnnotatedString = buildAnnotatedString {
             text[i] == '`' && i + 1 < text.length -> {
                 val end = text.indexOf('`', i + 1)
                 if (end > i) {
-                    withStyle(SpanStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)) {
+                    withStyle(SpanStyle(fontFamily = MonospaceFont, background = codeBackground)) {
                         append(text.substring(i + 1, end))
                     }
                     i = end + 1
@@ -187,13 +196,15 @@ fun renderInlineMarkdown(text: String): AnnotatedString = buildAnnotatedString {
                     i++
                 }
             }
-            // Link [text](url) — render as "text"
+            // Link [text](url) — render as "text" with themed primary colour
             text[i] == '[' -> {
                 val closeBracket = text.indexOf(']', i + 1)
                 if (closeBracket > i && closeBracket + 1 < text.length && text[closeBracket + 1] == '(') {
                     val closeParen = text.indexOf(')', closeBracket + 2)
                     if (closeParen > closeBracket) {
-                        append(text.substring(i + 1, closeBracket))
+                        withStyle(SpanStyle(color = linkColor)) {
+                            append(text.substring(i + 1, closeBracket))
+                        }
                         i = closeParen + 1
                     } else {
                         append(text[i])

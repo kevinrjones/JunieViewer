@@ -1,106 +1,200 @@
 package com.knowledgespike.junieviewer.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.looksLikeMarkdown
-import com.knowledgespike.junieviewer.ui.messageKindLabel
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import dev.snipme.highlights.model.SyntaxLanguage
+
+// ---------------------------------------------------------------------------
+// Layout constants for message card readability
+// ---------------------------------------------------------------------------
+
+/** Fraction of available width for Human message cards — keeps them compact and left-aligned. */
+private const val HUMAN_WIDTH_FRACTION = 0.66f
+
+/** Fraction of available width for Junie message cards — right-aligned for long-form readability. */
+private const val JUNIE_WIDTH_FRACTION = 0.9f
+
+/** Rounded corner shape for message cards. */
+private val MESSAGE_CARD_SHAPE = RoundedCornerShape(8.dp)
+
+/** Width of the accent rail on message cards. */
+private val ACCENT_RAIL_WIDTH = 4.dp
 
 // ---------------------------------------------------------------------------
 // Unified message item — replaces duplicate HumanMessageItem / JunieMessageItem
 // ---------------------------------------------------------------------------
 
 /**
- * Compact, right-inset Human message card.
+ * Compact, right-inset Human message card with accent rail.
  */
 @Composable
 fun HumanMessageItem(message: Message) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End
+        horizontalArrangement = Arrangement.Start
     ) {
         MessageCard(
             message = message,
             senderLabel = "Human",
             containerColor = MaterialTheme.colorScheme.primaryContainer,
-            maxCardWidth = 480.dp,
-            innerPadding = 12.dp,
+            accentColor = JunieViewerTheme.conversationColors.humanAccent,
+            widthFraction = HUMAN_WIDTH_FRACTION,
             testTagSuffix = "human"
         )
     }
 }
 
 /**
- * Full-width, left-inset Junie message card optimised for long-form reading.
+ * Full-width, left-aligned Junie message card optimised for long-form reading.
  */
 @Composable
 fun JunieMessageItem(message: Message) {
-    MessageCard(
-        message = message,
-        senderLabel = "Junie",
-        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        maxCardWidth = Dp.Unspecified,
-        innerPadding = 16.dp,
-        testTagSuffix = "junie"
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End
+    ) {
+        MessageCard(
+            message = message,
+            senderLabel = "Junie",
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            accentColor = JunieViewerTheme.conversationColors.junieAccent,
+            widthFraction = JUNIE_WIDTH_FRACTION,
+            testTagSuffix = "junie"
+        )
+    }
 }
 
 /**
  * Shared message card structure used by both Human and Junie message items.
- * Eliminates the duplicate composable structure (Finding 8).
+ * Renders an accent rail, sender label, themed kind marker, and message body.
  */
 @Composable
 private fun MessageCard(
     message: Message,
     senderLabel: String,
     containerColor: Color,
-    maxCardWidth: Dp,
-    innerPadding: Dp,
+    accentColor: Color,
+    widthFraction: Float,
     testTagSuffix: String
 ) {
-    val cardModifier = if (maxCardWidth != Dp.Unspecified) {
-        Modifier.widthIn(max = maxCardWidth).testTag("message_item_$testTagSuffix")
-    } else {
-        Modifier.fillMaxWidth().testTag("message_item_$testTagSuffix")
-    }
+    val spacing = JunieViewerTheme.spacing
+
+    val cardModifier = Modifier
+        .fillMaxWidth(widthFraction)
+        .testTag("message_item_$testTagSuffix")
 
     Card(
         modifier = cardModifier,
-        colors = CardDefaults.cardColors(containerColor = containerColor)
+        shape = MESSAGE_CARD_SHAPE,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(innerPadding)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = senderLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("sender_marker")
-                )
-                Text(
-                    text = messageKindLabel(message.kind),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("message_kind_marker")
-                )
+        Row {
+            // Accent rail
+            Box(
+                modifier = Modifier
+                    .width(ACCENT_RAIL_WIDTH)
+                    .fillMaxHeight()
+                    .background(accentColor)
+            )
+            Column(modifier = Modifier.padding(spacing.lg)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = senderLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("sender_marker")
+                    )
+                    MessageKindMarker(
+                        kind = message.kind,
+                        modifier = Modifier.testTag("message_kind_marker")
+                    )
+                }
+                Spacer(modifier = Modifier.height(spacing.md))
+                MessageBody(message = message)
             }
-            Spacer(modifier = Modifier.height(if (innerPadding >= 16.dp) 8.dp else 4.dp))
-            MessageBody(message = message)
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Themed Message Kind marker — coloured dot + clean text label
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a small coloured dot indicator paired with a clean text label for the given [MessageKind].
+ * Replaces raw emoji-prefixed labels with a themed visual indicator.
+ */
+@Composable
+private fun MessageKindMarker(kind: MessageKind, modifier: Modifier = Modifier) {
+    val dotColor = kindIndicatorColor(kind)
+    Row(
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = kind.label
+        },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(JunieViewerTheme.spacing.sm)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(dotColor)
+        )
+        Text(
+            text = kind.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/** Returns a semantic colour for the kind indicator dot. */
+@Composable
+private fun kindIndicatorColor(kind: MessageKind): Color {
+    val cc = JunieViewerTheme.conversationColors
+    return when (kind) {
+        MessageKind.Text, MessageKind.Markdown -> MaterialTheme.colorScheme.primary
+        MessageKind.Thought -> cc.thoughtBorder
+        MessageKind.Tool, MessageKind.Mcp -> cc.toolCallBorder
+        MessageKind.Patch -> cc.diffAddedText
+        MessageKind.Terminal -> cc.terminalText
+        MessageKind.StructuredOutput -> MaterialTheme.colorScheme.tertiary
+        MessageKind.Error -> MaterialTheme.colorScheme.error
+        MessageKind.Warning -> cc.warningBackground
+        MessageKind.Unsupported -> MaterialTheme.colorScheme.error
+        MessageKind.TestRun -> MaterialTheme.colorScheme.secondary
+        MessageKind.SubAgent -> MaterialTheme.colorScheme.tertiary
+        MessageKind.Question -> MaterialTheme.colorScheme.primary
+        MessageKind.Choice -> MaterialTheme.colorScheme.secondary
+        MessageKind.SystemMessage -> MaterialTheme.colorScheme.onSurfaceVariant
+        MessageKind.Cancelled -> MaterialTheme.colorScheme.error
+        MessageKind.Status -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }
 
@@ -108,27 +202,31 @@ private fun MessageCard(
 // Visual header marking the start of a Junie Turn
 // ---------------------------------------------------------------------------
 
+/** Themed divider header marking the start of a Junie Turn in the conversation. */
 @Composable
 fun TurnHeader() {
+    val spacing = JunieViewerTheme.spacing
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("turn_header"),
+            .padding(vertical = spacing.sm)
+            .testTag("turn_header")
+            .semantics { heading() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant
+            color = JunieViewerTheme.conversationColors.junieAccent.copy(alpha = 0.4f)
         )
         Text(
             text = "Junie Turn",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp)
+            style = MaterialTheme.typography.titleMedium,
+            color = JunieViewerTheme.conversationColors.junieAccent,
+            modifier = Modifier.padding(horizontal = spacing.lg)
         )
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant
+            color = JunieViewerTheme.conversationColors.junieAccent.copy(alpha = 0.4f)
         )
     }
 }
@@ -174,10 +272,11 @@ fun MessageBody(message: Message) {
  */
 @Composable
 private fun UnsupportedEventCard(message: Message) {
+    val spacing = JunieViewerTheme.spacing
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp)
+            .padding(top = spacing.sm)
             .testTag("unsupported_event_card"),
         color = MaterialTheme.colorScheme.errorContainer,
         shape = MaterialTheme.shapes.small
@@ -186,7 +285,7 @@ private fun UnsupportedEventCard(message: Message) {
             text = (message.content as? MessageContent.Text)?.text ?: "Unsupported event",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(spacing.md)
         )
     }
 }
@@ -207,7 +306,7 @@ private fun ContentRenderer(content: MessageContent, isMarkdownKind: Boolean) {
             } else {
                 Text(
                     text = content.text,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.testTag("plain_text_content")
                 )
             }

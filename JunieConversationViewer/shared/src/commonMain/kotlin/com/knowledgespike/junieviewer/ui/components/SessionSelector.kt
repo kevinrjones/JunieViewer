@@ -1,7 +1,5 @@
 package com.knowledgespike.junieviewer.ui.components
 
-// import androidx.compose.material.icons.Icons
-// import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,13 +10,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.knowledgespike.junieviewer.domain.SessionInfo
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
+import com.knowledgespike.junieviewer.ui.formatTimestamp
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
+/**
+ * Dialog listing available Sessions for selection.
+ * Uses themed spacing and improved density for compact browsing.
+ */
 @Composable
 fun SessionSelector(
     sessions: List<SessionInfo>,
@@ -26,29 +26,34 @@ fun SessionSelector(
     onSessionSelected: (SessionInfo) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val spacing = JunieViewerTheme.spacing
+
     Dialog(
         onDismissRequest = onDismiss,
     ) {
         Surface(
             shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth(0.8f)
                 .fillMaxHeight(0.8f)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(24.dp)
+                    .padding(spacing.xxl)
             ) {
                 Text(
                     text = "Select Session",
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = spacing.xl)
                 )
 
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth()
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(spacing.xs)
                 ) {
                     items(sessions) { session ->
                         SessionItem(
@@ -62,7 +67,7 @@ fun SessionSelector(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
+                        .padding(top = spacing.xl),
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
@@ -75,24 +80,9 @@ fun SessionSelector(
 }
 
 /**
- * Formats an epoch-millis timestamp as a human-readable local date/time string.
- */
-private fun formatTimestamp(epochMillis: Long): String {
-    return try {
-        val tz = try { TimeZone.currentSystemDefault() } catch (_: Throwable) { TimeZone.UTC }
-        Instant.fromEpochMilliseconds(epochMillis)
-            .toLocalDateTime(tz)
-            .toString()
-            .replace("T", " ")
-            .substringBefore(".")
-    } catch (_: Throwable) {
-        "Unknown"
-    }
-}
-
-/**
- * A single row in the Session selector list, showing the session id,
+ * A single row in the Session selector list, showing the Session id,
  * directory context, and the best available timestamp.
+ * Selected Session is visually highlighted with primary container colour.
  */
 @Composable
 fun SessionItem(
@@ -100,23 +90,25 @@ fun SessionItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val spacing = JunieViewerTheme.spacing
+
     Surface(
         onClick = onClick,
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(horizontal = spacing.lg, vertical = spacing.md)
                 .fillMaxWidth()
         ) {
             // Session id
             Text(
                 text = session.id,
                 style = MaterialTheme.typography.bodyLarge,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
 
@@ -125,8 +117,8 @@ fun SessionItem(
                 Text(
                     text = "Project: ${session.workingDirectory}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = spacing.xs)
                 )
             }
 
@@ -142,9 +134,9 @@ fun SessionItem(
             if (timestampLabel != null) {
                 Text(
                     text = timestampLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = spacing.xs)
                 )
             }
         }

@@ -134,9 +134,9 @@ class ConversationRobot(private val semanticMatcher: SemanticsNodeInteractionsPr
             .assertExists()
     }
 
-    /** Asserts the session context header is visible with the given session id */
+    /** Asserts the session context footer is visible with the given session id */
     fun assertSessionContextVisible(sessionId: String) {
-        semanticMatcher.onNodeWithTag("session_context_header")
+        semanticMatcher.onNodeWithTag("session_context_footer")
             .assertIsDisplayed()
         semanticMatcher.onAllNodesWithText("Session: $sessionId", substring = true)
             .onFirst()

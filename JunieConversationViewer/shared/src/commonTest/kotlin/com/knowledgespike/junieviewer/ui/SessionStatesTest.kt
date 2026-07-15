@@ -30,7 +30,7 @@ class SessionStatesTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun `session context header shows session id when selected`() = runComposeUiTest {
+    fun `session context footer shows session id when selected`() = runComposeUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
@@ -48,7 +48,7 @@ class SessionStatesTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun `session context header shows timestamp and project`() = runComposeUiTest {
+    fun `session context footer shows timestamp and project`() = runComposeUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
@@ -72,7 +72,7 @@ class SessionStatesTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun `session context shows last modified when createdAt is null`() = runComposeUiTest {
+    fun `session context footer shows last modified when createdAt is null`() = runComposeUiTest {
         val sessionNoCreated = testSession.copy(createdAt = null)
         setContent {
             ConversationScreen(

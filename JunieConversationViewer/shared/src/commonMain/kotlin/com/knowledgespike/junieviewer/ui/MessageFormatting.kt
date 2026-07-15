@@ -1,40 +1,21 @@
 package com.knowledgespike.junieviewer.ui
 
-import com.knowledgespike.junieviewer.domain.MessageKind
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-
-/**
- * Returns a short text label for a Message Kind, used as a non-colour-only marker.
- */
-fun messageKindLabel(kind: MessageKind): String = when (kind) {
-    MessageKind.Text -> "💬 Text"
-    MessageKind.Markdown -> "📄 Markdown"
-    MessageKind.Thought -> "💭 Thought"
-    MessageKind.Tool -> "🔧 Tool"
-    MessageKind.Patch -> "📝 Patch"
-    MessageKind.Terminal -> "⌨ Terminal"
-    MessageKind.StructuredOutput -> "📊 Structured"
-    MessageKind.Error -> "❌ Error"
-    MessageKind.Warning -> "⚠️ Warning"
-    MessageKind.Unsupported -> "⚠ Unsupported"
-    MessageKind.TestRun -> "🧪 Test"
-    MessageKind.Mcp -> "🔌 MCP"
-    MessageKind.SubAgent -> "🤖 SubAgent"
-    MessageKind.Question -> "❓ Question"
-    MessageKind.Choice -> "🔘 Choice"
-    MessageKind.SystemMessage -> "ℹ️ System"
-    MessageKind.Cancelled -> "⛔ Cancelled"
-    MessageKind.Status -> "📋 Status"
-}
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 /** Formats an epoch-millis timestamp into a human-readable local date/time string. */
 fun formatTimestamp(epochMillis: Long): String {
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-    return Instant.ofEpochMilli(epochMillis)
-        .atZone(ZoneId.systemDefault())
-        .format(formatter)
+    return try {
+        val tz = try { TimeZone.currentSystemDefault() } catch (_: Throwable) { TimeZone.UTC }
+        Instant.fromEpochMilliseconds(epochMillis)
+            .toLocalDateTime(tz)
+            .toString()
+            .replace("T", " ")
+            .substringBefore(".")
+    } catch (_: Throwable) {
+        "Unknown"
+    }
 }
 
 /** Heuristic: returns true if the text contains common Markdown formatting markers. */
