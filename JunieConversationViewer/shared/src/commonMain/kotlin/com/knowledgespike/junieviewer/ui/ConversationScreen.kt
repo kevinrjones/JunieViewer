@@ -265,24 +265,51 @@ private val MATCH_NAV_BUTTON_SIZE = 32.dp
 // Content states
 // ---------------------------------------------------------------------------
 
+/** Centred state message used by loading, empty, no-session, and no-results states. */
 @Composable
-private fun LoadingState() {
+private fun CenteredStateMessage(
+    title: String,
+    description: String,
+    testTag: String,
+    accessibilityDescription: String,
+    aboveTitle: @Composable (ColumnScope.() -> Unit)? = null
+) {
     val spacing = JunieViewerTheme.spacing
     Box(
-        modifier = Modifier.fillMaxSize().testTag("loading_indicator")
-            .semantics { contentDescription = "Loading Conversation" },
+        modifier = Modifier.fillMaxSize().testTag(testTag)
+            .semantics { contentDescription = accessibilityDescription },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(spacing.lg))
+            aboveTitle?.invoke(this)
             Text(
-                "Loading Conversation\u2026",
-                style = MaterialTheme.typography.bodyLarge,
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(spacing.md))
+            Text(
+                description,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+}
+
+@Composable
+private fun LoadingState() {
+    val spacing = JunieViewerTheme.spacing
+    CenteredStateMessage(
+        title = "Loading Conversation\u2026",
+        description = "",
+        testTag = "loading_indicator",
+        accessibilityDescription = "Loading Conversation",
+        aboveTitle = {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(spacing.lg))
+        }
+    )
 }
 
 @Composable
@@ -326,76 +353,28 @@ private fun ErrorState(errorMessage: String, onAction: (ConversationAction) -> U
 }
 
 @Composable
-private fun NoSessionState() {
-    val spacing = JunieViewerTheme.spacing
-    Box(
-        modifier = Modifier.fillMaxSize().testTag("no_session_state")
-            .semantics { contentDescription = "No Session selected" },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "No Session selected",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(spacing.md))
-            Text(
-                "Choose a Session to view its Conversation.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
+private fun NoSessionState() = CenteredStateMessage(
+    title = "No Session selected",
+    description = "Choose a Session to view its Conversation.",
+    testTag = "no_session_state",
+    accessibilityDescription = "No Session selected"
+)
 
 @Composable
-private fun EmptyConversationState() {
-    val spacing = JunieViewerTheme.spacing
-    Box(
-        modifier = Modifier.fillMaxSize().testTag("empty_conversation")
-            .semantics { contentDescription = "Empty Conversation" },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "This Session has no Messages",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(spacing.md))
-            Text(
-                "The selected Session loaded successfully, but no Conversation Messages were found.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
+private fun EmptyConversationState() = CenteredStateMessage(
+    title = "This Session has no Messages",
+    description = "The selected Session loaded successfully, but no Conversation Messages were found.",
+    testTag = "empty_conversation",
+    accessibilityDescription = "Empty Conversation"
+)
 
 @Composable
-private fun NoResultsState() {
-    val spacing = JunieViewerTheme.spacing
-    Box(
-        modifier = Modifier.fillMaxSize().testTag("no_results")
-            .semantics { contentDescription = "No matching Messages" },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "No Results",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(spacing.md))
-            Text(
-                "No Messages match the current Search Query and Filters.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
+private fun NoResultsState() = CenteredStateMessage(
+    title = "No Results",
+    description = "No Messages match the current Search Query and Filters.",
+    testTag = "no_results",
+    accessibilityDescription = "No matching Messages"
+)
 
 @Composable
 private fun BoxScope.ConversationList(state: ConversationState) {

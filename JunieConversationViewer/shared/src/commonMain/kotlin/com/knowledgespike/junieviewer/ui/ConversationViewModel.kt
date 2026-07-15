@@ -6,6 +6,7 @@ import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
+import com.knowledgespike.junieviewer.domain.AppPreferences
 import com.knowledgespike.junieviewer.domain.FilterCategory
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.Sender
@@ -135,20 +136,20 @@ class ConversationViewModel(
 
     private val prefsMutex = Any()
 
-    private fun saveLastSession(sessionId: String) = synchronized(prefsMutex) {
-        val currentPrefs = preferencesRepository.load()
-        preferencesRepository.save(currentPrefs.copy(lastSessionId = sessionId))
-    }
+    /** Atomically loads, transforms, and saves preferences. */
+    private fun updatePreference(transform: (AppPreferences) -> AppPreferences) =
+        synchronized(prefsMutex) {
+            preferencesRepository.save(transform(preferencesRepository.load()))
+        }
 
-    private fun saveHomePath(path: String) = synchronized(prefsMutex) {
-        val currentPrefs = preferencesRepository.load()
-        preferencesRepository.save(currentPrefs.copy(junieHomePath = path))
-    }
+    private fun saveLastSession(sessionId: String) =
+        updatePreference { it.copy(lastSessionId = sessionId) }
 
-    private fun saveThemeMode(themeMode: ThemeMode) = synchronized(prefsMutex) {
-        val currentPrefs = preferencesRepository.load()
-        preferencesRepository.save(currentPrefs.copy(themeMode = themeMode.name))
-    }
+    private fun saveHomePath(path: String) =
+        updatePreference { it.copy(junieHomePath = path) }
+
+    private fun saveThemeMode(themeMode: ThemeMode) =
+        updatePreference { it.copy(themeMode = themeMode.name) }
 
     private fun loadSessions() {
         viewModelScope.launch(exceptionHandler) {

@@ -12,10 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
 import com.knowledgespike.junieviewer.domain.SessionInfo
+import com.knowledgespike.junieviewer.ui.formatTimestamp
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 
 /**
  * Dialog listing available Sessions for selection.
@@ -78,22 +76,6 @@ fun SessionSelector(
                 }
             }
         }
-    }
-}
-
-/**
- * Formats an epoch-millis timestamp as a human-readable local date/time string.
- */
-private fun formatTimestamp(epochMillis: Long): String {
-    return try {
-        val tz = try { TimeZone.currentSystemDefault() } catch (_: Throwable) { TimeZone.UTC }
-        Instant.fromEpochMilliseconds(epochMillis)
-            .toLocalDateTime(tz)
-            .toString()
-            .replace("T", " ")
-            .substringBefore(".")
-    } catch (_: Throwable) {
-        "Unknown"
     }
 }
 

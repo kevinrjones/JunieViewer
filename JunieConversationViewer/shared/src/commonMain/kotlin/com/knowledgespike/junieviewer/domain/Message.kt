@@ -17,25 +17,25 @@ enum class FilterCategory {
 }
 
 /** Classifies the semantic kind of a Message for filtering and rendering. */
-enum class MessageKind(val filterCategory: FilterCategory) {
-    Text(FilterCategory.Junie),
-    Markdown(FilterCategory.Junie),
-    Thought(FilterCategory.Thought),
-    Tool(FilterCategory.Tool),
-    Patch(FilterCategory.Patch),
-    Terminal(FilterCategory.Terminal),
-    StructuredOutput(FilterCategory.Tool),
-    Error(FilterCategory.AlwaysShow),
-    Warning(FilterCategory.AlwaysShow),
-    Unsupported(FilterCategory.AlwaysShow),
-    TestRun(FilterCategory.Terminal),
-    Mcp(FilterCategory.Tool),
-    SubAgent(FilterCategory.Tool),
-    Question(FilterCategory.AlwaysShow),
-    Choice(FilterCategory.AlwaysShow),
-    SystemMessage(FilterCategory.AlwaysShow),
-    Cancelled(FilterCategory.AlwaysShow),
-    Status(FilterCategory.AlwaysShow)
+enum class MessageKind(val filterCategory: FilterCategory, val label: String) {
+    Text(FilterCategory.Junie, "Text"),
+    Markdown(FilterCategory.Junie, "Markdown"),
+    Thought(FilterCategory.Thought, "Thought"),
+    Tool(FilterCategory.Tool, "Tool"),
+    Patch(FilterCategory.Patch, "Patch"),
+    Terminal(FilterCategory.Terminal, "Terminal"),
+    StructuredOutput(FilterCategory.Tool, "Structured Output"),
+    Error(FilterCategory.AlwaysShow, "Error"),
+    Warning(FilterCategory.AlwaysShow, "Warning"),
+    Unsupported(FilterCategory.AlwaysShow, "Unsupported"),
+    TestRun(FilterCategory.Terminal, "Test"),
+    Mcp(FilterCategory.Tool, "MCP"),
+    SubAgent(FilterCategory.Tool, "SubAgent"),
+    Question(FilterCategory.AlwaysShow, "Question"),
+    Choice(FilterCategory.AlwaysShow, "Choice"),
+    SystemMessage(FilterCategory.AlwaysShow, "System"),
+    Cancelled(FilterCategory.AlwaysShow, "Cancelled"),
+    Status(FilterCategory.AlwaysShow, "Status")
 }
 
 /**

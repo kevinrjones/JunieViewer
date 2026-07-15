@@ -21,7 +21,6 @@ import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.looksLikeMarkdown
-import com.knowledgespike.junieviewer.ui.messageKindLabel
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import dev.snipme.highlights.model.SyntaxLanguage
 
@@ -153,11 +152,10 @@ private fun MessageCard(
  */
 @Composable
 private fun MessageKindMarker(kind: MessageKind, modifier: Modifier = Modifier) {
-    val label = messageKindLabel(kind)
     val dotColor = kindIndicatorColor(kind)
     Row(
         modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = label
+            contentDescription = kind.label
         },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JunieViewerTheme.spacing.sm)
@@ -169,7 +167,7 @@ private fun MessageKindMarker(kind: MessageKind, modifier: Modifier = Modifier) 
                 .background(dotColor)
         )
         Text(
-            text = messageKindLabel(kind),
+            text = kind.label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
