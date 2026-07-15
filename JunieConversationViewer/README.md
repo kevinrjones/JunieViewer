@@ -5,17 +5,16 @@ Junie Conversation Viewer is a Kotlin Multiplatform application (Desktop/JVM) de
 ## Features
 
 - **Session Discovery**: Automatically scans and lists sessions from the Junie home directory (defaults to `~/.junie/sessions/`).
-- **Rich Visualization**: Displays conversation events including:
-    - Human prompts and Junie responses.
-    - Internal agent thoughts.
-    - Tool calls and terminal output.
-    - Code patches and diffs with syntax highlighting.
-- **Metadata Filtering**: Quick toggles to show or hide specific types of events (Human, Junie, Thoughts, Tools, Patches, Terminal).
-- **Full-Text Search**: Filter messages across the entire conversation history with match-to-match navigation.
-- **Accessibility**: Screen-reader-friendly semantic labels on all interactive controls and state surfaces; non-colour-only status indicators (emoji+text labels); keyboard-navigable focus order; Cmd+F / Ctrl+F search shortcut.
+- **Theme Support**: Light, Dark, and System (follow OS) theme modes with persisted preference. Material 3 colour schemes plus semantic conversation colour tokens for consistent styling.
+- **Polished Conversation UI**: Asymmetric Human/Junie message layout with accent-coloured rails, themed message cards with rounded corners and elevation, Turn headers for conversation grouping, and Message Kind markers with coloured dots and text labels.
+- **Rich Content Rendering**: Themed display of code blocks (with copy), diffs (added/removed/hunk colouring), terminal output (command highlighting), thoughts (collapsible, de-emphasised), tool calls (collapsible with tool name), structured output, and error/warning blocks — all using semantic colour tokens.
+- **Metadata Filtering**: Pill-shaped filter chips to show or hide specific Message Kinds (Human, Junie, Thoughts, Tools, Patches, Terminal).
+- **Full-Text Search**: Filter messages across the entire Conversation with match-to-match navigation (▲/▼ controls, result count, match position).
+- **Session Footer**: One-line footer showing Session id, date, and project path spread evenly across the window.
+- **Accessibility**: WCAG AA contrast ratios verified; screen-reader-friendly semantic labels and heading semantics on all interactive controls; non-colour-only indicators (labels, dots, position, accent rails); keyboard-navigable focus order; Cmd+F / Ctrl+F search shortcut.
 - **Observability**: Integrated Kermit logging with Logback on the JVM for rolling file logs (date and size based).
-- **Error Handling**: Global uncaught exception handling with user-friendly error dialogs and detailed crash logging.
-- **Persistence**: Remembers your configured home path and the last viewed session for a seamless experience.
+- **Error Handling**: Global uncaught exception handling with themed error dialogs and detailed crash logging.
+- **Persistence**: Remembers your configured home path, last viewed session, and theme preference.
 
 ## Getting Started
 

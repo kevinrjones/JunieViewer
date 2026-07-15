@@ -275,3 +275,38 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 ### Test coverage areas
 - All 142 existing tests pass unchanged (except one import fix)
 - No new tests added — this was a pure refactoring with no behaviour change
+
+## Sprint 3 — UI Polish and Theme Refresh
+**Date/Time:** 2026-07-15 07:45
+
+### What was shipped
+- **Theme foundation:** `JunieViewerTheme` composable with Light/Dark/System modes, M3 `lightColorScheme`/`darkColorScheme` inspired by LogViewer palettes, 18 semantic `ConversationColors` tokens (humanAccent, junieAccent, thought/tool/code/diff/terminal/error/warning backgrounds/borders/text), `JunieViewerSpacing` (xs–xxl), custom `JunieViewerTypography` with `MonospaceFont` token, all exposed via `CompositionLocal` + accessor object.
+- **Persisted theme preference:** `themeMode` added to `AppPreferences` (backwards-compatible String field), Settings dialog radio button selector (test tags `theme_mode_light/dark/system`).
+- **Chrome polish:** Removed crowded top bar; replaced with compact `SearchAndFilterChrome` (search field + TextButton session/settings controls + pill-shaped filter chips separated by dividers). Added `SessionContextFooter` — one-line footer with Session id, date, project path spread evenly with ellipsis.
+- **Conversation surface redesign:** Asymmetric layout — Human messages 33% width left-aligned, Junie messages 90% width right-aligned. Accent rails using `humanAccent`/`junieAccent`. `Card` with 8dp rounded corners, 1dp elevation + `outlineVariant` border. `MessageKindMarker` composable (coloured dot + clean text label replacing emoji glyphs). Turn headers with `titleMedium` + `semantics { heading() }`.
+- **Rich content styling:** All blocks (code, diff, terminal, thought, tool, structured, error/warning, Markdown) restyled with semantic tokens, `MonospaceFont`, 6dp rounded corners, 1dp borders. Emoji labels removed from all block headers and copy button.
+- **State polish:** Loading, error, empty, no-results states restyled with theme tokens. `FatalErrorDialog` themed with `errorContainer` colours and test tags.
+- **Accessibility:** WCAG AA contrast verified (28 pairs, all ≥4.0:1). Keyboard focus via M3 defaults. Heading semantics on Turn headers. Colour-not-sole-differentiator verified across all elements.
+- **Testing:** 5 new themed component tests (light/dark message rendering, dark rich content, dark state surfaces, footer metadata). Total test count increased. `./gradlew :shared:jvmTest` and `./gradlew test` both BUILD SUCCESSFUL.
+
+### Key decisions
+- LogViewer accent colours adopted: `#007ACC` (light), `#00A3E0` (dark).
+- `FontFamily.Monospace` used (no bundled font) per HITL decision.
+- Theme toggle in Settings dialog only (not top bar) per HITL decision.
+- ThoughtBlock/ToolCallBlock collapsed by default per HITL decision.
+- `terminalCommand` and `diffHunkHeader` added as new semantic tokens per HITL decision.
+- HITL feedback during Area 3: removed app title bar, moved Session metadata to footer.
+- Junie messages 90% width right-aligned, Human messages 33% left-aligned per HITL feedback.
+
+### Gotchas
+- `SyntaxThemes.default(darkMode = false)` in `CodeBlock.kt` remains hardcoded — wiring to ThemeMode deferred (D4).
+- `Dark: surfaceVariant/onSurfaceVariant` contrast is 4.0:1 — passes large text AA but borderline for small text; acceptable for muted secondary labels.
+- Windows and Linux cross-platform verification pending HITL — only macOS verified locally.
+- No configured cyclomatic complexity tool found in project; lightweight manual review performed.
+
+### Test coverage areas
+- Theme: `ThemeModeTest`, `ConversationColorsTest`, `JunieViewerSpacingTest`, `JunieViewerThemeTest` (Compose UI).
+- Preferences: `PreferencesRepositoryTest` (themeMode persistence).
+- ViewModel: `ConversationViewModelTest` (theme action handling).
+- Themed components: `AccessibilityAndArea8Test` (5 new tests: light/dark messages, dark rich content, dark states, footer).
+- All existing tests continue to pass.

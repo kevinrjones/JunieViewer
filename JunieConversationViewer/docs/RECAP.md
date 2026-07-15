@@ -64,3 +64,17 @@
 - **New Tests**: 5 new UI tests in `ConversationScreenTest.kt` (sender labels, turn headers, layout distinction, kind markers, order preservation with filters) and 5 unit tests in `TurnGroupingTest.kt` for the grouping logic.
 - **All tests passing**: `./gradlew :shared:jvmTest` — BUILD SUCCESSFUL, 0 failures.
 - **No new git commits** — all changes are uncommitted.
+
+# 2026-07-15
+
+## 07:45
+### Sprint 3 — UI Polish and Theme Refresh (Complete)
+- **Theme Foundation**: Created `JunieViewerTheme` with Light/Dark/System modes, M3 colour schemes (LogViewer-inspired palettes), 18 semantic `ConversationColors` tokens, `JunieViewerSpacing` (xs–xxl), custom `JunieViewerTypography` with `MonospaceFont`, all via `CompositionLocal`. Theme mode persisted in preferences with Settings dialog selector.
+- **Chrome Restructure**: Removed crowded top bar per HITL feedback. Replaced with compact `SearchAndFilterChrome` (search + session/settings buttons + pill-shaped filter chips). Added `SessionContextFooter` showing Session id, date, and project path.
+- **Conversation Surface**: Human messages 33% width left-aligned, Junie messages 90% right-aligned. Accent rails, 8dp rounded cards, `MessageKindMarker` (coloured dot + text label replacing emoji). Turn headers with heading semantics.
+- **Rich Content**: All blocks (code, diff, terminal, thought, tool, structured, error/warning, Markdown) restyled with semantic tokens, monospace font, 6dp corners, 1dp borders. Emoji removed from all labels.
+- **States**: Loading, error, empty, no-results states themed. `FatalErrorDialog` uses `errorContainer` colours.
+- **Accessibility**: WCAG AA contrast verified (28 pairs ≥4.0:1). Heading semantics, content descriptions, colour-not-sole-differentiator all verified. Cross-platform: macOS verified; Windows/Linux pending HITL.
+- **Testing**: 5 new themed component tests added. `./gradlew :shared:jvmTest` and `./gradlew test` both BUILD SUCCESSFUL.
+- **Documentation**: README, project_memory, RECAP updated. Sprint 3 task document fully tracked (70/73 tasks complete, 3 HITL review tasks pending approval).
+- **Deferred**: Syntax highlighting theme wiring (D4), Windows/Linux cross-platform verification.

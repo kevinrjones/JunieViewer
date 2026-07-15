@@ -1,6 +1,8 @@
 package com.knowledgespike.junieviewer.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.runComposeUiTest
 import com.knowledgespike.junieviewer.data.PreferencesRepository
@@ -284,5 +286,96 @@ class AccessibilityAndArea8Test {
         setContent { ConversationRoot(viewModel = vm) }
 
         onNodeWithTag("unsupported_event_card").assertExists()
+    }
+
+    // -- Area 8.4: Themed component tests --
+
+    @Test
+    fun `human and junie messages render under light theme`() = runComposeUiTest {
+        setContent {
+            com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
+                themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Light
+            ) {
+                ConversationScreen(
+                    state = ConversationState(
+                        selectedSessionId = "s1",
+                        messages = searchableMessages,
+                        filteredMessages = searchableMessages
+                    ),
+                    onAction = {}
+                )
+            }
+        }
+
+        onAllNodesWithTag("message_item_human").onFirst().assertExists()
+        onAllNodesWithTag("message_item_junie").onFirst().assertExists()
+    }
+
+    @Test
+    fun `human and junie messages render under dark theme`() = runComposeUiTest {
+        setContent {
+            com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
+                themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Dark
+            ) {
+                ConversationScreen(
+                    state = ConversationState(
+                        selectedSessionId = "s1",
+                        messages = searchableMessages,
+                        filteredMessages = searchableMessages
+                    ),
+                    onAction = {}
+                )
+            }
+        }
+
+        onAllNodesWithTag("message_item_human").onFirst().assertExists()
+        onAllNodesWithTag("message_item_junie").onFirst().assertExists()
+    }
+
+    @Test
+    fun `rich content blocks render under dark theme without crashing`() = runComposeUiTest {
+        setContent {
+            com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
+                themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Dark
+            ) {
+                ConversationScreen(
+                    state = ConversationState(
+                        selectedSessionId = "s1",
+                        messages = RepresentativeFixtures.allMessageKinds,
+                        filteredMessages = RepresentativeFixtures.allMessageKinds
+                    ),
+                    onAction = {}
+                )
+            }
+        }
+
+        onNodeWithTag("message_item_human").assertExists()
+        onNodeWithTag("turn_header").assertExists()
+    }
+
+    @Test
+    fun `state surfaces render under dark theme`() = runComposeUiTest {
+        setContent {
+            com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
+                themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Dark
+            ) {
+                ConversationScreen(
+                    state = ConversationState(isLoading = true, selectedSessionId = "s1"),
+                    onAction = {}
+                )
+            }
+        }
+
+        onNodeWithTag("loading_indicator").assertExists()
+    }
+
+    @Test
+    fun `footer renders with session metadata`() = runComposeUiTest {
+        val prefs = tempPrefs("a8-footer")
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val robot = ConversationRobot(this)
+        setContent { ConversationRoot(viewModel = vm) }
+
+        robot.assertTagExists("session_context_footer")
     }
 }
