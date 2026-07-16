@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
@@ -49,17 +51,18 @@ fun TerminalOutputBlock(
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = output)
         }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = TERMINAL_BLOCK_MAX_HEIGHT)
-                .clip(RICH_CONTENT_SHAPE)
-                .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
-                .background(colors.terminalBackground)
-                .padding(spacing.md)
-                .horizontalScroll(rememberScrollState())
-        ) {
-            output.lines().forEach { line ->
+        SelectionContainer(modifier = Modifier.testTag("selectable_terminal_content")) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = TERMINAL_BLOCK_MAX_HEIGHT)
+                    .clip(RICH_CONTENT_SHAPE)
+                    .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
+                    .background(colors.terminalBackground)
+                    .padding(spacing.md)
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                output.lines().forEach { line ->
                 val isCommand = line.trimStart().startsWith("$")
                 Text(
                     text = line,
@@ -69,6 +72,7 @@ fun TerminalOutputBlock(
                     color = if (isCommand) colors.terminalCommand else colors.terminalText,
                     modifier = Modifier.padding(horizontal = spacing.sm, vertical = spacing.xs)
                 )
+                }
             }
         }
     }

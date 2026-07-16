@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
@@ -51,20 +52,22 @@ fun ToolCallBlock(
             CopyButton(text = content)
         },
         body = {
-            Text(
-                text = content,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontFamily = MonospaceFont
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = TOOL_CALL_BODY_MAX_HEIGHT)
-                    .clip(TOOL_CALL_BODY_SHAPE)
-                    .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.toolCallBorder, shape = TOOL_CALL_BODY_SHAPE)
-                    .background(colors.codeBackground)
-                    .padding(spacing.md)
-                    .testTag("tool_call_body")
-            )
+            SelectionContainer(modifier = Modifier.testTag("selectable_tool_call_content")) {
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = MonospaceFont
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = TOOL_CALL_BODY_MAX_HEIGHT)
+                        .clip(TOOL_CALL_BODY_SHAPE)
+                        .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.toolCallBorder, shape = TOOL_CALL_BODY_SHAPE)
+                        .background(colors.codeBackground)
+                        .padding(spacing.md)
+                        .testTag("tool_call_body")
+                )
+            }
         },
         modifier = modifier
     )

@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
@@ -49,19 +51,21 @@ fun StructuredOutputBlock(
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = data)
         }
-        Text(
-            text = data,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontFamily = MonospaceFont
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = STRUCTURED_OUTPUT_MAX_HEIGHT)
-                .clip(RICH_CONTENT_SHAPE)
-                .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
-                .background(colors.codeBackground)
-                .padding(spacing.md)
-                .horizontalScroll(rememberScrollState())
-        )
+        SelectionContainer(modifier = Modifier.testTag("selectable_structured_content")) {
+            Text(
+                text = data,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontFamily = MonospaceFont
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = STRUCTURED_OUTPUT_MAX_HEIGHT)
+                    .clip(RICH_CONTENT_SHAPE)
+                    .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
+                    .background(colors.codeBackground)
+                    .padding(spacing.md)
+                    .horizontalScroll(rememberScrollState())
+            )
+        }
     }
 }

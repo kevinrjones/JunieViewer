@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
@@ -61,11 +63,13 @@ fun ErrorWarningBlock(
                 )
             }
             Spacer(modifier = Modifier.padding(top = spacing.sm))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor
-            )
+            SelectionContainer(modifier = Modifier.testTag("selectable_error_warning_content")) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor
+                )
+            }
         }
     }
 }

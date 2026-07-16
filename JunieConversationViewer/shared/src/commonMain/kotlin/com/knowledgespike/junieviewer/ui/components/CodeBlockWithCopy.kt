@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.selection.SelectionContainer
 import dev.snipme.highlights.model.SyntaxLanguage
 
 /**
@@ -27,6 +29,8 @@ fun CodeBlockWithCopy(
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = code)
         }
-        CodeBlock(code = code, language = language)
+        SelectionContainer(modifier = Modifier.testTag("selectable_code_content")) {
+            CodeBlock(code = code, language = language)
+        }
     }
 }

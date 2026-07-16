@@ -99,7 +99,7 @@
 - Added `kind` and `timestamp` to `Message` domain model to support advanced filtering and future sorting.
 
 ### Gotchas
-- Discovered that `compose-material-icons-extended` was not in the classpath; opted for text-based buttons for now to maintain focus on functionality.
+- `compose-material-icons-extended` has been added to the classpath (via `libs.versions.toml`). Material Icons are now available — text-based buttons can be replaced with icon buttons where appropriate.
 - `System.getProperty("user.home")` is JVM-specific, so it was abstracted behind the `Platform` interface to keep `commonMain` clean.
 
 ### Test coverage areas

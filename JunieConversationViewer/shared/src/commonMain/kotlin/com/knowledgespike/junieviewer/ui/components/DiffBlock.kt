@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
@@ -51,17 +53,18 @@ fun DiffBlock(
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = diff)
         }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = DIFF_BLOCK_MAX_HEIGHT)
-                .clip(RICH_CONTENT_SHAPE)
-                .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
-                .background(colors.codeBackground)
-                .padding(spacing.md)
-                .horizontalScroll(rememberScrollState())
-        ) {
-            diff.lines().forEach { line ->
+        SelectionContainer(modifier = Modifier.testTag("selectable_diff_content")) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = DIFF_BLOCK_MAX_HEIGHT)
+                    .clip(RICH_CONTENT_SHAPE)
+                    .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
+                    .background(colors.codeBackground)
+                    .padding(spacing.md)
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                diff.lines().forEach { line ->
                 val (bgColor, textColor) = when {
                     line.startsWith("+") && !line.startsWith("+++") ->
                         colors.diffAdded to colors.diffAddedText
@@ -82,6 +85,7 @@ fun DiffBlock(
                         .background(bgColor)
                         .padding(horizontal = spacing.sm, vertical = spacing.xs)
                 )
+                }
             }
         }
     }

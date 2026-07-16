@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
@@ -299,16 +300,20 @@ private fun ContentRenderer(content: MessageContent, isMarkdownKind: Boolean) {
     when (content) {
         is MessageContent.Text -> {
             if (isMarkdownKind || looksLikeMarkdown(content.text)) {
-                MarkdownContent(
-                    markdown = content.text,
-                    modifier = Modifier.testTag("markdown_content")
-                )
+                SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                    MarkdownContent(
+                        markdown = content.text,
+                        modifier = Modifier.testTag("markdown_content")
+                    )
+                }
             } else {
-                Text(
-                    text = content.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.testTag("plain_text_content")
-                )
+                SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                    Text(
+                        text = content.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.testTag("plain_text_content")
+                    )
+                }
             }
         }
         is MessageContent.Code -> CodeBlockWithCopy(
