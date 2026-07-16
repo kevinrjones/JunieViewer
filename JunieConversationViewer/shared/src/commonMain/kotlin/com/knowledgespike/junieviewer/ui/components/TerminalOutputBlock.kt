@@ -33,7 +33,9 @@ private val TERMINAL_BLOCK_MAX_HEIGHT = 600.dp
 @Composable
 fun TerminalOutputBlock(
     output: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -65,7 +67,15 @@ fun TerminalOutputBlock(
                 output.lines().forEach { line ->
                 val isCommand = line.trimStart().startsWith("$")
                 Text(
-                    text = line,
+                    text = highlightSearchMatches(
+                        text = line,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        highlightBackground = colors.searchHighlightBackground,
+                        highlightText = colors.searchHighlightText,
+                        currentMatchBackground = colors.currentMatchBackground,
+                        currentMatchText = colors.currentMatchText
+                    ),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = MonospaceFont
                     ),

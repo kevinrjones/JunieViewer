@@ -108,13 +108,16 @@ class TextSelectionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `diff block has selectable content and copy button`() = runComposeUiTest {
+    fun `diff block has selectable content and copy button after expanding`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieDiffMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
+        // Expand the collapsed patch block first
+        onNodeWithTag("patch_block_header").performClick()
+        waitForIdle()
         onNodeWithTag("selectable_diff_content").assertExists()
         onNodeWithTag("copy_button").assertExists()
         FileSystem.SYSTEM.delete(path)

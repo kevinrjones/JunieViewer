@@ -25,7 +25,9 @@ import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 fun ErrorWarningBlock(
     text: String,
     isWarning: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -64,8 +66,17 @@ fun ErrorWarningBlock(
             }
             Spacer(modifier = Modifier.padding(top = spacing.sm))
             SelectionContainer(modifier = Modifier.testTag("selectable_error_warning_content")) {
+                val convColors = JunieViewerTheme.conversationColors
                 Text(
-                    text = text,
+                    text = highlightSearchMatches(
+                        text = text,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        highlightBackground = convColors.searchHighlightBackground,
+                        highlightText = convColors.searchHighlightText,
+                        currentMatchBackground = convColors.currentMatchBackground,
+                        currentMatchText = convColors.currentMatchText
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = contentColor
                 )

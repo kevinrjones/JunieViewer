@@ -27,7 +27,11 @@ data class ConversationColors(
     val diffRemovedText: Color,
     val diffHunkHeader: Color,
     val errorBackground: Color,
-    val warningBackground: Color
+    val warningBackground: Color,
+    val searchHighlightBackground: Color,
+    val searchHighlightText: Color,
+    val currentMatchBackground: Color,
+    val currentMatchText: Color
 )
 
 /** Light conversation colour tokens — inspired by LogViewer Clean Light palette. */
@@ -49,7 +53,11 @@ fun lightConversationColors(): ConversationColors = ConversationColors(
     diffRemovedText = Color(0xFFC62828),
     diffHunkHeader = Color(0x220000CC),
     errorBackground = Color(0xFFFFEBEE),
-    warningBackground = Color(0xFFFFF8E1)
+    warningBackground = Color(0xFFFFF8E1),
+    searchHighlightBackground = Color(0xFFFFF176),
+    searchHighlightText = Color(0xFF1B1B1B),
+    currentMatchBackground = Color(0xFFFF8F00),
+    currentMatchText = Color(0xFFFFFFFF)
 )
 
 /** Dark conversation colour tokens — inspired by LogViewer Industrial Dark palette. */
@@ -71,7 +79,11 @@ fun darkConversationColors(): ConversationColors = ConversationColors(
     diffRemovedText = Color(0xFFEF5350),
     diffHunkHeader = Color(0x33007ACC),
     errorBackground = Color(0xFF3A1B1B),
-    warningBackground = Color(0xFF3E2723)
+    warningBackground = Color(0xFF3E2723),
+    searchHighlightBackground = Color(0xFF827717),
+    searchHighlightText = Color(0xFFFFFFFF),
+    currentMatchBackground = Color(0xFFFF6F00),
+    currentMatchText = Color(0xFFFFFFFF)
 )
 
 /** CompositionLocal providing the current [ConversationColors] instance. */

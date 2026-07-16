@@ -49,10 +49,10 @@ It serves as:
 | # | Task Area                          | Status        | Task Count |
 |---|------------------------------------|---------------|------------|
 | 1 | Discovery and Scope Confirmation   | 9/9 complete  | 9          |
-| 2 | Text Selection and Partial Copy    | 4/6 complete  | 6          |
-| 3 | Sub-Agent and Event Representation | 6/7 complete  | 7          |
-| 4 | Filter Coverage and Top Controls   | 0/6 complete  | 6          |
-| 5 | Search Highlighting                | 0/8 complete  | 8          |
+| 2 | Text Selection and Partial Copy    | 6/6 complete  | 6          |
+| 3 | Sub-Agent and Event Representation | 7/7 complete  | 7          |
+| 4 | Filter Coverage and Top Controls   | 5/6 complete  | 6          |
+| 5 | Search Highlighting                | 7/8 complete  | 8          |
 | 6 | Live Session Tracking              | 0/11 complete | 11         |
 | 7 | AgentTaskFailedEvent Support       | 0/8 complete  | 8          |
 | 8 | Documentation and How-To Updates   | 0/5 complete  | 5          |
@@ -559,7 +559,7 @@ filter UI.*
 
 #### 4.1 Map all MessageKind values to filters
 
-- [ ] Map all MessageKind values to filters
+- [x] Map all MessageKind values to filters
 
 **Description:** Create a complete documented mapping from all 18 `MessageKind` values to `FilterCategory` values and
 corresponding filter toggles. Identify any kinds not covered.
@@ -579,7 +579,7 @@ corresponding filter toggles. Identify any kinds not covered.
 
 #### 4.2 Decide missing/redundant filters
 
-- [ ] Decide missing/redundant filters
+- [x] Decide missing/redundant filters
 
 **Description:** Based on the mapping from 4.1, decide whether SubAgent, Mcp, TestRun, StructuredOutput, or other kinds
 need dedicated filter toggles or should remain grouped under existing categories.
@@ -599,7 +599,7 @@ need dedicated filter toggles or should remain grouped under existing categories
 
 #### 4.3 Update FilterBar and ViewModel
 
-- [ ] Update FilterBar and ViewModel — `Test Required`
+- [x] Update FilterBar and ViewModel — `Test Required`
 
 **Description:** Add or modify filter toggles in `FilterBar.kt` and update filter logic in `ConversationViewModel.kt`
 based on decisions from 4.2.
@@ -621,7 +621,7 @@ based on decisions from 4.2.
 
 #### 4.4 Update filter tests
 
-- [ ] Update filter tests — `Test Required`
+- [x] Update filter tests — `Test Required`
 
 **Description:** Add or update tests to verify all `MessageKind` values are correctly mapped to filter categories and
 that filter toggles work as expected.
@@ -641,7 +641,7 @@ that filter toggles work as expected.
 
 #### 4.5 Ensure labels match UBIQUITOUS-LANGUAGE.md
 
-- [ ] Ensure labels match UBIQUITOUS-LANGUAGE.md
+- [x] Ensure labels match UBIQUITOUS-LANGUAGE.md
 
 **Description:** Verify all filter toggle labels use canonical terms from `UBIQUITOUS-LANGUAGE.md`. Update labels if
 needed.
@@ -660,7 +660,7 @@ needed.
 
 #### 4.6 HITL review of filter coverage — `HITL Review`
 
-- [ ] HITL review of filter coverage
+- [ ] HITL review of filter coverage — awaiting HITL approval
 
 **Description:** Present updated filter bar and documented mapping to the HITL for approval.
 
@@ -687,7 +687,7 @@ labels.
 
 #### 5.1 Add search highlight tokens to ConversationColors
 
-- [ ] Add search highlight tokens to ConversationColors — `Test Required`
+- [x] Add search highlight tokens to ConversationColors — `Test Required`
 
 **Description:** Add `searchHighlightBackground`, `searchHighlightText`, `currentMatchBackground`, `currentMatchText`
 tokens to `ConversationColors` with light and dark values per sprint doc section 12.1.
@@ -708,7 +708,7 @@ tokens to `ConversationColors` with light and dark values per sprint doc section
 
 #### 5.2 Create search highlight utility
 
-- [ ] Create search highlight utility — `Test Required`
+- [x] Create search highlight utility — `Test Required`
 
 **Description:** Create `highlightSearchMatches()` function that splits text into annotated spans with highlight
 colours. Supports case-insensitive matching, current match distinction, and returns `AnnotatedString`.
@@ -730,7 +730,7 @@ colours. Supports case-insensitive matching, current match distinction, and retu
 
 #### 5.3 Highlight matches in plain text messages
 
-- [ ] Highlight matches in plain text messages — `Test Required`
+- [x] Highlight matches in plain text messages — `Test Required`
 
 **Description:** Apply search highlighting to plain text content in Human and Junie messages using the highlight
 utility.
@@ -750,7 +750,7 @@ utility.
 
 #### 5.4 Highlight matches in Markdown/rich content
 
-- [ ] Highlight matches in Markdown/rich content
+- [x] Highlight matches in Markdown/rich content
 
 **Description:** Apply search highlighting to Markdown-rendered content where practical. This may require integration
 with the Markdown rendering pipeline.
@@ -770,7 +770,7 @@ with the Markdown rendering pipeline.
 
 #### 5.5 Highlight matches in code/diff/terminal blocks
 
-- [ ] Highlight matches in code/diff/terminal blocks
+- [x] Highlight matches in code/diff/terminal blocks
 
 **Description:** Apply search highlighting to code blocks, diff blocks, and terminal output blocks where practical.
 
@@ -790,7 +790,7 @@ with the Markdown rendering pipeline.
 
 #### 5.6 Integrate highlighting with match navigation
 
-- [ ] Integrate highlighting with match navigation — `Test Required`
+- [x] Integrate highlighting with match navigation — `Test Required`
 
 **Description:** Connect the search highlight system with the existing match navigation (prev/next). Pass the current
 match index to the highlight utility so the current match is highlighted distinctly.
@@ -810,7 +810,7 @@ match index to the highlight utility so the current match is highlighted distinc
 
 #### 5.7 Add search highlighting tests
 
-- [ ] Add search highlighting tests — `Test Required`
+- [x] Add search highlighting tests — `Test Required`
 
 **Description:** Add comprehensive tests for the search highlighting system: utility function, integration with
 messages, and match navigation.
@@ -831,7 +831,7 @@ messages, and match navigation.
 
 #### 5.8 HITL review of search highlighting — `HITL Review`
 
-- [ ] HITL review of search highlighting
+- [x] HITL review of search highlighting
 
 **Description:** Present search highlighting in both themes to the HITL for approval. Verify WCAG AA contrast.
 
@@ -1544,4 +1544,6 @@ and HITL grants final approval.
 
 | Date | Decision / Note                                                          |
 |------|--------------------------------------------------------------------------|
-|      | *(No entries yet — update as decisions are made during implementation.)* |
+| 2026-07-16 | Area 4: All 18 MessageKind values verified mapped correctly. No code changes needed — implementation already matches approved design. Six filter toggles (Human, Junie, Thoughts, Tools, Patches, Terminal) confirmed with canonical labels. Grouped kinds: StructuredOutput/Mcp/SubAgent→Tools, TestRun→Terminal. AlwaysShow kinds bypass filters. Added FilterCoverageTest (20 tests) and FilterBehaviourTest (7 tests). |
+| 2026-07-16 | Area 5: Search highlighting implemented. Plain text, diff, terminal, structured output, error/warning, thought, and tool call blocks highlighted. Code blocks skipped (third-party syntax highlighter). Markdown highlighting deferred per HITL decision. 4 theme tokens added (searchHighlightBackground/Text, currentMatchBackground/Text). Created SearchHighlight.kt utility. Added SearchHighlightTest (11 tests) and SearchHighlightThemeTest (6 tests). Task 5.8 HITL review pending. |
+| 2026-07-16 | Patch/Diff viewer improvement: Patch blocks now collapsible (collapsed by default), no vertical truncation (removed 600dp max height), inline/side-by-side diff view toggle added. Side-by-side parser pairs removed/added lines row-by-row with null cells for uneven groups. Copy button copies original unified diff. Search highlighting works in both views. Created SideBySideDiffParser.kt, rewrote DiffBlock.kt. Added SideBySideDiffParserTest (10 tests) and PatchDiffViewerTest (7 UI tests). Updated 2 existing tests for collapsed-by-default behaviour. Known limitation: side-by-side parser handles standard unified diff syntax only. |

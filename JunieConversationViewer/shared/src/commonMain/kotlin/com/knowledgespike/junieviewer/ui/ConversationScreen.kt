@@ -400,7 +400,9 @@ private fun BoxScope.ConversationList(state: ConversationState) {
         turns.forEach { turn ->
             if (turn.sender == Sender.Human) {
                 items(items = turn.messages, key = { it.id }) { message ->
-                    HumanMessageItem(message = message)
+                    val msgIndex = state.filteredMessages.indexOf(message)
+                    val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
+                    HumanMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
                 }
             } else {
                 item(key = "turn-header-${turn.messages.first().id}") {
@@ -408,7 +410,9 @@ private fun BoxScope.ConversationList(state: ConversationState) {
                     TurnHeader()
                 }
                 items(items = turn.messages, key = { it.id }) { message ->
-                    JunieMessageItem(message = message)
+                    val msgIndex = state.filteredMessages.indexOf(message)
+                    val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
+                    JunieMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
                 }
             }
         }

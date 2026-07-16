@@ -33,7 +33,9 @@ private val STRUCTURED_OUTPUT_MAX_HEIGHT = 400.dp
 @Composable
 fun StructuredOutputBlock(
     data: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -53,7 +55,15 @@ fun StructuredOutputBlock(
         }
         SelectionContainer(modifier = Modifier.testTag("selectable_structured_content")) {
             Text(
-                text = data,
+                text = highlightSearchMatches(
+                    text = data,
+                    query = searchQuery,
+                    isCurrentMatch = isCurrentMatch,
+                    highlightBackground = colors.searchHighlightBackground,
+                    highlightText = colors.searchHighlightText,
+                    currentMatchBackground = colors.currentMatchBackground,
+                    currentMatchText = colors.currentMatchText
+                ),
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontFamily = MonospaceFont
                 ),

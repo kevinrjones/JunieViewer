@@ -35,7 +35,9 @@ private val TOOL_CALL_BODY_MAX_HEIGHT = 400.dp
 @Composable
 fun ToolCallBlock(
     content: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val toolName = extractToolName(content)
     val colors = JunieViewerTheme.conversationColors
@@ -54,7 +56,15 @@ fun ToolCallBlock(
         body = {
             SelectionContainer(modifier = Modifier.testTag("selectable_tool_call_content")) {
                 Text(
-                    text = content,
+                    text = highlightSearchMatches(
+                        text = content,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        highlightBackground = colors.searchHighlightBackground,
+                        highlightText = colors.searchHighlightText,
+                        currentMatchBackground = colors.currentMatchBackground,
+                        currentMatchText = colors.currentMatchText
+                    ),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = MonospaceFont
                     ),

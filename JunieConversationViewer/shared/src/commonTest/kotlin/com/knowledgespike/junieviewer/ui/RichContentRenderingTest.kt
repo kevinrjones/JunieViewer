@@ -83,16 +83,22 @@ class RichContentRenderingTest {
     }
 
     @Test
-    fun `diff block renders with added and removed line styling`() = runComposeUiTest {
+    fun `diff block renders collapsed by default and expands to show content`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieDiffMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
-        // Diff content should be visible — verify by text content
-        onNodeWithText("Diff", substring = true).assertExists()
-        // Multiple lines contain TokenPair
+        // Patch header should be visible with label
+        onNodeWithTag("patch_block_header").assertExists()
+        // Body should not be visible when collapsed
+        onNodeWithTag("patch_inline_view").assertDoesNotExist()
+
+        // Click to expand
+        onNodeWithTag("patch_block_header").performClick()
+        waitForIdle()
+        // Content should now be visible
         val tokenPairNodes = onAllNodesWithText("TokenPair", substring = true).fetchSemanticsNodes()
         assert(tokenPairNodes.isNotEmpty()) { "Expected at least one node with TokenPair" }
         FileSystem.SYSTEM.delete(path)

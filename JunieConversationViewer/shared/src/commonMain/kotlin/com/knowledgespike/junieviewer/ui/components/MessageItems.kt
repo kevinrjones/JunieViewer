@@ -49,7 +49,7 @@ private val ACCENT_RAIL_WIDTH = 4.dp
  * Compact, right-inset Human message card with accent rail.
  */
 @Composable
-fun HumanMessageItem(message: Message) {
+fun HumanMessageItem(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
@@ -60,7 +60,9 @@ fun HumanMessageItem(message: Message) {
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             accentColor = JunieViewerTheme.conversationColors.humanAccent,
             widthFraction = HUMAN_WIDTH_FRACTION,
-            testTagSuffix = "human"
+            testTagSuffix = "human",
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
     }
 }
@@ -69,7 +71,7 @@ fun HumanMessageItem(message: Message) {
  * Full-width, left-aligned Junie message card optimised for long-form reading.
  */
 @Composable
-fun JunieMessageItem(message: Message) {
+fun JunieMessageItem(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
@@ -80,7 +82,9 @@ fun JunieMessageItem(message: Message) {
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             accentColor = JunieViewerTheme.conversationColors.junieAccent,
             widthFraction = JUNIE_WIDTH_FRACTION,
-            testTagSuffix = "junie"
+            testTagSuffix = "junie",
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
     }
 }
@@ -96,7 +100,9 @@ private fun MessageCard(
     containerColor: Color,
     accentColor: Color,
     widthFraction: Float,
-    testTagSuffix: String
+    testTagSuffix: String,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val spacing = JunieViewerTheme.spacing
 
@@ -140,7 +146,7 @@ private fun MessageCard(
                     )
                 }
                 Spacer(modifier = Modifier.height(spacing.md))
-                MessageBody(message = message)
+                MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
             }
         }
     }
@@ -270,11 +276,13 @@ fun TurnHeader() {
  * Each kind is handled in a single flat dispatch — no nested when or post-when escape hatches.
  */
 @Composable
-fun MessageBody(message: Message) {
+fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
     when (message.kind) {
         MessageKind.Thought -> ThoughtBlock(
             text = (message.content as? MessageContent.Text)?.text ?: "",
-            modifier = Modifier.testTag("thought_block")
+            modifier = Modifier.testTag("thought_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
         MessageKind.Error, MessageKind.Warning -> ErrorWarningBlock(
             text = when (val c = message.content) {
@@ -282,7 +290,9 @@ fun MessageBody(message: Message) {
                 else -> "Unknown error"
             },
             isWarning = message.kind == MessageKind.Warning,
-            modifier = Modifier.testTag("error_warning_block")
+            modifier = Modifier.testTag("error_warning_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
         MessageKind.Tool, MessageKind.Mcp -> ToolCallBlock(
             content = when (val c = message.content) {
@@ -290,10 +300,12 @@ fun MessageBody(message: Message) {
                 is MessageContent.Text -> c.text
                 else -> ""
             },
-            modifier = Modifier.testTag("tool_call_block")
+            modifier = Modifier.testTag("tool_call_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
         MessageKind.Unsupported -> UnsupportedEventCard(message)
-        else -> ContentRenderer(message.content, isMarkdownKind = message.kind == MessageKind.Markdown)
+        else -> ContentRenderer(message.content, isMarkdownKind = message.kind == MessageKind.Markdown, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
     }
 }
 
@@ -325,10 +337,17 @@ private fun UnsupportedEventCard(message: Message) {
  * Separated from MessageBody to keep the kind dispatch flat.
  */
 @Composable
-private fun ContentRenderer(content: MessageContent, isMarkdownKind: Boolean) {
+private fun ContentRenderer(
+    content: MessageContent,
+    isMarkdownKind: Boolean,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
+) {
+    val colors = JunieViewerTheme.conversationColors
     when (content) {
         is MessageContent.Text -> {
             if (isMarkdownKind || looksLikeMarkdown(content.text)) {
+                // Markdown highlighting deferred per HITL decision
                 SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                     MarkdownContent(
                         markdown = content.text,
@@ -338,7 +357,15 @@ private fun ContentRenderer(content: MessageContent, isMarkdownKind: Boolean) {
             } else {
                 SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                     Text(
-                        text = content.text,
+                        text = highlightSearchMatches(
+                            text = content.text,
+                            query = searchQuery,
+                            isCurrentMatch = isCurrentMatch,
+                            highlightBackground = colors.searchHighlightBackground,
+                            highlightText = colors.searchHighlightText,
+                            currentMatchBackground = colors.currentMatchBackground,
+                            currentMatchText = colors.currentMatchText
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.testTag("plain_text_content")
                     )
@@ -356,15 +383,21 @@ private fun ContentRenderer(content: MessageContent, isMarkdownKind: Boolean) {
         )
         is MessageContent.Diff -> DiffBlock(
             diff = content.diff,
-            modifier = Modifier.testTag("diff_block")
+            modifier = Modifier.testTag("diff_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
         is MessageContent.Terminal -> TerminalOutputBlock(
             output = content.output,
-            modifier = Modifier.testTag("terminal_block")
+            modifier = Modifier.testTag("terminal_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
         is MessageContent.Structured -> StructuredOutputBlock(
             data = content.data,
-            modifier = Modifier.testTag("structured_output_block")
+            modifier = Modifier.testTag("structured_output_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
     }
 }

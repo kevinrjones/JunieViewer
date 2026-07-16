@@ -204,13 +204,96 @@ BUILD SUCCESSFUL in 4s
         timestamp = 1010L
     )
 
+    /** A Junie MCP message */
+    val junieMcpMessage = Message(
+        id = "fixture-junie-mcp",
+        sender = Sender.Junie,
+        content = MessageContent.Text("MCP tool call: database-query"),
+        kind = MessageKind.Mcp,
+        timestamp = 1011L
+    )
+
+    /** A Junie TestRun message */
+    val junieTestRunMessage = Message(
+        id = "fixture-junie-testrun",
+        sender = Sender.Junie,
+        content = MessageContent.Terminal(output = "Running tests...\n3 passed, 0 failed"),
+        kind = MessageKind.TestRun,
+        timestamp = 1012L
+    )
+
+    /** A Question message */
+    val questionMessage = Message(
+        id = "fixture-question",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Should I proceed with the refactoring?"),
+        kind = MessageKind.Question,
+        timestamp = 1013L
+    )
+
+    /** A Choice message */
+    val choiceMessage = Message(
+        id = "fixture-choice",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Option A: Refactor now\nOption B: Defer"),
+        kind = MessageKind.Choice,
+        timestamp = 1014L
+    )
+
+    /** A SystemMessage */
+    val systemMessage = Message(
+        id = "fixture-system",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Session started"),
+        kind = MessageKind.SystemMessage,
+        timestamp = 1015L
+    )
+
+    /** A Cancelled message */
+    val cancelledMessage = Message(
+        id = "fixture-cancelled",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Operation cancelled by user"),
+        kind = MessageKind.Cancelled,
+        timestamp = 1016L
+    )
+
+    /** A Status message */
+    val statusMessage = Message(
+        id = "fixture-status",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Processing..."),
+        kind = MessageKind.Status,
+        timestamp = 1017L
+    )
+
+    /** A large Patch/Diff message used to verify no vertical truncation */
+    val largeDiffMessage: Message = run {
+        val lines = buildString {
+            appendLine("diff --git a/large.kt b/large.kt")
+            appendLine("--- a/large.kt")
+            appendLine("+++ b/large.kt")
+            appendLine("@@ -1,100 +1,100 @@")
+            appendLine("+FIRST_LINE_MARKER")
+            repeat(98) { i -> appendLine(" context line $i") }
+            appendLine("+LAST_LINE_MARKER")
+        }
+        Message(
+            id = "fixture-large-diff",
+            sender = Sender.Junie,
+            content = MessageContent.Diff(diff = lines),
+            kind = MessageKind.Patch,
+            timestamp = 1019L
+        )
+    }
+
     /** A malformed/unsupported content fallback message */
     val malformedContentMessage = Message(
         id = "fixture-malformed",
         sender = Sender.Junie,
         content = MessageContent.Text("Unsupported event: SomeNewEventKind"),
         kind = MessageKind.Unsupported,
-        timestamp = 1011L
+        timestamp = 1018L
     )
 
     /**
@@ -229,6 +312,14 @@ BUILD SUCCESSFUL in 4s
         junieStructuredOutputMessage,
         junieErrorMessage,
         junieWarningMessage,
+        junieMcpMessage,
+        junieTestRunMessage,
+        subAgentMessage,
+        questionMessage,
+        choiceMessage,
+        systemMessage,
+        cancelledMessage,
+        statusMessage,
         malformedContentMessage
     )
 }

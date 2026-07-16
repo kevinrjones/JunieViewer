@@ -21,7 +21,9 @@ import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 @Composable
 fun ThoughtBlock(
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -44,7 +46,15 @@ fun ThoughtBlock(
         body = {
             SelectionContainer(modifier = Modifier.testTag("selectable_thought_content")) {
                 Text(
-                    text = text,
+                    text = highlightSearchMatches(
+                        text = text,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        highlightBackground = colors.searchHighlightBackground,
+                        highlightText = colors.searchHighlightText,
+                        currentMatchBackground = colors.currentMatchBackground,
+                        currentMatchText = colors.currentMatchText
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontStyle = FontStyle.Italic,
