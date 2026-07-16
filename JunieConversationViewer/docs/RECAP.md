@@ -78,3 +78,22 @@
 - **Testing**: 5 new themed component tests added. `./gradlew :shared:jvmTest` and `./gradlew test` both BUILD SUCCESSFUL.
 - **Documentation**: README, project_memory, RECAP updated. Sprint 3 task document fully tracked (70/73 tasks complete, 3 HITL review tasks pending approval).
 - **Deferred**: Syntax highlighting theme wiring (D4), Windows/Linux cross-platform verification.
+
+## 08:03
+### Sprint 3 Documentation and CollapsibleBlock Refactor
+- **README and Project Documentation Updated**: Updated README and project documentation for Sprint 3, covering theme support, polished UI features, accessibility improvements, and the new `SessionContextFooter`. Documented key decisions, testing coverage, and deferred items.
+- **CollapsibleBlock Refactor**: Replaced `SessionContextHeader`, `Greeting`, `GreetingUtil`, and `SharedCommonTest` with a new shared `CollapsibleBlock` component. Refactored message markers, conversation states, and tool/thought blocks to use a consistent `CollapsibleBlock` structure with theme styles. Improved timestamp formatting and preference updates.
+- **feat/uiupdates Merged**: The `feat/uiupdates` branch was merged into the main line, finalising the Sprint 3 UI polish work.
+- **Commits**:
+    - `627f942` — Update README and project documentation for Sprint 3
+    - `9c7686b` — Replace components with new shared `CollapsibleBlock`, refactor message markers and conversation states
+    - `011c561` — Merge branch 'feat/uiupdates'
+
+# 2026-07-16
+
+## 07:41
+### Sprint 4 — Interaction, Live Tracking, and Event Coverage (Planning Complete)
+- **Sprint 4 Planning**: Created the full sprint design document (`docs/sprints/junie-conversation-viewer-sprint-4-interaction-live-tracking-and-event-coverage.md`) covering 7 feature areas: text selection/partial copy, sub-agent representation, filter coverage audit, search highlighting, live session tracking, `AgentTaskFailedEvent` support, and documentation updates.
+- **Task Breakdown Document**: Created `docs/tasks/junie-conversation-viewer-tasks-sprint-4-interaction-live-tracking-and-event-coverage.md` with 67 trackable tasks across 9 areas, 9 HITL review checkpoints, acceptance criteria, and deferred/out-of-scope items.
+- **Junie Plan**: Created `.junie/plans/sprint-4-interaction-live-tracking-event-coverage.md` with 2 delivery steps (sprint document and task breakdown), both marked complete.
+- **No code changes** — planning documents only. No commits yet.
