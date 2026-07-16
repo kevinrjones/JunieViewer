@@ -15,6 +15,24 @@ import com.knowledgespike.junieviewer.domain.Sender
  */
 object RepresentativeFixtures {
 
+    /** A sub-agent message with name and status */
+    val subAgentMessage = Message(
+        id = "fixture-sub-agent",
+        sender = Sender.Junie,
+        content = MessageContent.Text("android-qa-agent [STARTED]"),
+        kind = MessageKind.SubAgent,
+        timestamp = 999L
+    )
+
+    /** A sub-agent message with missing name and status */
+    val subAgentMessageMissingFields = Message(
+        id = "fixture-sub-agent-missing",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Unnamed sub-agent [unknown]"),
+        kind = MessageKind.SubAgent,
+        timestamp = 998L
+    )
+
     /** A short Human text prompt */
     val humanTextMessage = Message(
         id = "fixture-human-text",

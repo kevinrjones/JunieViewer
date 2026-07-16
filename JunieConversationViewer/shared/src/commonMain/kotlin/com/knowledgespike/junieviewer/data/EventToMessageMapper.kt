@@ -93,7 +93,7 @@ object EventToMessageMapper {
             }
             is CustomAgentBlockUpdatedEvent -> buildAgentMessage(
                 index, ts, "subagent", Sender.Junie,
-                MessageContent.Text("🤖 Subagent: ${agentEvent.name ?: "unknown"} [${agentEvent.status ?: "unknown"}]"),
+                MessageContent.Text("${agentEvent.name ?: "Unnamed sub-agent"} [${agentEvent.status ?: "unknown"}]"),
                 MessageKind.SubAgent
             )
             is AgentFailureEvent -> buildAgentMessage(

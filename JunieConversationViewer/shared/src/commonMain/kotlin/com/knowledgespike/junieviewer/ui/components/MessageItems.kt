@@ -131,6 +131,9 @@ private fun MessageCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("sender_marker")
                     )
+                    if (message.kind == MessageKind.SubAgent) {
+                        SubAgentBadge()
+                    }
                     MessageKindMarker(
                         kind = message.kind,
                         modifier = Modifier.testTag("message_kind_marker")
@@ -196,6 +199,32 @@ private fun kindIndicatorColor(kind: MessageKind): Color {
         MessageKind.SystemMessage -> MaterialTheme.colorScheme.onSurfaceVariant
         MessageKind.Cancelled -> MaterialTheme.colorScheme.error
         MessageKind.Status -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Sub-Agent badge — small textual label for sub-agent messages
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a small "Sub-Agent" badge/label for sub-agent messages.
+ * Uses text and a border to be visible without relying on colour alone.
+ */
+@Composable
+private fun SubAgentBadge(modifier: Modifier = Modifier) {
+    val spacing = JunieViewerTheme.spacing
+    Surface(
+        modifier = modifier.testTag("sub_agent_badge"),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)
+    ) {
+        Text(
+            text = "Sub-Agent",
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = spacing.sm, vertical = spacing.xs)
+        )
     }
 }
 

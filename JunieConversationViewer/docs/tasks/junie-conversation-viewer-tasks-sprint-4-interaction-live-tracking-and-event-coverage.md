@@ -50,7 +50,7 @@ It serves as:
 |---|------------------------------------|---------------|------------|
 | 1 | Discovery and Scope Confirmation   | 9/9 complete  | 9          |
 | 2 | Text Selection and Partial Copy    | 4/6 complete  | 6          |
-| 3 | Sub-Agent and Event Representation | 0/7 complete  | 7          |
+| 3 | Sub-Agent and Event Representation | 6/7 complete  | 7          |
 | 4 | Filter Coverage and Top Controls   | 0/6 complete  | 6          |
 | 5 | Search Highlighting                | 0/8 complete  | 8          |
 | 6 | Live Session Tracking              | 0/11 complete | 11         |
@@ -411,7 +411,7 @@ after HITL design review.*
 
 #### 3.1 Identify sub-agent event sources
 
-- [ ] Identify sub-agent event sources
+- [x] Identify sub-agent event sources
 
 **Description:** Trace all event types that produce `MessageKind.SubAgent` messages. Document the event flow from raw
 JSONL through `EventToMessageMapper` to the UI.
@@ -431,7 +431,7 @@ JSONL through `EventToMessageMapper` to the UI.
 
 #### 3.2 Propose visual representation options
 
-- [ ] Propose visual representation options
+- [x] Propose visual representation options
 
 **Description:** Based on discovery findings, propose 2–3 visual representation options for sub-agent messages. Options
 may include: badge/label markers, nested message grouping, visual lane indicators, or icon-based differentiation.
@@ -452,7 +452,7 @@ may include: badge/label markers, nested message grouping, visual lane indicator
 
 #### 3.3 HITL design review for sub-agent representation — `HITL Review`
 
-- [ ] HITL design review for sub-agent representation
+- [x] HITL design review for sub-agent representation
 
 **Description:** Present visual representation options to the HITL for selection before implementation.
 
@@ -472,7 +472,7 @@ may include: badge/label markers, nested message grouping, visual lane indicator
 
 #### 3.4 Update MessageKind/mapping if needed
 
-- [ ] Update MessageKind/mapping if needed
+- [x] Update MessageKind/mapping if needed
 
 **Description:** Based on HITL-selected design, update `MessageKind`, `FilterCategory`, or `EventToMessageMapper` if the
 chosen representation requires model changes.
@@ -491,7 +491,7 @@ chosen representation requires model changes.
 
 #### 3.5 Add sub-agent UI markers/badges
 
-- [ ] Add sub-agent UI markers/badges — `Test Required`
+- [x] Add sub-agent UI markers/badges — `Test Required`
 
 **Description:** Implement the HITL-selected visual representation for sub-agent messages in the UI. Ensure colour is
 not the sole differentiator (use icon/label/badge).
@@ -512,7 +512,7 @@ not the sole differentiator (use icon/label/badge).
 
 #### 3.6 Add sub-agent representation tests
 
-- [ ] Add sub-agent representation tests — `Test Required`
+- [x] Add sub-agent representation tests — `Test Required`
 
 **Description:** Add automated tests for sub-agent event mapping and UI rendering.
 
@@ -531,7 +531,7 @@ not the sole differentiator (use icon/label/badge).
 
 #### 3.7 HITL review of sub-agent representation — `HITL Review`
 
-- [ ] HITL review of sub-agent representation
+- [ ] HITL review of sub-agent representation — awaiting HITL approval
 
 **Description:** Present implemented sub-agent representation to the HITL for final approval.
 
