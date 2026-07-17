@@ -79,6 +79,51 @@ class JsonlParserTest {
             .get { message }.isEqualTo("fail")
     }
 
+    // -- SubagentSpawnedEvent tests --
+
+    @Test
+    fun `given a SessionA2uxEvent with SubagentSpawnedEvent when parsed then it returns correct event`() {
+        val line = """{"kind":"SessionA2uxEvent","event":{"state":"IN_PROGRESS","agentEvent":{"kind":"SubagentSpawnedEvent","name":"doc-reader","task":"Read files","stepId":"step-1","agent":{"kind":"MainAgent","id":"main","name":"main","type":"LINEAR"}}},"timestampMs":1234}"""
+        val result = JsonlParser.parseLine(line)
+
+        expectThat(result.getOrNull()).isA<SessionA2uxEvent>()
+            .and {
+                get { timestampMs }.isEqualTo(1234L)
+                get { event.agentEvent }.isA<SubagentSpawnedEvent>()
+                    .and {
+                        get { name }.isEqualTo("doc-reader")
+                        get { task }.isEqualTo("Read files")
+                        get { stepId }.isEqualTo("step-1")
+                        get { agent }.isNotNull()
+                    }
+            }
+    }
+
+    @Test
+    fun `given a SessionA2uxEvent with SubagentSpawnedEvent with minimal fields when parsed then it returns correct event`() {
+        val line = """{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"SubagentSpawnedEvent"}}}"""
+        val result = JsonlParser.parseLine(line)
+
+        expectThat(result.getOrNull()).isA<SessionA2uxEvent>()
+            .get { event.agentEvent }.isA<SubagentSpawnedEvent>()
+            .and {
+                get { name }.isEqualTo(null)
+                get { task }.isEqualTo(null)
+                get { stepId }.isEqualTo(null)
+                get { agent }.isEqualTo(null)
+            }
+    }
+
+    @Test
+    fun `given a SessionA2uxEvent with SubagentSpawnedEvent with extra fields when parsed then it still works`() {
+        val line = """{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"SubagentSpawnedEvent","name":"explorer","futureField":"value"}}}"""
+        val result = JsonlParser.parseLine(line)
+
+        expectThat(result.getOrNull()).isA<SessionA2uxEvent>()
+            .get { event.agentEvent }.isA<SubagentSpawnedEvent>()
+            .get { name }.isEqualTo("explorer")
+    }
+
     // -- Phase B: Unknown event fallback tests --
 
     @Test

@@ -179,6 +179,69 @@ class EventToMessageMapperTest {
         expectThat(text).isEqualTo("Unnamed sub-agent [unknown]")
     }
 
+    // -- SubagentSpawnedEvent mapper tests --
+
+    /** Helper to create a SessionA2uxEvent wrapping a SubagentSpawnedEvent. */
+    private fun subagentSpawnedEvent(
+        name: String? = null,
+        task: String? = null,
+        stepId: String? = null,
+        agent: JsonElement? = null,
+        timestampMs: Long? = 1234L
+    ): SessionA2uxEvent = SessionA2uxEvent(
+        event = AgentEventWrapper(
+            agentEvent = SubagentSpawnedEvent(
+                name = name,
+                task = task,
+                stepId = stepId,
+                agent = agent
+            )
+        ),
+        timestampMs = timestampMs
+    )
+
+    @Test
+    fun `given a SubagentSpawnedEvent when mapped then kind is SubAgent and sender is Junie`() {
+        val events = listOf(subagentSpawnedEvent(name = "doc-reader"))
+        val messages = EventToMessageMapper.mapEventsToMessages(events)
+
+        expectThat(messages).hasSize(1)
+        expectThat(messages.first()) {
+            get { kind }.isEqualTo(MessageKind.SubAgent)
+            get { sender }.isEqualTo(Sender.Junie)
+        }
+    }
+
+    @Test
+    fun `given a SubagentSpawnedEvent with name and task when mapped then content contains both`() {
+        val events = listOf(subagentSpawnedEvent(name = "code-explorer", task = "Find all event classes"))
+        val messages = EventToMessageMapper.mapEventsToMessages(events)
+        val text = (messages.first().content as MessageContent.Text).text
+
+        expectThat(text).contains("Sub-agent spawned: code-explorer")
+        expectThat(text).contains("Task: Find all event classes")
+    }
+
+    @Test
+    fun `given a SubagentSpawnedEvent with null name when mapped then content uses fallback`() {
+        val events = listOf(subagentSpawnedEvent(name = null))
+        val messages = EventToMessageMapper.mapEventsToMessages(events)
+        val text = (messages.first().content as MessageContent.Text).text
+
+        expectThat(text).contains("Sub-agent spawned: unnamed")
+    }
+
+    @Test
+    fun `given a SubagentSpawnedEvent with long task when mapped then task is truncated`() {
+        val longTask = "A".repeat(300)
+        val events = listOf(subagentSpawnedEvent(name = "worker", task = longTask))
+        val messages = EventToMessageMapper.mapEventsToMessages(events)
+        val text = (messages.first().content as MessageContent.Text).text
+
+        expectThat(text).contains("Sub-agent spawned: worker")
+        expectThat(text.length).isLessThan(300)
+    }
+
     @Test
     fun `given SubAgent MessageKind then filterCategory is Tool`() {
         expectThat(MessageKind.SubAgent.filterCategory).isEqualTo(FilterCategory.Tool)

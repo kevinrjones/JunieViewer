@@ -320,6 +320,17 @@ data class MarkdownBlockUpdatedEvent(
     override val kind: String get() = "MarkdownBlockUpdatedEvent"
 }
 
+/** Subagent spawn event — records when Junie delegates work to a sub-agent. */
+@Serializable
+data class SubagentSpawnedEvent(
+    val name: String? = null,
+    val task: String? = null,
+    val stepId: String? = null,
+    val agent: JsonElement? = null
+) : AgentEvent {
+    override val kind: String get() = "SubagentSpawnedEvent"
+}
+
 /** Task-level failure event — tolerant nullable model since no real payload examples exist. */
 @Serializable
 data class AgentTaskFailedEvent(

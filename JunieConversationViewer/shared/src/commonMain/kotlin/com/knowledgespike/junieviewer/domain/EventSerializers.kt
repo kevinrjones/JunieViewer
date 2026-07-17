@@ -58,6 +58,7 @@ private val agentEventRegistry: Map<String, DeserializationStrategy<AgentEvent>>
     "CustomAgentBlockUpdatedEvent" to CustomAgentBlockUpdatedEvent.serializer(),
     "AgentFailureEvent" to AgentFailureEvent.serializer(),
     "AgentTaskFailedEvent" to AgentTaskFailedEvent.serializer(),
+    "SubagentSpawnedEvent" to SubagentSpawnedEvent.serializer(),
     "AgentStateUpdatedEvent" to AgentStateUpdatedEvent.serializer(),
     "AskRequestUpdatedEvent" to AskRequestUpdatedEvent.serializer(),
     "ChoiceRequestUpdatedEvent" to ChoiceRequestUpdatedEvent.serializer(),

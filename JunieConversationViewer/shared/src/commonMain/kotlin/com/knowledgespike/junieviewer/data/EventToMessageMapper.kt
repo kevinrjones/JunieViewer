@@ -96,6 +96,16 @@ object EventToMessageMapper {
                 MessageContent.Text("${agentEvent.name ?: "Unnamed sub-agent"} [${agentEvent.status ?: "unknown"}]"),
                 MessageKind.SubAgent
             )
+            is SubagentSpawnedEvent -> {
+                val label = buildString {
+                    append("Sub-agent spawned: ${agentEvent.name ?: "unnamed"}")
+                    if (!agentEvent.task.isNullOrBlank()) {
+                        val preview = if (agentEvent.task.length > 200) agentEvent.task.take(200) + "…" else agentEvent.task
+                        append("\nTask: $preview")
+                    }
+                }
+                buildAgentMessage(index, ts, "subagent-spawned", Sender.Junie, MessageContent.Text(label), MessageKind.SubAgent)
+            }
             is AgentFailureEvent -> buildAgentMessage(
                 index, ts, "failure", Sender.Junie,
                 MessageContent.Text(agentEvent.message ?: "Agent failure"),
