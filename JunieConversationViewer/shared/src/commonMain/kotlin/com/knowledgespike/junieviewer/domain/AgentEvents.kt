@@ -320,6 +320,18 @@ data class MarkdownBlockUpdatedEvent(
     override val kind: String get() = "MarkdownBlockUpdatedEvent"
 }
 
+/** Task-level failure event — tolerant nullable model since no real payload examples exist. */
+@Serializable
+data class AgentTaskFailedEvent(
+    val message: String? = null,
+    val errorCode: String? = null,
+    val taskId: String? = null,
+    val stepId: String? = null,
+    val details: JsonElement? = null
+) : AgentEvent {
+    override val kind: String get() = "AgentTaskFailedEvent"
+}
+
 /**
  * Fallback for any nested agent event kind not yet modelled.
  * Preserves the raw JSON so no data is lost.

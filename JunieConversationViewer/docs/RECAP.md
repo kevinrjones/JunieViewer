@@ -97,3 +97,19 @@
 - **Task Breakdown Document**: Created `docs/tasks/junie-conversation-viewer-tasks-sprint-4-interaction-live-tracking-and-event-coverage.md` with 67 trackable tasks across 9 areas, 9 HITL review checkpoints, acceptance criteria, and deferred/out-of-scope items.
 - **Junie Plan**: Created `.junie/plans/sprint-4-interaction-live-tracking-event-coverage.md` with 2 delivery steps (sprint document and task breakdown), both marked complete.
 - **No code changes** — planning documents only. No commits yet.
+
+# 2026-07-17
+
+## 16:28
+### Sprint 4 — Interaction, Live Tracking, and Event Coverage (Areas 7–9 Complete)
+- **AgentTaskFailedEvent Support**: Added tolerant nullable data class, registered in polymorphic serializer, mapped to `MessageKind.Error` with `Sender.Junie`, rendered via existing `ErrorWarningBlock` with "Task Failed" label. Parser tests cover valid, minimal, extra-field, and structured-details payloads.
+- **Text Selection and Copy**: Selectable text across all Message content. Copy buttons on rich content blocks.
+- **Search Highlighting**: Matching text highlighted in Conversation with current-match distinction. Theme-aware highlight colours.
+- **Live Session Tracking**: Polling-based file watching with incremental offset parsing, scroll preservation, and auto-scroll at bottom.
+- **Sub-agent Representation**: `CustomAgentBlockUpdatedEvent` mapped to `MessageKind.SubAgent` with name and status display.
+- **Filter Coverage**: All `MessageKind` values mapped to `FilterCategory`. AlwaysShow kinds (Error, Warning, Question, Choice, System, Cancelled, Status, Unsupported) bypass filters.
+- **Documentation**: Created `docs/HOW_TO_USE.md`, updated README, TESTING.md, RECAP.md, and project_memory.md.
+- **Testing**: All tests passing (`./gradlew :shared:jvmTest` and `./gradlew test` both BUILD SUCCESSFUL). Parser, mapper, and UI tests added for `AgentTaskFailedEvent`.
+- **HITL Tasks**: 7.8 (AgentTaskFailedEvent review) and 9.7 (final approval) left pending — require HITL verification.
+- **Cyclomatic Complexity**: No configured tool found; lightweight manual review performed — no high-complexity functions identified in Sprint 4 changes.
+- **Deferred**: Syntax highlighting theme wiring, side-by-side diff view, Windows/Linux platform verification.

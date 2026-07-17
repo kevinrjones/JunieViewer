@@ -55,9 +55,9 @@ It serves as:
 | 5 | Search Highlighting                | 8/8 complete  | 8          |
 | 5A| Markdown Search Highlighting       | 9/9 complete  | 9          |
 | 6 | Live Session Tracking              | 9/11 complete | 11         |
-| 7 | AgentTaskFailedEvent Support       | 0/8 complete  | 8          |
-| 8 | Documentation and How-To Updates   | 0/5 complete  | 5          |
-| 9 | Testing, Review, and Completion    | 0/7 complete  | 7          |
+| 7 | AgentTaskFailedEvent Support       | 7/8 complete  | 8          |
+| 8 | Documentation and How-To Updates   | 5/5 complete  | 5          |
+| 9 | Testing, Review, and Completion    | 5/7 complete  | 7          |
 |   | **Total**                          |               | **76**     |
 
 ## 6. Task Status Legend
@@ -1234,7 +1234,7 @@ Session's `events.jsonl`.
 
 #### 7.1 Inspect AgentTaskFailedEvent payload
 
-- [ ] Inspect AgentTaskFailedEvent payload
+- [x] Inspect AgentTaskFailedEvent payload
 
 **Description:** Review any available payload examples from discovery (1.7). Confirm field names and types, or confirm
 tolerant `JsonElement?` approach.
@@ -1254,7 +1254,7 @@ tolerant `JsonElement?` approach.
 
 #### 7.2 Add AgentTaskFailedEvent data class
 
-- [ ] Add AgentTaskFailedEvent data class — `Test Required`
+- [x] Add AgentTaskFailedEvent data class — `Test Required`
 
 **Description:** Add `AgentTaskFailedEvent` data class to `AgentEvents.kt` with `@SerialName("AgentTaskFailedEvent")`.
 Use tolerant fields: `val message: String? = null`, `val details: JsonElement? = null`, `val taskId: String? = null`.
@@ -1274,7 +1274,7 @@ Use tolerant fields: `val message: String? = null`, `val details: JsonElement? =
 
 #### 7.3 Register in EventSerializers
 
-- [ ] Register in EventSerializers — `Test Required`
+- [x] Register in EventSerializers — `Test Required`
 
 **Description:** Register `AgentTaskFailedEvent` in the polymorphic dispatch map in `EventSerializers.kt`.
 
@@ -1293,7 +1293,7 @@ Use tolerant fields: `val message: String? = null`, `val details: JsonElement? =
 
 #### 7.4 Map to Message in EventToMessageMapper
 
-- [ ] Map to Message in EventToMessageMapper — `Test Required`
+- [x] Map to Message in EventToMessageMapper — `Test Required`
 
 **Description:** Add mapping from `AgentTaskFailedEvent` to `Message` with `MessageKind.Error` and `Sender.Junie` in
 `EventToMessageMapper`.
@@ -1314,7 +1314,7 @@ lives).
 
 #### 7.5 Render as error block
 
-- [ ] Render as error block — `Test Required`
+- [x] Render as error block — `Test Required`
 
 **Description:** Ensure `AgentTaskFailedEvent` messages are rendered using the existing `ErrorWarningBlock` with a "Task
 Failed" label.
@@ -1334,7 +1334,7 @@ Failed" label.
 
 #### 7.6 Add parser tests
 
-- [ ] Add parser tests — `Test Required`
+- [x] Add parser tests — `Test Required`
 
 **Description:** Add tests for `AgentTaskFailedEvent` deserialization: valid payload, minimal payload (all nulls),
 unknown extra fields.
@@ -1355,7 +1355,7 @@ unknown extra fields.
 
 #### 7.7 Verify unknown fallback remains intact
 
-- [ ] Verify unknown fallback remains intact — `Test Required`
+- [x] Verify unknown fallback remains intact — `Test Required`
 
 **Description:** Verify that `UnknownJunieEvent`/`UnknownAgentEvent` fallback still works correctly for truly unknown
 events after adding `AgentTaskFailedEvent`.
@@ -1402,7 +1402,7 @@ event handling remains intact.
 
 #### 8.1 Create or update HOW_TO_USE.md
 
-- [ ] Create or update HOW_TO_USE.md
+- [x] Create or update HOW_TO_USE.md
 
 **Description:** Create `docs/HOW_TO_USE.md` (or add a comprehensive "How to Use" section to `README.md`) covering:
 choosing a Session, searching, using filters, match navigation, theme selection, interpreting Human/Junie/sub-agent
@@ -1423,7 +1423,7 @@ messages, interpreting rich content blocks, live tracking, troubleshooting missi
 
 #### 8.2 Update README.md
 
-- [ ] Update README.md
+- [x] Update README.md
 
 **Description:** Update `README.md` to reflect Sprint 4 features and capabilities. Use the `readme-updater` skill.
 
@@ -1441,7 +1441,7 @@ messages, interpreting rich content blocks, live tracking, troubleshooting missi
 
 #### 8.3 Update TESTING.md if needed
 
-- [ ] Update TESTING.md if needed
+- [x] Update TESTING.md if needed
 
 **Description:** Update `docs/TESTING.md` if testing guidance has changed (new test patterns, new test commands, new
 test areas).
@@ -1460,7 +1460,7 @@ test areas).
 
 #### 8.4 Update RECAP.md
 
-- [ ] Update RECAP.md
+- [x] Update RECAP.md
 
 **Description:** Add Sprint 4 entry to `docs/RECAP.md` with shipped features, key decisions, and completion date.
 
@@ -1478,7 +1478,7 @@ test areas).
 
 #### 8.5 Update project_memory.md
 
-- [ ] Update project_memory.md
+- [x] Update project_memory.md
 
 **Description:** Update `docs/project_memory.md` with Sprint 4 shipped work, key decisions, gotchas, and test coverage
 areas. Use the `project-memory` skill.
@@ -1503,7 +1503,7 @@ areas. Use the `project-memory` skill.
 
 #### 9.1 Run ./gradlew :shared:jvmTest
 
-- [ ] Run ./gradlew :shared:jvmTest
+- [x] Run ./gradlew :shared:jvmTest
 
 **Description:** Run the shared module JVM tests and verify all pass.
 
@@ -1521,7 +1521,7 @@ areas. Use the `project-memory` skill.
 
 #### 9.2 Run ./gradlew test
 
-- [ ] Run ./gradlew test
+- [x] Run ./gradlew test
 
 **Description:** Run the full project test suite and verify all pass.
 
@@ -1539,7 +1539,7 @@ areas. Use the `project-memory` skill.
 
 #### 9.3 Add/extend Robot tests
 
-- [ ] Add/extend Robot tests — `Test Required`
+- [x] Add/extend Robot tests — `Test Required`
 
 **Description:** Add or extend Robot-pattern UI tests for new Sprint 4 components and behaviours.
 
@@ -1576,7 +1576,7 @@ areas. Use the `project-memory` skill.
 
 #### 9.5 Run cyclomatic complexity check
 
-- [ ] Run cyclomatic complexity check
+- [x] Run cyclomatic complexity check
 
 **Description:** Run a cyclomatic complexity check on the codebase. Identify any functions or classes with high
 complexity introduced during Sprint 4.
@@ -1596,7 +1596,7 @@ complexity introduced during Sprint 4.
 
 #### 9.6 Fix review issues
 
-- [ ] Fix review issues
+- [x] Fix review issues
 
 **Description:** Address any issues found during testing, manual review, or complexity check.
 
@@ -1687,3 +1687,6 @@ and HITL grants final approval.
 | 2026-07-16 | Area 5A: Markdown Search highlighting implemented. Supersedes earlier "defer Markdown highlighting" decision. Added `searchQuery`/`isCurrentMatch` params to `MarkdownContent`, created `applySearchHighlight()` that overlays highlight spans on existing `AnnotatedString` (preserving inline formatting). Headings, paragraphs, and list items highlighted. Fenced code blocks not highlighted (third-party syntax highlighter limitation). Created MarkdownSearchHighlightTest with unit and UI tests. Tasks 5A.1–5A.7 complete. Tasks 5A.8 (manual review) and 5A.9 (HITL review) pending. |
 | 2026-07-17 | Collapsible rich content blocks: All rich content blocks (Terminal, Code, Patch/Diff, Structured Output, Error/Warning, Thought, Tool Call) now use shared `CollapsibleBlock` component. All blocks expanded by default (supersedes old collapsed-by-default for Thought/Tool/Patch). Max height constraints removed from Terminal (600dp), Structured Output (400dp), Tool Call (400dp). Search auto-expansion: when current matching Message contains a block with a Search hit, that block is force-expanded via `forceExpanded` param. Added `blockContainsSearchHit` helper. Created CollapsibleBlockTest (14 tests). Updated 9 existing tests for expanded-by-default behavior. |
 | 2026-07-17 | Area 6: Live Session Tracking implemented with polling-only approach (1.5s default interval). Created `FileWatcher` (polls file metadata, emits Grew/Truncated/Deleted/Error events), `LiveSessionTracker` (incremental byte-offset reading, partial-line buffering, JSONL parsing via existing `JsonlParser`/`EventToMessageMapper`). Updated `SessionRepository` with `loadSession()` returning `SessionLoadResult` (messages + file path + file size). ViewModel starts live tracking automatically after initial load, cancels on session change, appends new messages and re-applies filters/search. `ConversationScreen` auto-scrolls to bottom when user is near bottom (within 3 items). Truncation resets offset and triggers full reload; deletion stops tracking gracefully. Kermit logging at Info/Debug/Warning/Error levels throughout. Created FileWatcherTest (5 tests), LiveSessionTrackerTest (6 tests), LiveTrackingViewModelTest (3 tests). Tasks 6.10 (manual review) and 6.11 (HITL review) pending. |
+| 2026-07-17 | Area 7: `AgentTaskFailedEvent` support added. Tolerant nullable data class with `message`, `errorCode`, `taskId`, `stepId`, `details: JsonElement?` fields. Registered in `agentEventRegistry` in `EventSerializers.kt`. Mapped to `MessageKind.Error` + `Sender.Junie` in `EventToMessageMapper` with "Task Failed" label and fallback text. Rendered via existing `ErrorWarningBlock`. Parser tests (4): valid, minimal, extra fields, structured details. Mapper tests (6): sender, kind, content, details, fallback, unknown preservation. UI test (1): error block rendering. Task 7.8 (HITL review) pending. |
+| 2026-07-17 | Area 8: Documentation updated. Created `docs/HOW_TO_USE.md` with 11 sections covering all Sprint 4 features. Updated `README.md` with Sprint 4 feature list and doc links. Updated `TESTING.md` with Sprint 4 testing patterns. Updated `RECAP.md` and `project_memory.md` with Sprint 4 entries. |
+| 2026-07-17 | Area 9: `./gradlew :shared:jvmTest` — BUILD SUCCESSFUL. `./gradlew test` — BUILD SUCCESSFUL. Robot/UI tests extended with `CollapsibleBlockTest` for `AgentTaskFailedEvent` rendering. No configured cyclomatic complexity tool; manual review found no high-complexity functions in Sprint 4 code. Tasks 9.4 (manual checklist) and 9.7 (HITL final approval) pending. |

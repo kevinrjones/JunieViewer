@@ -204,6 +204,17 @@ BUILD SUCCESSFUL in 4s
         timestamp = 1010L
     )
 
+    /** A Junie Task Failed message */
+    val junieTaskFailedMessage = Message(
+        id = "fixture-junie-task-failed",
+        sender = Sender.Junie,
+        content = MessageContent.Text(
+            "Task Failed: something went wrong [ERR_1]\nTask: task-123\nStep: step-456\nDetails: {\"foo\":\"bar\"}"
+        ),
+        kind = MessageKind.Error,
+        timestamp = 1020L
+    )
+
     /** A Junie MCP message */
     val junieMcpMessage = Message(
         id = "fixture-junie-mcp",
@@ -312,6 +323,7 @@ BUILD SUCCESSFUL in 4s
         junieStructuredOutputMessage,
         junieErrorMessage,
         junieWarningMessage,
+        junieTaskFailedMessage,
         junieMcpMessage,
         junieTestRunMessage,
         subAgentMessage,

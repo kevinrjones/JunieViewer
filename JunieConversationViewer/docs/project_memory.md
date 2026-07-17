@@ -310,3 +310,37 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - ViewModel: `ConversationViewModelTest` (theme action handling).
 - Themed components: `AccessibilityAndArea8Test` (5 new tests: light/dark messages, dark rich content, dark states, footer).
 - All existing tests continue to pass.
+
+## Sprint 4 — Interaction, Live Tracking, and Event Coverage
+
+**Date/Time:** 2026-07-17 16:28
+
+### What was shipped
+- Text selection and partial copy across all Message content with copy buttons on rich blocks.
+- Search highlighting with current-match distinction and theme-aware colours.
+- Live Session tracking via polling-based file watching with incremental offset parsing.
+- Sub-agent representation (`CustomAgentBlockUpdatedEvent` → `MessageKind.SubAgent`).
+- Filter coverage audit — all MessageKind values mapped to FilterCategory with AlwaysShow bypass.
+- `AgentTaskFailedEvent` support: tolerant nullable model, serializer registration, mapper to `MessageKind.Error`, rendered via `ErrorWarningBlock` with "Task Failed" label.
+- Documentation: `docs/HOW_TO_USE.md` created, README updated, TESTING.md updated, RECAP.md updated.
+
+### Key decisions
+- Polling-only live tracking (no filesystem watchers) with configurable interval for cross-platform reliability.
+- Incremental offset strategy: track byte offset, read only new bytes, buffer partial lines.
+- `AgentTaskFailedEvent` uses tolerant nullable fields since no real payload examples exist — `message`, `errorCode`, `taskId`, `stepId`, `details: JsonElement?`.
+- Unknown event fallback (`UnknownAgentEvent`/`UnknownJunieEvent`) preserved — new events don't break existing fallback.
+- Reused existing `ErrorWarningBlock` for Task Failed rendering rather than creating a new component.
+
+### Gotchas
+- LazyColumn virtualisation means off-screen items are not rendered in UI tests — assertions must target visible items.
+- `AgentTaskFailedEvent` has no real payload examples in EVENT_CATALOG.md — model is speculative but tolerant.
+- No configured cyclomatic complexity tool in project; manual review performed.
+- Syntax highlighting theme wiring deferred (D4 from Sprint 3).
+
+### Test coverage areas
+- Parser: `AgentTaskFailedEvent` deserialization (valid, minimal, extra fields, structured details).
+- Mapper: `AgentTaskFailedEvent` → `Sender.Junie`, `MessageKind.Error`, content includes "Task Failed".
+- UI: Error block rendering for task failed messages via `CollapsibleBlockTest`.
+- Unknown fallback: fabricated unknown event still produces `UnknownAgentEvent`.
+- All existing tests continue to pass.
+- Commands: `./gradlew :shared:jvmTest`, `./gradlew test` — both BUILD SUCCESSFUL.

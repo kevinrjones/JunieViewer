@@ -58,3 +58,29 @@ fun `searching for text filters the message list`() = runComposeUiTest {
 1. **Unit Tests**: Place in `shared/src/commonTest/kotlin/...`.
 2. **UI Tests**: Place in `shared/src/commonTest/kotlin/...` using `runComposeUiTest`.
 3. **Test Tags**: When adding new UI components, use `Modifier.testTag("tag_name")` to make them accessible to the Robot.
+
+## Sprint 4 Testing Additions
+
+### Agent Event Parser Tests
+Tests for new event types (e.g., `AgentTaskFailedEvent`) follow the existing `JsonlParserTest` pattern. Nested agent events are wrapped in the `SessionA2uxEvent`/`AgentEventWrapper` JSONL structure. Cover valid, minimal (all nulls), extra-field, and structured-details payloads.
+
+### Event-to-Message Mapper Tests
+`EventToMessageMapperTest` verifies that each event type maps to the correct `Sender`, `MessageKind`, and content. Use helper functions to construct `SessionA2uxEvent` wrappers for agent events.
+
+### Live Tracking Flow Tests
+Live tracking uses polling-based file watching with incremental offset parsing. Flow tests use Turbine to verify that new events appended to `events.jsonl` are emitted as Messages.
+
+### Robot Pattern Helpers
+New Robot helpers added during Sprint 4:
+- Error/failure block assertions via `error_warning_block` test tag.
+- Search highlighting verification.
+- Filter toggle helpers.
+
+### LazyColumn Virtualization Caveat
+Off-screen items in `LazyColumn` are not rendered during UI tests. Assertions must target visible items only, or scroll to the target item before asserting.
+
+### Test Commands
+```bash
+./gradlew :shared:jvmTest    # Shared module JVM tests
+./gradlew test                # Full project test suite
+```

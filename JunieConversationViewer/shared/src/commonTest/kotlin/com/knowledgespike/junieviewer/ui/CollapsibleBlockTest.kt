@@ -166,6 +166,19 @@ class CollapsibleBlockTest {
         FileSystem.SYSTEM.delete(path)
     }
 
+    @Test
+    fun `task failed event renders as error block`() = runComposeUiTest {
+        val (viewModel, path) = createViewModel(listOf(
+            RepresentativeFixtures.humanTextMessage,
+            RepresentativeFixtures.junieTaskFailedMessage
+        ))
+        setContent { ConversationRoot(viewModel = viewModel) }
+
+        onNodeWithTag("error_warning_block").assertExists()
+        onNodeWithText("Task Failed", substring = true).assertExists()
+        FileSystem.SYSTEM.delete(path)
+    }
+
     // -----------------------------------------------------------------------
     // Thought and Tool Call — expanded by default (supersedes old collapsed)
     // -----------------------------------------------------------------------

@@ -101,6 +101,22 @@ object EventToMessageMapper {
                 MessageContent.Text(agentEvent.message ?: "Agent failure"),
                 MessageKind.Error
             )
+            is AgentTaskFailedEvent -> {
+                val text = buildString {
+                    append("Task Failed")
+                    if (!agentEvent.message.isNullOrBlank()) append(": ${agentEvent.message}")
+                    if (!agentEvent.errorCode.isNullOrBlank()) append(" [${agentEvent.errorCode}]")
+                    if (!agentEvent.taskId.isNullOrBlank()) append("\nTask: ${agentEvent.taskId}")
+                    if (!agentEvent.stepId.isNullOrBlank()) append("\nStep: ${agentEvent.stepId}")
+                    if (agentEvent.details != null) append("\nDetails: ${agentEvent.details}")
+                    if (agentEvent.message.isNullOrBlank() && agentEvent.errorCode.isNullOrBlank() &&
+                        agentEvent.taskId.isNullOrBlank() && agentEvent.details == null
+                    ) {
+                        append("\nJunie task failed with no additional details.")
+                    }
+                }
+                buildAgentMessage(index, ts, "task-failed", Sender.Junie, MessageContent.Text(text), MessageKind.Error)
+            }
             is AskRequestUpdatedEvent -> {
                 val questionText = buildString {
                     if (!agentEvent.title.isNullOrBlank()) append("${agentEvent.title}\n")
