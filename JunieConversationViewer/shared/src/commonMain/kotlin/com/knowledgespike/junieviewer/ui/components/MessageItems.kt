@@ -15,7 +15,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
@@ -105,6 +112,15 @@ private fun MessageCard(
     isCurrentMatch: Boolean = false
 ) {
     val spacing = JunieViewerTheme.spacing
+    val isHuman = message.sender == Sender.Human
+    var expanded by remember { mutableStateOf(true) }
+    // Track whether the user explicitly collapsed while forceExpanded was active.
+    var userDismissedForce by remember { mutableStateOf(false) }
+    val forceExpanded = isCurrentMatch && isHuman && searchQuery.isNotBlank()
+    if (!forceExpanded) {
+        userDismissedForce = false
+    }
+    val visibleExpanded = expanded || (forceExpanded && !userDismissedForce)
 
     val cardModifier = Modifier
         .fillMaxWidth(widthFraction)
@@ -127,10 +143,32 @@ private fun MessageCard(
             )
             Column(modifier = Modifier.padding(spacing.lg)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isHuman) Modifier
+                                .pointerInput(Unit) {
+                                    detectTapGestures {
+                                        expanded = !expanded
+                                        if (!expanded && forceExpanded) {
+                                            userDismissedForce = true
+                                        }
+                                    }
+                                }
+                                .testTag("human_block_header")
+                            else Modifier
+                        ),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (isHuman) {
+                        Text(
+                            text = if (visibleExpanded) "▼" else "▶",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(spacing.sm))
+                    }
                     Text(
                         text = senderLabel,
                         style = MaterialTheme.typography.labelMedium,
@@ -145,8 +183,20 @@ private fun MessageCard(
                         modifier = Modifier.testTag("message_kind_marker")
                     )
                 }
-                Spacer(modifier = Modifier.height(spacing.md))
-                MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+                if (isHuman) {
+                    AnimatedVisibility(
+                        visible = visibleExpanded,
+                        modifier = Modifier.testTag("human_block_body")
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(spacing.md))
+                            MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(spacing.md))
+                    MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+                }
             }
         }
     }
@@ -278,32 +328,44 @@ fun TurnHeader() {
 @Composable
 fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
     when (message.kind) {
-        MessageKind.Thought -> ThoughtBlock(
-            text = (message.content as? MessageContent.Text)?.text ?: "",
-            modifier = Modifier.testTag("thought_block"),
-            searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
-        )
-        MessageKind.Error, MessageKind.Warning -> ErrorWarningBlock(
-            text = when (val c = message.content) {
+        MessageKind.Thought -> {
+            val thoughtText = (message.content as? MessageContent.Text)?.text ?: ""
+            ThoughtBlock(
+                text = thoughtText,
+                modifier = Modifier.testTag("thought_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(thoughtText, searchQuery)
+            )
+        }
+        MessageKind.Error, MessageKind.Warning -> {
+            val errText = when (val c = message.content) {
                 is MessageContent.Text -> c.text
                 else -> "Unknown error"
-            },
-            isWarning = message.kind == MessageKind.Warning,
-            modifier = Modifier.testTag("error_warning_block"),
-            searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
-        )
-        MessageKind.Tool, MessageKind.Mcp -> ToolCallBlock(
-            content = when (val c = message.content) {
+            }
+            ErrorWarningBlock(
+                text = errText,
+                isWarning = message.kind == MessageKind.Warning,
+                modifier = Modifier.testTag("error_warning_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(errText, searchQuery)
+            )
+        }
+        MessageKind.Tool, MessageKind.Mcp -> {
+            val toolText = when (val c = message.content) {
                 is MessageContent.Code -> c.code
                 is MessageContent.Text -> c.text
                 else -> ""
-            },
-            modifier = Modifier.testTag("tool_call_block"),
-            searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
-        )
+            }
+            ToolCallBlock(
+                content = toolText,
+                modifier = Modifier.testTag("tool_call_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(toolText, searchQuery)
+            )
+        }
         MessageKind.Unsupported -> UnsupportedEventCard(message)
         else -> ContentRenderer(message.content, isMarkdownKind = message.kind == MessageKind.Markdown, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
     }
@@ -380,25 +442,29 @@ private fun ContentRenderer(
                 "bash", "sh" -> SyntaxLanguage.SHELL
                 else -> SyntaxLanguage.KOTLIN
             },
-            modifier = Modifier.testTag("code_block")
+            modifier = Modifier.testTag("code_block"),
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.code, searchQuery)
         )
         is MessageContent.Diff -> DiffBlock(
             diff = content.diff,
             modifier = Modifier.testTag("diff_block"),
             searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
+            isCurrentMatch = isCurrentMatch,
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.diff, searchQuery)
         )
         is MessageContent.Terminal -> TerminalOutputBlock(
             output = content.output,
             modifier = Modifier.testTag("terminal_block"),
             searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
+            isCurrentMatch = isCurrentMatch,
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.output, searchQuery)
         )
         is MessageContent.Structured -> StructuredOutputBlock(
             data = content.data,
             modifier = Modifier.testTag("structured_output_block"),
             searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
+            isCurrentMatch = isCurrentMatch,
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.data, searchQuery)
         )
     }
 }

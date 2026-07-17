@@ -15,15 +15,15 @@ import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
  * Renders a Thought message de-emphasised and collapsible.
- * Collapsed by default for progressive disclosure — thoughts are internal
- * reasoning and less important than primary Junie response content.
+ * Expanded by default; supports forced expansion for Search auto-expand.
  */
 @Composable
 fun ThoughtBlock(
     text: String,
     modifier: Modifier = Modifier,
     searchQuery: String = "",
-    isCurrentMatch: Boolean = false
+    isCurrentMatch: Boolean = false,
+    forceExpanded: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -33,6 +33,8 @@ fun ThoughtBlock(
         backgroundColor = colors.thoughtBackground,
         borderColor = colors.thoughtBorder,
         headerTestTag = "thought_header",
+        bodyTestTag = "thought_block_body",
+        forceExpanded = forceExpanded,
         headerTrailing = {
             Spacer(modifier = Modifier.width(spacing.md))
             Text(

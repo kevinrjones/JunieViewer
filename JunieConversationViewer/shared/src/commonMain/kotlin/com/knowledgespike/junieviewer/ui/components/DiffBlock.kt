@@ -2,29 +2,20 @@ package com.knowledgespike.junieviewer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.animation.AnimatedVisibility
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
 
@@ -32,8 +23,7 @@ import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
  * Renders unified diff / Patch content in a collapsible block.
  *
  * Features:
- * - Collapsed by default to keep the Conversation readable.
- * - No vertical truncation — full Patch content is available when expanded.
+ * - Expanded by default; full Patch content visible without truncation.
  * - Copy button copies the original unified diff text.
  * - Search highlighting applied in the inline view.
  * - Side-by-side diff view is deferred for future work.
@@ -43,42 +33,23 @@ fun DiffBlock(
     diff: String,
     modifier: Modifier = Modifier,
     searchQuery: String = "",
-    isCurrentMatch: Boolean = false
+    isCurrentMatch: Boolean = false,
+    forceExpanded: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
-    val spacing = JunieViewerTheme.spacing
-    var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        // Clickable header — outside SelectionContainer
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RICH_CONTENT_SHAPE)
-                .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
-                .background(colors.codeBackground)
-                .clickable { expanded = !expanded }
-                .padding(horizontal = spacing.lg, vertical = spacing.md)
-                .testTag("patch_block_header"),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (expanded) "▼" else "▶",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(spacing.md))
-            Text(
-                text = "Patch",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    CollapsibleBlock(
+        label = "Patch",
+        backgroundColor = colors.codeBackground,
+        borderColor = colors.codeBorder,
+        headerTestTag = "patch_block_header",
+        bodyTestTag = "patch_block_body",
+        forceExpanded = forceExpanded,
+        headerTrailing = {
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = diff)
-        }
-
-        // Expanded body — inline Patch view only (side-by-side deferred)
-        AnimatedVisibility(visible = expanded) {
+        },
+        body = {
             SelectionContainer(modifier = Modifier.testTag("selectable_diff_content")) {
                 InlineDiffView(
                     diff = diff,
@@ -87,8 +58,9 @@ fun DiffBlock(
                     modifier = Modifier.testTag("patch_inline_view")
                 )
             }
-        }
-    }
+        },
+        modifier = modifier
+    )
 }
 
 /** Inline / unified diff view — the original Patch rendering without height truncation. */

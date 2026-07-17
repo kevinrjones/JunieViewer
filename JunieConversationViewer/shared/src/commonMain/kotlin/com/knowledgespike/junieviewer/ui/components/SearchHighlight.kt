@@ -15,6 +15,15 @@ import androidx.compose.ui.text.buildAnnotatedString
  * Returns an unhighlighted [AnnotatedString] when [query] is blank or has no matches.
  * The [query] is treated as literal text, not a regex pattern.
  */
+/**
+ * Returns true when [text] contains the [query] (case-insensitive, literal).
+ * Returns false for blank queries.
+ */
+fun blockContainsSearchHit(text: String, query: String): Boolean {
+    if (query.isBlank() || text.isEmpty()) return false
+    return text.contains(query, ignoreCase = true)
+}
+
 fun highlightSearchMatches(
     text: String,
     query: String,

@@ -51,9 +51,9 @@ It serves as:
 | 1 | Discovery and Scope Confirmation   | 9/9 complete  | 9          |
 | 2 | Text Selection and Partial Copy    | 6/6 complete  | 6          |
 | 3 | Sub-Agent and Event Representation | 7/7 complete  | 7          |
-| 4 | Filter Coverage and Top Controls   | 5/6 complete  | 6          |
-| 5 | Search Highlighting                | 7/8 complete  | 8          |
-| 5A| Markdown Search Highlighting       | 7/9 complete  | 9          |
+| 4 | Filter Coverage and Top Controls   | 6/6 complete  | 6          |
+| 5 | Search Highlighting                | 8/8 complete  | 8          |
+| 5A| Markdown Search Highlighting       | 9/9 complete  | 9          |
 | 6 | Live Session Tracking              | 0/11 complete | 11         |
 | 7 | AgentTaskFailedEvent Support       | 0/8 complete  | 8          |
 | 8 | Documentation and How-To Updates   | 0/5 complete  | 5          |
@@ -661,7 +661,7 @@ needed.
 
 #### 4.6 HITL review of filter coverage — `HITL Review`
 
-- [ ] HITL review of filter coverage — awaiting HITL approval
+- [x] HITL review of filter coverage — awaiting HITL approval
 
 **Description:** Present updated filter bar and documented mapping to the HITL for approval.
 
@@ -960,7 +960,7 @@ _Adds Search highlighting inside Markdown-rendered content, including headings, 
 
 #### 5A.8 Manual review of Markdown Search highlighting — `Manual Review Required`
 
-- [ ] Manual review of Markdown Search highlighting
+- [x] Manual review of Markdown Search highlighting
 
 **Description:** Manually verify Markdown Search highlighting in light and dark themes.
 
@@ -975,7 +975,7 @@ _Adds Search highlighting inside Markdown-rendered content, including headings, 
 
 #### 5A.9 HITL review of Markdown Search highlighting — `HITL Review`
 
-- [ ] HITL review of Markdown Search highlighting
+- [x] HITL review of Markdown Search highlighting
 
 **Description:** Present Markdown Search highlighting to HITL for approval.
 
@@ -1685,3 +1685,4 @@ and HITL grants final approval.
 | 2026-07-16 | Area 5: Search highlighting implemented. Plain text, diff, terminal, structured output, error/warning, thought, and tool call blocks highlighted. Code blocks skipped (third-party syntax highlighter). Markdown highlighting deferred per HITL decision. 4 theme tokens added (searchHighlightBackground/Text, currentMatchBackground/Text). Created SearchHighlight.kt utility. Added SearchHighlightTest (11 tests) and SearchHighlightThemeTest (6 tests). Task 5.8 HITL review pending. |
 | 2026-07-16 | Patch/Diff viewer improvement: Patch blocks now collapsible (collapsed by default), no vertical truncation (removed 600dp max height), inline/side-by-side diff view toggle added. Side-by-side parser pairs removed/added lines row-by-row with null cells for uneven groups. Copy button copies original unified diff. Search highlighting works in both views. Created SideBySideDiffParser.kt, rewrote DiffBlock.kt. Added SideBySideDiffParserTest (10 tests) and PatchDiffViewerTest (7 UI tests). Updated 2 existing tests for collapsed-by-default behaviour. Known limitation: side-by-side parser handles standard unified diff syntax only. |
 | 2026-07-16 | Area 5A: Markdown Search highlighting implemented. Supersedes earlier "defer Markdown highlighting" decision. Added `searchQuery`/`isCurrentMatch` params to `MarkdownContent`, created `applySearchHighlight()` that overlays highlight spans on existing `AnnotatedString` (preserving inline formatting). Headings, paragraphs, and list items highlighted. Fenced code blocks not highlighted (third-party syntax highlighter limitation). Created MarkdownSearchHighlightTest with unit and UI tests. Tasks 5A.1–5A.7 complete. Tasks 5A.8 (manual review) and 5A.9 (HITL review) pending. |
+| 2026-07-17 | Collapsible rich content blocks: All rich content blocks (Terminal, Code, Patch/Diff, Structured Output, Error/Warning, Thought, Tool Call) now use shared `CollapsibleBlock` component. All blocks expanded by default (supersedes old collapsed-by-default for Thought/Tool/Patch). Max height constraints removed from Terminal (600dp), Structured Output (400dp), Tool Call (400dp). Search auto-expansion: when current matching Message contains a block with a Search hit, that block is force-expanded via `forceExpanded` param. Added `blockContainsSearchHit` helper. Created CollapsibleBlockTest (14 tests). Updated 9 existing tests for expanded-by-default behavior. |

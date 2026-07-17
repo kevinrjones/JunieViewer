@@ -27,9 +27,14 @@ import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
- * Shared collapsible block structure used by ThoughtBlock and ToolCallBlock.
+ * Shared collapsible block structure used by rich content blocks.
  * Renders a clickable header with expand/collapse indicator and label,
  * plus an animated body that appears when expanded.
+ *
+ * @param initiallyExpanded whether the block starts expanded (default true).
+ * @param forceExpanded when true the body is shown regardless of manual state,
+ *   used for Search auto-expansion. Does not overwrite the remembered manual state.
+ * @param bodyTestTag stable test tag applied to the body wrapper.
  */
 @Composable
 fun CollapsibleBlock(
@@ -38,11 +43,21 @@ fun CollapsibleBlock(
     borderColor: Color,
     headerShape: Shape = RICH_CONTENT_SHAPE,
     headerTestTag: String,
+    bodyTestTag: String = "",
+    initiallyExpanded: Boolean = true,
+    forceExpanded: Boolean = false,
     headerTrailing: @Composable RowScope.() -> Unit = {},
     body: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var manualExpanded by remember { mutableStateOf(initiallyExpanded) }
+    // Track whether the user explicitly collapsed while forceExpanded was active.
+    var userDismissedForce by remember { mutableStateOf(false) }
+    // Reset the dismissal flag when forceExpanded becomes false (e.g. search cleared).
+    if (!forceExpanded) {
+        userDismissedForce = false
+    }
+    val visibleExpanded = manualExpanded || (forceExpanded && !userDismissedForce)
     val spacing = JunieViewerTheme.spacing
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -52,13 +67,19 @@ fun CollapsibleBlock(
                 .clip(headerShape)
                 .border(width = RICH_CONTENT_BORDER_WIDTH, color = borderColor, shape = headerShape)
                 .background(backgroundColor)
-                .clickable { expanded = !expanded }
+                .clickable {
+                    manualExpanded = !manualExpanded
+                    // If collapsing while force-expanded, dismiss the force so block actually collapses.
+                    if (!manualExpanded && forceExpanded) {
+                        userDismissedForce = true
+                    }
+                }
                 .padding(horizontal = spacing.lg, vertical = spacing.md)
                 .testTag(headerTestTag),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (expanded) "▼" else "▶",
+                text = if (visibleExpanded) "▼" else "▶",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -70,7 +91,10 @@ fun CollapsibleBlock(
             )
             headerTrailing()
         }
-        AnimatedVisibility(visible = expanded) {
+        AnimatedVisibility(
+            visible = visibleExpanded,
+            modifier = if (bodyTestTag.isNotEmpty()) Modifier.testTag(bodyTestTag) else Modifier
+        ) {
             body()
         }
     }

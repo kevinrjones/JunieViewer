@@ -108,16 +108,14 @@ class TextSelectionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `diff block has selectable content and copy button after expanding`() = runComposeUiTest {
+    fun `diff block has selectable content and copy button`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieDiffMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
-        // Expand the collapsed patch block first
-        onNodeWithTag("patch_block_header").performClick()
-        waitForIdle()
+        // Expanded by default
         onNodeWithTag("selectable_diff_content").assertExists()
         onNodeWithTag("copy_button").assertExists()
         FileSystem.SYSTEM.delete(path)
@@ -182,36 +180,30 @@ class TextSelectionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `thought block header still expands after selection wrapper added`() = runComposeUiTest {
+    fun `thought block has selectable content when expanded by default`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieThoughtMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
-        // Header should exist and be clickable
+        // Expanded by default — selectable content visible
         onNodeWithTag("thought_header").assertExists()
-        onNodeWithTag("thought_header").performClick()
-
-        // After expanding, the selectable thought content should appear
         onNodeWithTag("selectable_thought_content").assertExists()
         onNodeWithTag("thought_body").assertExists()
         FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `tool call header still expands after selection wrapper added`() = runComposeUiTest {
+    fun `tool call has selectable content when expanded by default`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieToolCallMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
-        // Header should exist and be clickable
+        // Expanded by default — selectable content visible
         onNodeWithTag("tool_call_header").assertExists()
-        onNodeWithTag("tool_call_header").performClick()
-
-        // After expanding, the selectable tool call content should appear
         onNodeWithTag("selectable_tool_call_content").assertExists()
         onNodeWithTag("tool_call_body").assertExists()
         FileSystem.SYSTEM.delete(path)

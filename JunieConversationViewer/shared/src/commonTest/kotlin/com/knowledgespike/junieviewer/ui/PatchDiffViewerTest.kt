@@ -52,7 +52,7 @@ class PatchDiffViewerTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `patch block is collapsed by default`() = runComposeUiTest {
+    fun `patch block is expanded by default`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieDiffMessage
@@ -60,24 +60,26 @@ class PatchDiffViewerTest {
         setContent { ConversationRoot(viewModel = viewModel) }
 
         onNodeWithTag("patch_block_header").assertExists()
-        onNodeWithTag("patch_inline_view").assertDoesNotExist()
-        onNodeWithTag("selectable_diff_content").assertDoesNotExist()
+        onNodeWithTag("patch_inline_view").assertExists()
+        onNodeWithTag("selectable_diff_content").assertExists()
         FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `expanding patch block reveals body content`() = runComposeUiTest {
+    fun `collapsing patch block hides body content`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieDiffMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
+        // Body visible by default
+        onNodeWithTag("patch_inline_view").assertExists()
+        // Collapse
         onNodeWithTag("patch_block_header").performClick()
         waitForIdle()
 
-        onNodeWithTag("patch_inline_view").assertExists()
-        onNodeWithTag("selectable_diff_content").assertExists()
+        onNodeWithTag("patch_inline_view").assertDoesNotExist()
         FileSystem.SYSTEM.delete(path)
     }
 
@@ -86,16 +88,14 @@ class PatchDiffViewerTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `large patch content includes early and late lines after expansion`() = runComposeUiTest {
+    fun `large patch content includes early and late lines when expanded`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.largeDiffMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
-        onNodeWithTag("patch_block_header").performClick()
-        waitForIdle()
-
+        // Already expanded by default
         // First line marker
         onNodeWithText("FIRST_LINE_MARKER", substring = true).assertExists()
         // Last line marker — proves content is not truncated
