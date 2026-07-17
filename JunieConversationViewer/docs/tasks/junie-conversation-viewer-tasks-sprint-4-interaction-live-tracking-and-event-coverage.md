@@ -54,7 +54,7 @@ It serves as:
 | 4 | Filter Coverage and Top Controls   | 6/6 complete  | 6          |
 | 5 | Search Highlighting                | 8/8 complete  | 8          |
 | 5A| Markdown Search Highlighting       | 9/9 complete  | 9          |
-| 6 | Live Session Tracking              | 0/11 complete | 11         |
+| 6 | Live Session Tracking              | 9/11 complete | 11         |
 | 7 | AgentTaskFailedEvent Support       | 0/8 complete  | 8          |
 | 8 | Documentation and How-To Updates   | 0/5 complete  | 5          |
 | 9 | Testing, Review, and Completion    | 0/7 complete  | 7          |
@@ -996,7 +996,7 @@ updates.*
 
 #### 6.1 Design file watching approach
 
-- [ ] Design file watching approach
+- [x] Design file watching approach
 
 **Description:** Based on discovery findings (1.5), design the file watching approach: `WatchService` with polling
 fallback, or polling-only. Document the approach and trade-offs.
@@ -1016,7 +1016,7 @@ fallback, or polling-only. Document the approach and trade-offs.
 
 #### 6.2 Implement FileWatcher interface
 
-- [ ] Implement FileWatcher interface — `Test Required`
+- [x] Implement FileWatcher interface — `Test Required`
 
 **Description:** Create `FileWatcher` interface in `data/` with a method to watch a file path and emit change events via
 `Flow`. Implement JVM version using `WatchService` with polling fallback.
@@ -1037,7 +1037,7 @@ fallback, or polling-only. Document the approach and trade-offs.
 
 #### 6.3 Implement LiveSessionTracker
 
-- [ ] Implement LiveSessionTracker — `Test Required`
+- [x] Implement LiveSessionTracker — `Test Required`
 
 **Description:** Create `LiveSessionTracker` that uses `FileWatcher` to watch the selected Session's `events.jsonl`.
 Maintains byte offset for incremental reading.
@@ -1058,7 +1058,7 @@ Maintains byte offset for incremental reading.
 
 #### 6.4 Implement incremental parsing
 
-- [ ] Implement incremental parsing — `Test Required`
+- [x] Implement incremental parsing — `Test Required`
 
 **Description:** Parse only newly appended lines from `events.jsonl` using `JsonlParser`. Handle partial lines (
 incomplete JSON at EOF during active write).
@@ -1079,7 +1079,7 @@ incomplete JSON at EOF during active write).
 
 #### 6.5 Update ViewModel for live updates
 
-- [ ] Update ViewModel for live updates — `Test Required`
+- [x] Update ViewModel for live updates — `Test Required`
 
 **Description:** Update `ConversationViewModel` to accept new `Message` objects from `LiveSessionTracker` via `Flow`.
 Append to `ConversationState.messages` and re-apply filters and search.
@@ -1101,7 +1101,7 @@ Append to `ConversationState.messages` and re-apply filters and search.
 
 #### 6.6 Implement scroll preservation and auto-scroll
 
-- [ ] Implement scroll preservation and auto-scroll
+- [x] Implement scroll preservation and auto-scroll
 
 **Description:** Preserve scroll position when new messages arrive during live tracking. Auto-scroll to bottom only when
 the user is already near the bottom of the conversation.
@@ -1122,7 +1122,7 @@ the user is already near the bottom of the conversation.
 
 #### 6.7 Handle partial writes and errors
 
-- [ ] Handle partial writes and errors
+- [x] Handle partial writes and errors
 
 **Description:** Handle file write races (partial JSON lines), file deletion, file truncation, and other error
 conditions during live tracking.
@@ -1143,7 +1143,7 @@ conditions during live tracking.
 
 #### 6.8 Add logging for live tracking
 
-- [ ] Add logging for live tracking
+- [x] Add logging for live tracking
 
 **Description:** Add appropriate logging throughout the live tracking pipeline: file watch events, parse results,
 errors, start/stop lifecycle.
@@ -1164,7 +1164,7 @@ errors, start/stop lifecycle.
 
 #### 6.9 Add live tracking tests
 
-- [ ] Add live tracking tests — `Test Required`
+- [x] Add live tracking tests — `Test Required`
 
 **Description:** Add comprehensive tests for the live tracking pipeline: file watching, incremental parsing, ViewModel
 state updates, error handling.
@@ -1686,3 +1686,4 @@ and HITL grants final approval.
 | 2026-07-16 | Patch/Diff viewer improvement: Patch blocks now collapsible (collapsed by default), no vertical truncation (removed 600dp max height), inline/side-by-side diff view toggle added. Side-by-side parser pairs removed/added lines row-by-row with null cells for uneven groups. Copy button copies original unified diff. Search highlighting works in both views. Created SideBySideDiffParser.kt, rewrote DiffBlock.kt. Added SideBySideDiffParserTest (10 tests) and PatchDiffViewerTest (7 UI tests). Updated 2 existing tests for collapsed-by-default behaviour. Known limitation: side-by-side parser handles standard unified diff syntax only. |
 | 2026-07-16 | Area 5A: Markdown Search highlighting implemented. Supersedes earlier "defer Markdown highlighting" decision. Added `searchQuery`/`isCurrentMatch` params to `MarkdownContent`, created `applySearchHighlight()` that overlays highlight spans on existing `AnnotatedString` (preserving inline formatting). Headings, paragraphs, and list items highlighted. Fenced code blocks not highlighted (third-party syntax highlighter limitation). Created MarkdownSearchHighlightTest with unit and UI tests. Tasks 5A.1–5A.7 complete. Tasks 5A.8 (manual review) and 5A.9 (HITL review) pending. |
 | 2026-07-17 | Collapsible rich content blocks: All rich content blocks (Terminal, Code, Patch/Diff, Structured Output, Error/Warning, Thought, Tool Call) now use shared `CollapsibleBlock` component. All blocks expanded by default (supersedes old collapsed-by-default for Thought/Tool/Patch). Max height constraints removed from Terminal (600dp), Structured Output (400dp), Tool Call (400dp). Search auto-expansion: when current matching Message contains a block with a Search hit, that block is force-expanded via `forceExpanded` param. Added `blockContainsSearchHit` helper. Created CollapsibleBlockTest (14 tests). Updated 9 existing tests for expanded-by-default behavior. |
+| 2026-07-17 | Area 6: Live Session Tracking implemented with polling-only approach (1.5s default interval). Created `FileWatcher` (polls file metadata, emits Grew/Truncated/Deleted/Error events), `LiveSessionTracker` (incremental byte-offset reading, partial-line buffering, JSONL parsing via existing `JsonlParser`/`EventToMessageMapper`). Updated `SessionRepository` with `loadSession()` returning `SessionLoadResult` (messages + file path + file size). ViewModel starts live tracking automatically after initial load, cancels on session change, appends new messages and re-applies filters/search. `ConversationScreen` auto-scrolls to bottom when user is near bottom (within 3 items). Truncation resets offset and triggers full reload; deletion stops tracking gracefully. Kermit logging at Info/Debug/Warning/Error levels throughout. Created FileWatcherTest (5 tests), LiveSessionTrackerTest (6 tests), LiveTrackingViewModelTest (3 tests). Tasks 6.10 (manual review) and 6.11 (HITL review) pending. |

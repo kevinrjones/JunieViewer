@@ -3,6 +3,9 @@ package com.knowledgespike.junieviewer.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
+import com.knowledgespike.junieviewer.data.FileWatcher
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
+import com.knowledgespike.junieviewer.data.LiveTrackingEvent
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
@@ -14,15 +17,18 @@ import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okio.FileSystem
 
 class ConversationViewModel(
     private val repository: SessionRepository = SessionRepositoryImpl(),
     private val preferencesRepository: PreferencesRepository = PreferencesRepository(),
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val liveSessionTracker: LiveSessionTracker = LiveSessionTracker()
 ) : ViewModel() {
 
     private val logger = Logger.withTag("ConversationViewModel")
@@ -36,6 +42,9 @@ class ConversationViewModel(
 
     private val _events = Channel<ConversationEvent>()
     val events = _events.receiveAsFlow()
+
+    /** Job for the current live tracking coroutine — cancelled when Session changes. */
+    private var liveTrackingJob: Job? = null
 
     init {
         logger.d { "ConversationViewModel initialized" }
@@ -170,28 +179,34 @@ class ConversationViewModel(
             return
         }
         val homePath = _state.value.junieHomePath
+
+        // Cancel any existing live tracking before starting a new load
+        stopLiveTracking()
         
         logger.i { "Loading messages for session: $sessionId" }
         viewModelScope.launch(exceptionHandler) {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val (messages, sessionInfo) = withContext(ioDispatcher) {
+                val (loadResult, sessionInfo) = withContext(ioDispatcher) {
                     repository.setSession(sessionId, homePath)
-                    val msgs = repository.getMessages()
+                    val result = repository.loadSession()
                     val info = repository.getSessionInfo(sessionId, homePath)
-                    msgs to info
+                    result to info
                 }
                 _state.update { 
                     it.copy(
-                        messages = messages,
-                        filteredMessages = messages,
+                        messages = loadResult.messages,
+                        filteredMessages = loadResult.messages,
                         isLoading = false,
                         errorMessage = null,
                         selectedSession = sessionInfo ?: it.selectedSession
                     )
                 }
                 filterMessages(_state.value.searchQuery)
-                logger.d { "Successfully loaded ${messages.size} messages" }
+                logger.d { "Successfully loaded ${loadResult.messages.size} messages" }
+
+                // Start live tracking from the end of the loaded file
+                startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.messages.size)
             } catch (e: Exception) {
                 logger.e(e) { "Failed to load messages for session $sessionId" }
                 _state.update { it.copy(
@@ -200,6 +215,54 @@ class ConversationViewModel(
                 ) }
             }
         }
+    }
+
+    /** Starts live tracking for the given events.jsonl file. */
+    private fun startLiveTracking(eventsFilePath: okio.Path?, initialOffset: Long, existingMessageCount: Int) {
+        if (eventsFilePath == null) {
+            logger.w { "Cannot start live tracking: no events file path" }
+            return
+        }
+
+        logger.i { "Starting live tracking: path=$eventsFilePath, offset=$initialOffset" }
+        liveTrackingJob = viewModelScope.launch(ioDispatcher + exceptionHandler) {
+            liveSessionTracker.track(eventsFilePath, initialOffset, existingMessageCount)
+                .collect { event ->
+                    when (event) {
+                        is LiveTrackingEvent.NewMessages -> {
+                            logger.d { "Live tracking: ${event.messages.size} new messages" }
+                            _state.update { currentState ->
+                                val updatedMessages = currentState.messages + event.messages
+                                currentState.copy(messages = updatedMessages)
+                            }
+                            filterMessages(_state.value.searchQuery)
+                        }
+                        is LiveTrackingEvent.FileReset -> {
+                            logger.i { "Live tracking: file reset — reloading session" }
+                            withContext(Dispatchers.Main) { loadMessages() }
+                        }
+                        is LiveTrackingEvent.FileDeleted -> {
+                            logger.w { "Live tracking: file deleted — stopping" }
+                            // Don't crash, just stop tracking
+                        }
+                    }
+                }
+        }
+    }
+
+    /** Cancels the current live tracking job if active. */
+    internal fun stopLiveTracking() {
+        liveTrackingJob?.let {
+            logger.i { "Stopping live tracking" }
+            it.cancel()
+            liveTrackingJob = null
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopLiveTracking()
+        logger.d { "ConversationViewModel cleared" }
     }
 
     private fun filterMessages(query: String) {
