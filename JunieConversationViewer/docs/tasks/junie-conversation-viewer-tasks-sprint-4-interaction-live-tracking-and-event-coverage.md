@@ -53,11 +53,12 @@ It serves as:
 | 3 | Sub-Agent and Event Representation | 7/7 complete  | 7          |
 | 4 | Filter Coverage and Top Controls   | 5/6 complete  | 6          |
 | 5 | Search Highlighting                | 7/8 complete  | 8          |
+| 5A| Markdown Search Highlighting       | 7/9 complete  | 9          |
 | 6 | Live Session Tracking              | 0/11 complete | 11         |
 | 7 | AgentTaskFailedEvent Support       | 0/8 complete  | 8          |
 | 8 | Documentation and How-To Updates   | 0/5 complete  | 5          |
 | 9 | Testing, Review, and Completion    | 0/7 complete  | 7          |
-|   | **Total**                          |               | **67**     |
+|   | **Total**                          |               | **76**     |
 
 ## 6. Task Status Legend
 
@@ -853,6 +854,141 @@ current match is highlighted distinctly.
 
 ---
 
+### Area 5A — Markdown Search Highlighting
+
+_Adds Search highlighting inside Markdown-rendered content, including headings, paragraphs, list items, and fenced code blocks. Supersedes the earlier decision to defer Markdown highlighting._
+
+#### 5A.1 Update sprint scope and discovery decision
+
+- [x] Update sprint scope and discovery decision
+
+**Description:** Update Sprint 4 docs to reflect that Markdown Search highlighting is now in scope, replacing the earlier "defer Markdown highlighting" decision.
+
+**Completion criteria:**
+
+- Sprint document includes Markdown Search Highlighting section.
+- Task document includes Area 5A.
+- Any notes that Markdown highlighting is deferred are updated or clarified.
+
+**Testing expectations:** Documentation only.
+
+#### 5A.2 Extend MarkdownContent API for Search highlighting — `Test Required`
+
+- [x] Extend MarkdownContent API for Search highlighting
+
+**Description:** Allow Markdown rendering to receive Search Query and current-match state so Markdown blocks can apply existing Search highlight styling.
+
+**Likely files / areas:** `shared/src/commonMain/.../ui/components/MarkdownContent.kt`, `shared/src/commonMain/.../ui/components/MessageItems.kt`.
+
+**Completion criteria:**
+
+- Markdown renderer accepts Search Query and current-match state.
+- Existing call sites compile.
+- Empty Search Query renders Markdown unchanged.
+
+**Testing expectations:** Unit or UI test verifying no-query Markdown rendering still works.
+
+#### 5A.3 Highlight Markdown headings and paragraphs — `Test Required`
+
+- [x] Highlight Markdown headings and paragraphs
+
+**Description:** Apply Search highlighting to Markdown headings and paragraph text.
+
+**Completion criteria:**
+
+- Heading matches are highlighted.
+- Paragraph matches are highlighted.
+- Case-insensitive matching works.
+- Current-match styling is distinct.
+
+**Testing expectations:** Tests cover heading and paragraph highlighting.
+
+#### 5A.4 Highlight Markdown list items — `Test Required`
+
+- [x] Highlight Markdown list items
+
+**Description:** Apply Search highlighting to unordered and ordered Markdown list item text while preserving bullet/number prefixes.
+
+**Completion criteria:**
+
+- Unordered list item matches are highlighted.
+- Ordered list item matches are highlighted.
+- Bullet/number prefixes remain visible and readable.
+- Current-match styling works.
+
+**Testing expectations:** Tests cover unordered and ordered list items.
+
+#### 5A.5 Highlight Markdown fenced code blocks where practical — `Test Required`
+
+- [x] Highlight Markdown fenced code blocks where practical
+
+**Description:** Fenced code blocks rendered from Markdown pass through `CodeBlockWithCopy`, which uses a third-party syntax highlighter. Search highlighting inside fenced code blocks is not practical without replacing the highlighter. Documented as a known limitation.
+
+**Completion criteria:**
+
+- Fenced code blocks continue to render correctly.
+- Limitation documented.
+
+**Testing expectations:** Existing code block tests cover rendering.
+
+#### 5A.6 Preserve inline Markdown formatting where practical — `Test Required`
+
+- [x] Preserve inline Markdown formatting where practical
+
+**Description:** Ensure inline Markdown rendering for bold, italic, inline code, and links-as-text remains readable when Search highlighting is applied. The `applySearchHighlight` function overlays highlight spans on top of existing `AnnotatedString` spans, preserving inline formatting.
+
+**Completion criteria:**
+
+- Inline formatting is not destroyed.
+- Highlighting coexists with inline code styling.
+
+**Testing expectations:** Tests cover bold text and inline code with highlighting.
+
+#### 5A.7 Add Markdown Search highlighting tests — `Test Required`
+
+- [x] Add Markdown Search highlighting tests
+
+**Description:** Add unit and Compose UI tests for Markdown Search highlighting.
+
+**Completion criteria:**
+
+- Unit tests cover `applySearchHighlight` function.
+- UI tests verify Markdown test tags exist.
+- Tests cover heading, paragraph, list item highlighting.
+
+**Testing expectations:** Unit and Compose UI tests.
+
+#### 5A.8 Manual review of Markdown Search highlighting — `Manual Review Required`
+
+- [ ] Manual review of Markdown Search highlighting
+
+**Description:** Manually verify Markdown Search highlighting in light and dark themes.
+
+**Completion criteria:**
+
+- Matches are visible in headings, paragraphs, and lists.
+- Current match is visually distinct.
+- Markdown remains readable.
+- No text selection/copy regression.
+
+**Testing expectations:** Manual verification only.
+
+#### 5A.9 HITL review of Markdown Search highlighting — `HITL Review`
+
+- [ ] HITL review of Markdown Search highlighting
+
+**Description:** Present Markdown Search highlighting to HITL for approval.
+
+**Completion criteria:**
+
+- HITL has reviewed and approved Markdown Search highlighting.
+
+**Testing expectations:** No automated tests required.
+
+**HITL-visible outcome:** Search highlights are visible inside Markdown-rendered Messages.
+
+---
+
 ### Area 6 — Live Session Tracking
 
 *Source: Delivery Part 6. Implements file watching with polling fallback, incremental parsing, and scroll-preserving UI
@@ -1510,13 +1646,14 @@ and HITL grants final approval.
 | 4 | 3.7  | Sub-Agent            | Sub-agent activity clearly distinguished within the Conversation.                                          |
 | 5 | 4.6  | Filter Coverage      | All relevant Message Kinds represented in the filter bar.                                                  |
 | 6 | 5.8  | Search Highlighting  | Matching Search text highlighted with theme-aware colours.                                                 |
+| 6A| 5A.9 | Markdown Highlighting| Search highlights visible inside Markdown-rendered Messages.                                               |
 | 7 | 6.11 | Live Tracking        | Conversation updates in near real time as new Events are appended.                                         |
 | 8 | 7.8  | AgentTaskFailedEvent | AgentTaskFailedEvent rendered as a visible error/failure block.                                            |
 | 9 | 9.7  | Completion           | All tests pass, manual review complete, HITL final approval.                                               |
 
 ## 9. Acceptance Criteria
 
-- All 67 tasks marked complete.
+- All 76 tasks marked complete.
 - All `Test Required` tasks have passing automated tests.
 - All `HITL Review` tasks have HITL approval.
 - All `Manual Review Required` tasks have been manually verified.
@@ -1547,3 +1684,4 @@ and HITL grants final approval.
 | 2026-07-16 | Area 4: All 18 MessageKind values verified mapped correctly. No code changes needed — implementation already matches approved design. Six filter toggles (Human, Junie, Thoughts, Tools, Patches, Terminal) confirmed with canonical labels. Grouped kinds: StructuredOutput/Mcp/SubAgent→Tools, TestRun→Terminal. AlwaysShow kinds bypass filters. Added FilterCoverageTest (20 tests) and FilterBehaviourTest (7 tests). |
 | 2026-07-16 | Area 5: Search highlighting implemented. Plain text, diff, terminal, structured output, error/warning, thought, and tool call blocks highlighted. Code blocks skipped (third-party syntax highlighter). Markdown highlighting deferred per HITL decision. 4 theme tokens added (searchHighlightBackground/Text, currentMatchBackground/Text). Created SearchHighlight.kt utility. Added SearchHighlightTest (11 tests) and SearchHighlightThemeTest (6 tests). Task 5.8 HITL review pending. |
 | 2026-07-16 | Patch/Diff viewer improvement: Patch blocks now collapsible (collapsed by default), no vertical truncation (removed 600dp max height), inline/side-by-side diff view toggle added. Side-by-side parser pairs removed/added lines row-by-row with null cells for uneven groups. Copy button copies original unified diff. Search highlighting works in both views. Created SideBySideDiffParser.kt, rewrote DiffBlock.kt. Added SideBySideDiffParserTest (10 tests) and PatchDiffViewerTest (7 UI tests). Updated 2 existing tests for collapsed-by-default behaviour. Known limitation: side-by-side parser handles standard unified diff syntax only. |
+| 2026-07-16 | Area 5A: Markdown Search highlighting implemented. Supersedes earlier "defer Markdown highlighting" decision. Added `searchQuery`/`isCurrentMatch` params to `MarkdownContent`, created `applySearchHighlight()` that overlays highlight spans on existing `AnnotatedString` (preserving inline formatting). Headings, paragraphs, and list items highlighted. Fenced code blocks not highlighted (third-party syntax highlighter limitation). Created MarkdownSearchHighlightTest with unit and UI tests. Tasks 5A.1–5A.7 complete. Tasks 5A.8 (manual review) and 5A.9 (HITL review) pending. |

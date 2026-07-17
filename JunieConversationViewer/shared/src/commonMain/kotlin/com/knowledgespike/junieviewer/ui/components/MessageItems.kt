@@ -347,11 +347,12 @@ private fun ContentRenderer(
     when (content) {
         is MessageContent.Text -> {
             if (isMarkdownKind || looksLikeMarkdown(content.text)) {
-                // Markdown highlighting deferred per HITL decision
                 SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                     MarkdownContent(
                         markdown = content.text,
-                        modifier = Modifier.testTag("markdown_content")
+                        modifier = Modifier.testTag("markdown_content"),
+                        searchQuery = searchQuery,
+                        isCurrentMatch = isCurrentMatch
                     )
                 }
             } else {

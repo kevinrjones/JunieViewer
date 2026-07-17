@@ -11,12 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import com.knowledgespike.junieviewer.ui.theme.ConversationColors
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
 
@@ -24,11 +26,17 @@ import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
  * Lightweight Markdown renderer supporting the core subset:
  * headings, bold, italic, lists, inline code, and links-as-text.
  * Complex tables degrade to readable plain text.
+ *
+ * Supports Search highlighting: when [searchQuery] is non-blank, matching text
+ * is highlighted using theme-aware colours. [isCurrentMatch] controls whether
+ * current-match or regular highlight colours are used.
  */
 @Composable
 fun MarkdownContent(
     markdown: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val blocks = remember(markdown) { parseMarkdownBlocks(markdown) }
     val spacing = JunieViewerTheme.spacing
@@ -41,30 +49,44 @@ fun MarkdownContent(
             if (index > 0) Spacer(modifier = Modifier.height(spacing.sm))
             when (block) {
                 is MarkdownBlock.Heading -> Text(
-                    text = block.text,
+                    text = applySearchHighlight(
+                        AnnotatedString(block.text), searchQuery, isCurrentMatch, colors
+                    ),
                     style = when (block.level) {
                         1 -> MaterialTheme.typography.headlineSmall
                         2 -> MaterialTheme.typography.titleLarge
                         3 -> MaterialTheme.typography.titleMedium
                         else -> MaterialTheme.typography.titleSmall
                     },
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.testTag("markdown_heading")
                 )
                 is MarkdownBlock.Paragraph -> Text(
-                    text = renderInlineMarkdown(block.text, primaryColor, codeBackground),
-                    style = MaterialTheme.typography.bodyMedium
+                    text = applySearchHighlight(
+                        renderInlineMarkdown(block.text, primaryColor, codeBackground),
+                        searchQuery, isCurrentMatch, colors
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.testTag("markdown_paragraph")
                 )
                 is MarkdownBlock.ListItem -> Text(
-                    text = buildAnnotatedString {
-                        append("  ${block.bullet} ")
-                        append(renderInlineMarkdown(block.text, primaryColor, codeBackground))
-                    },
+                    text = applySearchHighlight(
+                        buildAnnotatedString {
+                            append("  ${block.bullet} ")
+                            append(renderInlineMarkdown(block.text, primaryColor, codeBackground))
+                        },
+                        searchQuery, isCurrentMatch, colors
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = spacing.xs)
+                    modifier = Modifier
+                        .padding(vertical = spacing.xs)
+                        .testTag("markdown_list_item")
                 )
                 is MarkdownBlock.CodeFence -> CodeBlockWithCopy(
                     code = block.code,
-                    modifier = Modifier.padding(vertical = spacing.sm)
+                    modifier = Modifier
+                        .padding(vertical = spacing.sm)
+                        .testTag("markdown_code_fence")
                 )
             }
         }
@@ -144,6 +166,48 @@ fun parseMarkdownBlocks(markdown: String): List<MarkdownBlock> {
         }
     }
     return blocks
+}
+
+/**
+ * Applies search highlighting over an existing [AnnotatedString], preserving
+ * any inline Markdown formatting spans already present.
+ *
+ * Returns the original string unchanged when [query] is blank or has no matches.
+ */
+fun applySearchHighlight(
+    annotated: AnnotatedString,
+    query: String,
+    isCurrentMatch: Boolean,
+    colors: ConversationColors
+): AnnotatedString {
+    if (query.isBlank()) return annotated
+
+    val text = annotated.text
+    val lowerText = text.lowercase()
+    val lowerQuery = query.lowercase()
+    val queryLen = lowerQuery.length
+
+    val matches = mutableListOf<IntRange>()
+    var searchFrom = 0
+    while (searchFrom <= lowerText.length - queryLen) {
+        val idx = lowerText.indexOf(lowerQuery, searchFrom)
+        if (idx < 0) break
+        matches.add(idx until idx + queryLen)
+        searchFrom = idx + queryLen
+    }
+
+    if (matches.isEmpty()) return annotated
+
+    val bgColor = if (isCurrentMatch) colors.currentMatchBackground else colors.searchHighlightBackground
+    val fgColor = if (isCurrentMatch) colors.currentMatchText else colors.searchHighlightText
+    val style = SpanStyle(background = bgColor, color = fgColor)
+
+    return buildAnnotatedString {
+        append(annotated)
+        matches.forEach { range ->
+            addStyle(style, range.first, range.last + 1)
+        }
+    }
 }
 
 /** Renders inline Markdown formatting (bold, italic, inline code, links-as-text). */
