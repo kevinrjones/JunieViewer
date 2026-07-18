@@ -46,19 +46,19 @@ It serves as:
 
 ## 5. Progress Summary
 
-| # | Task Area                          | Status        | Task Count |
-|---|------------------------------------|---------------|------------|
-| 1 | Discovery and Scope Confirmation   | 9/9 complete  | 9          |
-| 2 | Text Selection and Partial Copy    | 6/6 complete  | 6          |
-| 3 | Sub-Agent and Event Representation | 7/7 complete  | 7          |
-| 4 | Filter Coverage and Top Controls   | 6/6 complete  | 6          |
-| 5 | Search Highlighting                | 8/8 complete  | 8          |
-| 5A| Markdown Search Highlighting       | 9/9 complete  | 9          |
-| 6 | Live Session Tracking              | 9/11 complete | 11         |
-| 7 | AgentTaskFailedEvent Support       | 7/8 complete  | 8          |
-| 8 | Documentation and How-To Updates   | 5/5 complete  | 5          |
-| 9 | Testing, Review, and Completion    | 5/7 complete  | 7          |
-|   | **Total**                          |               | **76**     |
+| # | Task Area                          | Status         | Task Count |
+|---|------------------------------------|----------------|------------|
+| 1 | Discovery and Scope Confirmation   | 9/9 complete   | 9          |
+| 2 | Text Selection and Partial Copy    | 6/6 complete   | 6          |
+| 3 | Sub-Agent and Event Representation | 7/7 complete   | 7          |
+| 4 | Filter Coverage and Top Controls   | 6/6 complete   | 6          |
+| 5 | Search Highlighting                | 8/8 complete   | 8          |
+| 5A| Markdown Search Highlighting       | 9/9 complete   | 9          |
+| 6 | Live Session Tracking              | 11/11 complete | 11         |
+| 7 | AgentTaskFailedEvent Support       | 8/8 complete   | 8          |
+| 8 | Documentation and How-To Updates   | 5/5 complete   | 5          |
+| 9 | Testing, Review, and Completion    | 7/7 complete   | 7          |
+|   | **Total**                          |                | **76**     |
 
 ## 6. Task Status Legend
 
@@ -1375,7 +1375,7 @@ events after adding `AgentTaskFailedEvent`.
 
 #### 7.8 HITL review of AgentTaskFailedEvent — `HITL Review`
 
-- [ ] HITL review of AgentTaskFailedEvent
+- [x] HITL review of AgentTaskFailedEvent
 
 **Description:** Present `AgentTaskFailedEvent` rendering to the HITL for approval.
 
@@ -1557,7 +1557,7 @@ areas. Use the `project-memory` skill.
 
 #### 9.4 Run manual checklist — `Manual Review Required`
 
-- [ ] Run manual checklist
+- [x] Run manual checklist
 
 **Description:** Execute the manual review checklist from sprint doc section 22.2.
 
@@ -1614,7 +1614,7 @@ complexity introduced during Sprint 4.
 
 #### 9.7 HITL final approval — `HITL Review`
 
-- [ ] HITL final approval
+- [x] HITL final approval
 
 **Description:** Present the complete Sprint 4 deliverables to the HITL for final approval.
 
