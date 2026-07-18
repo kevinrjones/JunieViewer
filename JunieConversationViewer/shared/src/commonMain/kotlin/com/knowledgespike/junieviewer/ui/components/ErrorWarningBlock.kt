@@ -1,71 +1,58 @@
 package com.knowledgespike.junieviewer.ui.components
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
- * Renders error or warning messages with distinct visual treatment.
- * Uses accent colour plus a non-colour-only indicator (icon + label)
- * so the message does not blend into normal plain text.
+ * Renders error or warning messages in a collapsible block with distinct visual treatment.
+ * Expanded by default. Uses accent colour plus a non-colour-only label.
  */
 @Composable
 fun ErrorWarningBlock(
     text: String,
     isWarning: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false,
+    forceExpanded: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
 
-    val containerColor = if (isWarning)
-        colors.warningBackground
-    else
-        colors.errorBackground
-
-    val contentColor = if (isWarning)
-        MaterialTheme.colorScheme.onSurface
-    else
-        MaterialTheme.colorScheme.onError
-
-    val indicator = if (isWarning) "⚠" else "✖"
+    val containerColor = if (isWarning) colors.warningBackground else colors.errorBackground
+    val borderColor = if (isWarning) colors.warningBackground else colors.errorBackground
     val label = if (isWarning) "Warning" else "Error"
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = containerColor,
-        shape = RICH_CONTENT_SHAPE
-    ) {
-        Column(modifier = Modifier.padding(spacing.lg)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    CollapsibleBlock(
+        label = label,
+        backgroundColor = containerColor,
+        borderColor = borderColor,
+        headerTestTag = "error_warning_block_header",
+        bodyTestTag = "error_warning_block_body",
+        forceExpanded = forceExpanded,
+        body = {
+            SelectionContainer(modifier = Modifier.testTag("selectable_error_warning_content")) {
                 Text(
-                    text = indicator,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = contentColor
-                )
-                Spacer(modifier = Modifier.width(spacing.md))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = contentColor
+                    text = themedHighlightSearchMatches(
+                        text = text,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.lg)
                 )
             }
-            Spacer(modifier = Modifier.padding(top = spacing.sm))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor
-            )
-        }
-    }
+        },
+        modifier = modifier
+    )
 }

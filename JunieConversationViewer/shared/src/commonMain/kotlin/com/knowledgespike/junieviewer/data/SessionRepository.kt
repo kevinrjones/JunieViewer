@@ -11,8 +11,19 @@ import okio.Path
 import okio.Path.Companion.toPath
 import okio.buffer
 
+/**
+ * Result of loading a Session's messages, including metadata needed for live tracking.
+ */
+data class SessionLoadResult(
+    val messages: List<Message>,
+    val eventsFilePath: Path?,
+    val fileSizeAfterLoad: Long
+)
+
 interface SessionRepository {
     fun getMessages(): List<Message>
+    /** Loads messages and returns metadata needed for live tracking. */
+    fun loadSession(): SessionLoadResult = SessionLoadResult(getMessages(), null, 0L)
     fun listSessions(homePath: String): List<SessionInfo>
     fun setSession(sessionId: String, homePath: String)
     /** Returns the [SessionInfo] for the currently set session, or null if unavailable. */
@@ -68,14 +79,16 @@ class SessionRepositoryImpl(
         }
     }
 
-    override fun getMessages(): List<Message> {
+    override fun getMessages(): List<Message> = loadSession().messages
+
+    override fun loadSession(): SessionLoadResult {
         val path = currentSessionPath ?: run {
-            logger.w { "getMessages called but currentSessionPath is null" }
-            return emptyList()
+            logger.w { "loadSession called but currentSessionPath is null" }
+            return SessionLoadResult(emptyList(), null, 0L)
         }
         if (!fileSystem.exists(path)) {
             logger.e { "Session file does not exist: $path" }
-            return emptyList()
+            return SessionLoadResult(emptyList(), path, 0L)
         }
 
         logger.d { "Loading messages from: $path" }
@@ -100,7 +113,9 @@ class SessionRepositoryImpl(
             }
         }
 
-        return EventToMessageMapper.mapEventsToMessages(events)
+        val messages = EventToMessageMapper.mapEventsToMessages(events)
+        val fileSize = try { fileSystem.metadata(path).size ?: 0L } catch (_: Exception) { 0L }
+        return SessionLoadResult(messages, path, fileSize)
     }
 
     override fun listSessions(homePath: String): List<SessionInfo> {

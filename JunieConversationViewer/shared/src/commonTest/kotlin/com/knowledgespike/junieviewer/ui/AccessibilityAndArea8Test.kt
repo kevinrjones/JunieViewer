@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.runComposeUiTest
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
@@ -50,7 +51,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `session picker button has content description`() = runComposeUiTest {
         val prefs = tempPrefs("a7-picker")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -60,7 +61,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `settings button has content description`() = runComposeUiTest {
         val prefs = tempPrefs("a7-settings")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -135,7 +136,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `sender markers show Human and Junie`() = runComposeUiTest {
         val prefs = tempPrefs("a8-sender")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -147,7 +148,7 @@ class AccessibilityAndArea8Test {
     fun `message kind markers are visible for first visible fixture kinds`() = runComposeUiTest {
         // Only test kinds that are visible without scrolling (LazyColumn virtualises off-screen items)
         val prefs = tempPrefs("a8-kinds")
-        val vm = ConversationViewModel(fakeRepo(RepresentativeFixtures.allMessageKinds), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(RepresentativeFixtures.allMessageKinds), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -160,7 +161,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `junie messages are grouped with turn headers`() = runComposeUiTest {
         val prefs = tempPrefs("a8-turns")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -173,7 +174,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `match navigation buttons appear when multiple matches exist`() = runComposeUiTest {
         val prefs = tempPrefs("a8-matchnav")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -200,7 +201,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `match navigation buttons have content descriptions`() = runComposeUiTest {
         val prefs = tempPrefs("a8-matchcd")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -212,7 +213,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `clear search button has content description`() = runComposeUiTest {
         val prefs = tempPrefs("a8-clearcd")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -225,7 +226,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `important controls have stable test tags`() = runComposeUiTest {
         val prefs = tempPrefs("a8-tags")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         setContent { ConversationRoot(viewModel = vm) }
 
         onNodeWithTag("search_field").assertExists()
@@ -251,7 +252,7 @@ class AccessibilityAndArea8Test {
             Message("l3", Sender.Junie, MessageContent.Text("Follow-up"), MessageKind.Text, 3L)
         )
         val prefs = tempPrefs("a8-long")
-        val vm = ConversationViewModel(fakeRepo(longMessages), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(longMessages), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -269,7 +270,7 @@ class AccessibilityAndArea8Test {
             RepresentativeFixtures.junieWarningMessage
         )
         val prefs = tempPrefs("a7-noncolour")
-        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
@@ -282,7 +283,7 @@ class AccessibilityAndArea8Test {
     fun `unsupported event has text label and card`() = runComposeUiTest {
         val messages = listOf(RepresentativeFixtures.malformedContentMessage)
         val prefs = tempPrefs("a7-unsup")
-        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher, LiveSessionTracker())
         setContent { ConversationRoot(viewModel = vm) }
 
         onNodeWithTag("unsupported_event_card").assertExists()
@@ -372,7 +373,7 @@ class AccessibilityAndArea8Test {
     @Test
     fun `footer renders with session metadata`() = runComposeUiTest {
         val prefs = tempPrefs("a8-footer")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 

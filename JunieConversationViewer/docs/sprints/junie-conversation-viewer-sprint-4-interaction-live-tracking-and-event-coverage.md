@@ -320,6 +320,43 @@ fun highlightSearchMatches(
 - **Files:** `ConversationColors.kt`, `SearchHighlight.kt` (new), `MessageItems.kt`, `MarkdownContent.kt`, `CodeBlock.kt`, `DiffBlock.kt`, `TerminalOutputBlock.kt`, `StructuredOutputBlock.kt`, `ErrorWarningBlock.kt`, `ConversationViewModel.kt`.
 - **After:** *After this part, the HITL should see matching Search text highlighted in the Conversation with theme-aware colours, and the current match highlighted distinctly.*
 
+## Part 5A — Markdown Search Highlighting
+
+- **Objective:** Add Search highlighting inside Markdown-rendered content, including headings, paragraphs, list items, and fenced code blocks. Supersedes the earlier decision to defer Markdown highlighting.
+- **Files:** `MarkdownContent.kt`, `MessageItems.kt`.
+- **After:** *After this part, the HITL should see Search matches highlighted inside Markdown-rendered Messages, with current-match styling distinct from regular-match styling.*
+
+### Problem
+
+Search highlights currently do not appear inside Markdown-rendered Messages, so matching text can be hard to locate even when Search filters/navigates to the correct Message.
+
+### Functional Requirements
+
+- **FR-MD1:** Search Query matches are highlighted inside Markdown headings.
+- **FR-MD2:** Search Query matches are highlighted inside Markdown paragraphs.
+- **FR-MD3:** Search Query matches are highlighted inside Markdown list items.
+- **FR-MD4:** Search Query matches are highlighted inside Markdown fenced code blocks where practical.
+- **FR-MD5:** Markdown inline formatting remains intact where practical when highlighting is applied.
+- **FR-MD6:** Current-match styling is distinct from regular-match styling inside Markdown blocks.
+- **FR-MD7:** Search remains case-insensitive and treats the Search Query as plain text, not regex.
+
+### Non-Functional Requirements
+
+- Highlighting must preserve readability in light and dark themes.
+- Highlighting must not break Markdown parsing/rendering.
+- Highlighting must not remove text selection/copy behavior.
+- Highlighting must not replace the current lightweight Markdown renderer.
+- Tests must cover parser/rendering behavior and UI integration.
+
+### Acceptance Criteria
+
+- Search matches are visible in Markdown headings, paragraphs, list items, and fenced code blocks.
+- Current matching Message uses current-match highlight colours.
+- Other matching Markdown Messages use regular Search highlight colours.
+- Existing inline Markdown styling still works where practical.
+- Automated tests cover Markdown Search highlighting.
+- `./gradlew :shared:jvmTest` passes.
+
 ## Part 6 — Live Session Tracking
 
 - **Objective:** Implement file watching with polling fallback, incremental parsing, ViewModel state updates, scroll preservation, partial write handling.

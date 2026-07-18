@@ -10,17 +10,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
  * Renders a Thought message de-emphasised and collapsible.
- * Collapsed by default for progressive disclosure — thoughts are internal
- * reasoning and less important than primary Junie response content.
+ * Expanded by default; supports forced expansion for Search auto-expand.
  */
 @Composable
 fun ThoughtBlock(
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false,
+    forceExpanded: Boolean = false
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -30,6 +33,8 @@ fun ThoughtBlock(
         backgroundColor = colors.thoughtBackground,
         borderColor = colors.thoughtBorder,
         headerTestTag = "thought_header",
+        bodyTestTag = "thought_block_body",
+        forceExpanded = forceExpanded,
         headerTrailing = {
             Spacer(modifier = Modifier.width(spacing.md))
             Text(
@@ -41,16 +46,22 @@ fun ThoughtBlock(
             )
         },
         body = {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontStyle = FontStyle.Italic,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.lg, vertical = spacing.md)
-                    .testTag("thought_body")
-            )
+            SelectionContainer(modifier = Modifier.testTag("selectable_thought_content")) {
+                Text(
+                    text = themedHighlightSearchMatches(
+                        text = text,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontStyle = FontStyle.Italic,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.lg, vertical = spacing.md)
+                        .testTag("thought_body")
+                )
+            }
         },
         modifier = modifier
     )

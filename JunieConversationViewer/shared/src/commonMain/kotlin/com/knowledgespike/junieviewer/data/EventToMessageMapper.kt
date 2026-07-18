@@ -1,5 +1,6 @@
 package com.knowledgespike.junieviewer.data
 
+import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -13,6 +14,8 @@ import kotlinx.serialization.json.jsonPrimitive
  * Extracted from SessionRepository to separate concerns and enable independent testing.
  */
 object EventToMessageMapper {
+
+    private val logger = Logger.withTag("EventToMessageMapper")
 
     /** Maps a list of parsed events to UI messages, filtering out metadata-only events. */
     fun mapEventsToMessages(events: List<JunieEvent>): List<Message> =
@@ -93,14 +96,40 @@ object EventToMessageMapper {
             }
             is CustomAgentBlockUpdatedEvent -> buildAgentMessage(
                 index, ts, "subagent", Sender.Junie,
-                MessageContent.Text("🤖 Subagent: ${agentEvent.name ?: "unknown"} [${agentEvent.status ?: "unknown"}]"),
+                MessageContent.Text("${agentEvent.name ?: "Unnamed sub-agent"} [${agentEvent.status ?: "unknown"}]"),
                 MessageKind.SubAgent
             )
+            is SubagentSpawnedEvent -> {
+                val label = buildString {
+                    append("Sub-agent spawned: ${agentEvent.name ?: "unnamed"}")
+                    if (!agentEvent.task.isNullOrBlank()) {
+                        val preview = if (agentEvent.task.length > 200) agentEvent.task.take(200) + "…" else agentEvent.task
+                        append("\nTask: $preview")
+                    }
+                }
+                buildAgentMessage(index, ts, "subagent-spawned", Sender.Junie, MessageContent.Text(label), MessageKind.SubAgent)
+            }
             is AgentFailureEvent -> buildAgentMessage(
                 index, ts, "failure", Sender.Junie,
                 MessageContent.Text(agentEvent.message ?: "Agent failure"),
                 MessageKind.Error
             )
+            is AgentTaskFailedEvent -> {
+                val text = buildString {
+                    append("Task Failed")
+                    if (!agentEvent.message.isNullOrBlank()) append(": ${agentEvent.message}")
+                    if (!agentEvent.errorCode.isNullOrBlank()) append(" [${agentEvent.errorCode}]")
+                    if (!agentEvent.taskId.isNullOrBlank()) append("\nTask: ${agentEvent.taskId}")
+                    if (!agentEvent.stepId.isNullOrBlank()) append("\nStep: ${agentEvent.stepId}")
+                    if (agentEvent.details != null) append("\nDetails: ${agentEvent.details}")
+                    if (agentEvent.message.isNullOrBlank() && agentEvent.errorCode.isNullOrBlank() &&
+                        agentEvent.taskId.isNullOrBlank() && agentEvent.details == null
+                    ) {
+                        append("\nJunie task failed with no additional details.")
+                    }
+                }
+                buildAgentMessage(index, ts, "task-failed", Sender.Junie, MessageContent.Text(text), MessageKind.Error)
+            }
             is AskRequestUpdatedEvent -> {
                 val questionText = buildString {
                     if (!agentEvent.title.isNullOrBlank()) append("${agentEvent.title}\n")
@@ -109,7 +138,8 @@ object EventToMessageMapper {
                         try {
                             val q = askObj.jsonObject["question"]?.jsonPrimitive?.content
                             if (!q.isNullOrBlank()) append(q)
-                        } catch (_: Exception) {
+                        } catch (e: Exception) {
+                            logger.w(e) { "Failed to parse askRequest JSON" }
                             append(askObj.toString())
                         }
                     }
@@ -130,7 +160,8 @@ object EventToMessageMapper {
                                 val id = opt.jsonObject["id"]?.jsonPrimitive?.content
                                 append("• ${desc ?: id ?: "option"}\n")
                             }
-                        } catch (_: Exception) {
+                        } catch (e: Exception) {
+                            logger.w(e) { "Failed to parse choiceRequest JSON" }
                             append(choiceObj.toString())
                         }
                     }
@@ -145,8 +176,26 @@ object EventToMessageMapper {
                 MessageContent.Text("Unsupported event: ${agentEvent.kind}"),
                 MessageKind.Unsupported
             )
-            // Metadata-only agent events — parsed correctly but not rendered
-            else -> null
+            // Metadata-only agent events — parsed correctly but not rendered.
+            // Listed explicitly so the compiler enforces exhaustiveness when new subclasses are added.
+            is AgentCurrentStatusUpdatedEvent -> null
+            is AgentTaskNameUpdatedEvent -> null
+            is AgentPlanUpdatedEvent -> null
+            is AvailablePullRequestsEvent -> null
+            is LlmResponseMetadataEvent -> null
+            is CurrentDirectoryUpdatedEvent -> null
+            is EnvironmentVariablesUpdatedEvent -> null
+            is ViewFilesBlockUpdatedEvent -> null
+            is ContextWindowReportEvent -> null
+            is FileChangesBlockUpdatedEvent -> null
+            is TipSuggestionCreatedEvent -> null
+            is ShowPlanProgressEvent -> null
+            is NextPromptSuggestionEvent -> null
+            is AskAsyncRequestUpdatedEvent -> null
+            is AuthorizationAvailabilityEvent -> null
+            is AgentStartedEvent -> null
+            is SuggestPlanEvent -> null
+            is AgentStateUpdatedEvent -> null
         }
     }
 

@@ -2,6 +2,7 @@ package com.knowledgespike.junieviewer.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
@@ -36,7 +37,7 @@ class ConversationScreenTest {
         )
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
 
         setContent {
@@ -71,7 +72,7 @@ class ConversationScreenTest {
         )
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
 
         setContent {
@@ -99,7 +100,7 @@ class ConversationScreenTest {
         )
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
 
         setContent {
@@ -121,7 +122,7 @@ class ConversationScreenTest {
         )
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
 
         setContent {
@@ -145,7 +146,7 @@ class ConversationScreenTest {
         )
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
 
         setContent {
@@ -168,7 +169,7 @@ class ConversationScreenTest {
         )
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
 
         setContent {
@@ -189,7 +190,7 @@ class ConversationScreenTest {
         )
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
 
         setContent {

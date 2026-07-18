@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
@@ -40,7 +41,7 @@ class RichContentRenderingTest {
             override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
         }
 
-        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher) to tempPrefsPath
+        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker()) to tempPrefsPath
     }
 
     @Test
@@ -83,16 +84,15 @@ class RichContentRenderingTest {
     }
 
     @Test
-    fun `diff block renders with added and removed line styling`() = runComposeUiTest {
+    fun `diff block renders expanded by default showing content`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieDiffMessage
         ))
         setContent { ConversationRoot(viewModel = viewModel) }
 
-        // Diff content should be visible — verify by text content
-        onNodeWithText("Diff", substring = true).assertExists()
-        // Multiple lines contain TokenPair
+        onNodeWithTag("patch_block_header").assertExists()
+        onNodeWithTag("patch_inline_view").assertExists()
         val tokenPairNodes = onAllNodesWithText("TokenPair", substring = true).fetchSemanticsNodes()
         assert(tokenPairNodes.isNotEmpty()) { "Expected at least one node with TokenPair" }
         FileSystem.SYSTEM.delete(path)
@@ -112,7 +112,7 @@ class RichContentRenderingTest {
     }
 
     @Test
-    fun `tool call renders collapsed by default with expandable header`() = runComposeUiTest {
+    fun `tool call renders expanded by default with collapsible header`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieToolCallMessage
@@ -121,19 +121,18 @@ class RichContentRenderingTest {
 
         onNodeWithTag("tool_call_block").assertExists()
         onNodeWithTag("tool_call_header").assertExists()
-        // Body should not be visible when collapsed
-        onNodeWithTag("tool_call_body").assertDoesNotExist()
+        onNodeWithTag("tool_call_body").assertExists()
 
-        // Click to expand
+        // Click to collapse
         onNodeWithTag("tool_call_header").performClick()
         waitForIdle()
-        onNodeWithTag("tool_call_body").assertExists()
+        onNodeWithTag("tool_call_body").assertDoesNotExist()
 
         FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `thought renders collapsed and de-emphasised`() = runComposeUiTest {
+    fun `thought renders expanded by default and can be collapsed`() = runComposeUiTest {
         val (viewModel, path) = createViewModel(listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieThoughtMessage
@@ -142,13 +141,12 @@ class RichContentRenderingTest {
 
         onNodeWithTag("thought_block").assertExists()
         onNodeWithTag("thought_header").assertExists()
-        // Body should not be visible when collapsed
-        onNodeWithTag("thought_body").assertDoesNotExist()
+        onNodeWithTag("thought_body").assertExists()
 
-        // Click to expand
+        // Click to collapse
         onNodeWithTag("thought_header").performClick()
         waitForIdle()
-        onNodeWithTag("thought_body").assertExists()
+        onNodeWithTag("thought_body").assertDoesNotExist()
 
         FileSystem.SYSTEM.delete(path)
     }

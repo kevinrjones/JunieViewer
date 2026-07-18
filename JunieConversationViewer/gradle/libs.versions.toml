@@ -5,6 +5,7 @@ junit = "4.13.2"
 kotlin = "2.4.0"
 kotlinx-coroutines = "1.11.0"
 material3 = "1.11.0-alpha07"
+material3-iconsextended = "1.7.8"
 kotlinx-serialization = "1.8.0"
 arrow = "2.0.1"
 strikt = "0.34.0"
@@ -36,6 +37,7 @@ strikt-core = { module = "io.strikt:strikt-core", version.ref = "strikt" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+compose-material3-iconsExtended = { module = "androidx.compose.material:material-icons-extended", version.ref = "material3-iconsextended" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "composeMultiplatform" }
 compose-ui-test-junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "composeMultiplatform" }

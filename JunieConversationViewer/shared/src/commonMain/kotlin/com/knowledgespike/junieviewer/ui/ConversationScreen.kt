@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
-import com.knowledgespike.junieviewer.domain.lazyColumnIndexForMessage
 import com.knowledgespike.junieviewer.ui.components.*
 
 /**
@@ -381,11 +380,27 @@ private fun BoxScope.ConversationList(state: ConversationState) {
     val turns = groupMessagesIntoTurns(state.filteredMessages)
     val listState = rememberLazyListState()
 
+    // Scroll to current search match
     LaunchedEffect(state.currentMatchIndex) {
         val matchIdx = state.currentMatchIndex
         if (matchIdx >= 0 && matchIdx < state.filteredMessages.size) {
             val lazyItemIndex = lazyColumnIndexForMessage(turns, matchIdx)
             listState.animateScrollToItem(lazyItemIndex)
+        }
+    }
+
+    // Auto-scroll to bottom when new messages arrive and user is near the bottom
+    val messageCount = state.filteredMessages.size
+    LaunchedEffect(messageCount) {
+        if (messageCount > 0 && state.searchQuery.isBlank()) {
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = layoutInfo.totalItemsCount
+            // "Near bottom" = last visible item is within 3 items of the end
+            val nearBottom = totalItems == 0 || lastVisibleIndex >= totalItems - 3
+            if (nearBottom) {
+                listState.animateScrollToItem(maxOf(0, layoutInfo.totalItemsCount - 1))
+            }
         }
     }
 
@@ -400,7 +415,9 @@ private fun BoxScope.ConversationList(state: ConversationState) {
         turns.forEach { turn ->
             if (turn.sender == Sender.Human) {
                 items(items = turn.messages, key = { it.id }) { message ->
-                    HumanMessageItem(message = message)
+                    val msgIndex = state.filteredMessages.indexOf(message)
+                    val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
+                    HumanMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
                 }
             } else {
                 item(key = "turn-header-${turn.messages.first().id}") {
@@ -408,7 +425,9 @@ private fun BoxScope.ConversationList(state: ConversationState) {
                     TurnHeader()
                 }
                 items(items = turn.messages, key = { it.id }) { message ->
-                    JunieMessageItem(message = message)
+                    val msgIndex = state.filteredMessages.indexOf(message)
+                    val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
+                    JunieMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
                 }
             }
         }

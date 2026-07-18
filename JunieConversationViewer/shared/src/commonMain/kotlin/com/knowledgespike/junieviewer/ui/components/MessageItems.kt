@@ -15,6 +15,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
@@ -48,7 +56,7 @@ private val ACCENT_RAIL_WIDTH = 4.dp
  * Compact, right-inset Human message card with accent rail.
  */
 @Composable
-fun HumanMessageItem(message: Message) {
+fun HumanMessageItem(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
@@ -59,7 +67,9 @@ fun HumanMessageItem(message: Message) {
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             accentColor = JunieViewerTheme.conversationColors.humanAccent,
             widthFraction = HUMAN_WIDTH_FRACTION,
-            testTagSuffix = "human"
+            testTagSuffix = "human",
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
     }
 }
@@ -68,7 +78,7 @@ fun HumanMessageItem(message: Message) {
  * Full-width, left-aligned Junie message card optimised for long-form reading.
  */
 @Composable
-fun JunieMessageItem(message: Message) {
+fun JunieMessageItem(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
@@ -79,7 +89,9 @@ fun JunieMessageItem(message: Message) {
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             accentColor = JunieViewerTheme.conversationColors.junieAccent,
             widthFraction = JUNIE_WIDTH_FRACTION,
-            testTagSuffix = "junie"
+            testTagSuffix = "junie",
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch
         )
     }
 }
@@ -95,9 +107,17 @@ private fun MessageCard(
     containerColor: Color,
     accentColor: Color,
     widthFraction: Float,
-    testTagSuffix: String
+    testTagSuffix: String,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
 ) {
     val spacing = JunieViewerTheme.spacing
+    val isHuman = message.sender == Sender.Human
+    val expansionState = rememberMessageExpansionState(
+        isCurrentMatch = isCurrentMatch,
+        isHuman = isHuman,
+        searchQuery = searchQuery
+    )
 
     val cardModifier = Modifier
         .fillMaxWidth(widthFraction)
@@ -120,23 +140,57 @@ private fun MessageCard(
             )
             Column(modifier = Modifier.padding(spacing.lg)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isHuman) Modifier
+                                .pointerInput(Unit) {
+                                    detectTapGestures {
+                                        expansionState.toggle()
+                                    }
+                                }
+                                .testTag("human_block_header")
+                            else Modifier
+                        ),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (isHuman) {
+                        Text(
+                            text = if (expansionState.isVisible) "▼" else "▶",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(spacing.sm))
+                    }
                     Text(
                         text = senderLabel,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("sender_marker")
                     )
+                    if (message.kind == MessageKind.SubAgent) {
+                        SubAgentBadge()
+                    }
                     MessageKindMarker(
                         kind = message.kind,
                         modifier = Modifier.testTag("message_kind_marker")
                     )
                 }
-                Spacer(modifier = Modifier.height(spacing.md))
-                MessageBody(message = message)
+                if (isHuman) {
+                    AnimatedVisibility(
+                        visible = expansionState.isVisible,
+                        modifier = Modifier.testTag("human_block_body")
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(spacing.md))
+                            MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(spacing.md))
+                    MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+                }
             }
         }
     }
@@ -199,6 +253,32 @@ private fun kindIndicatorColor(kind: MessageKind): Color {
 }
 
 // ---------------------------------------------------------------------------
+// Sub-Agent badge — small textual label for sub-agent messages
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a small "Sub-Agent" badge/label for sub-agent messages.
+ * Uses text and a border to be visible without relying on colour alone.
+ */
+@Composable
+private fun SubAgentBadge(modifier: Modifier = Modifier) {
+    val spacing = JunieViewerTheme.spacing
+    Surface(
+        modifier = modifier.testTag("sub_agent_badge"),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)
+    ) {
+        Text(
+            text = "Sub-Agent",
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = spacing.sm, vertical = spacing.xs)
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Visual header marking the start of a Junie Turn
 // ---------------------------------------------------------------------------
 
@@ -240,30 +320,100 @@ fun TurnHeader() {
  * Each kind is handled in a single flat dispatch — no nested when or post-when escape hatches.
  */
 @Composable
-fun MessageBody(message: Message) {
+fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
     when (message.kind) {
-        MessageKind.Thought -> ThoughtBlock(
-            text = (message.content as? MessageContent.Text)?.text ?: "",
-            modifier = Modifier.testTag("thought_block")
-        )
-        MessageKind.Error, MessageKind.Warning -> ErrorWarningBlock(
-            text = when (val c = message.content) {
+        MessageKind.Thought -> {
+            val thoughtText = (message.content as? MessageContent.Text)?.text ?: ""
+            ThoughtBlock(
+                text = thoughtText,
+                modifier = Modifier.testTag("thought_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(thoughtText, searchQuery)
+            )
+        }
+        MessageKind.Error, MessageKind.Warning -> {
+            val errText = when (val c = message.content) {
                 is MessageContent.Text -> c.text
                 else -> "Unknown error"
-            },
-            isWarning = message.kind == MessageKind.Warning,
-            modifier = Modifier.testTag("error_warning_block")
-        )
-        MessageKind.Tool, MessageKind.Mcp -> ToolCallBlock(
-            content = when (val c = message.content) {
+            }
+            ErrorWarningBlock(
+                text = errText,
+                isWarning = message.kind == MessageKind.Warning,
+                modifier = Modifier.testTag("error_warning_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(errText, searchQuery)
+            )
+        }
+        MessageKind.Tool, MessageKind.Mcp -> {
+            val toolText = when (val c = message.content) {
                 is MessageContent.Code -> c.code
                 is MessageContent.Text -> c.text
                 else -> ""
-            },
-            modifier = Modifier.testTag("tool_call_block")
-        )
+            }
+            ToolCallBlock(
+                content = toolText,
+                modifier = Modifier.testTag("tool_call_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(toolText, searchQuery)
+            )
+        }
+        MessageKind.Markdown -> {
+            val mdText = (message.content as? MessageContent.Text)?.text ?: ""
+            val colors = JunieViewerTheme.conversationColors
+            CollapsibleBlock(
+                label = "Markdown",
+                backgroundColor = colors.codeBackground,
+                borderColor = colors.codeBorder,
+                headerTestTag = "markdown_block_header",
+                bodyTestTag = "markdown_block_body",
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(mdText, searchQuery),
+                body = {
+                    SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                        MarkdownContent(
+                            markdown = mdText,
+                            modifier = Modifier.testTag("markdown_content"),
+                            searchQuery = searchQuery,
+                            isCurrentMatch = isCurrentMatch
+                        )
+                    }
+                },
+                modifier = Modifier.testTag("markdown_collapsible_block")
+            )
+        }
+        MessageKind.SubAgent -> {
+            val subAgentText = (message.content as? MessageContent.Text)?.text ?: ""
+            val colors = JunieViewerTheme.conversationColors
+            CollapsibleBlock(
+                label = "Sub-Agent",
+                backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                borderColor = MaterialTheme.colorScheme.tertiary,
+                headerTestTag = "sub_agent_block_header",
+                bodyTestTag = "sub_agent_block_body",
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(subAgentText, searchQuery),
+                body = {
+                    SelectionContainer(modifier = Modifier.testTag("selectable_sub_agent_content")) {
+                        Text(
+                            text = themedHighlightSearchMatches(
+                                text = subAgentText,
+                                query = searchQuery,
+                                isCurrentMatch = isCurrentMatch
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(JunieViewerTheme.spacing.lg)
+                                .testTag("sub_agent_body")
+                        )
+                    }
+                },
+                modifier = Modifier.testTag("sub_agent_collapsible_block")
+            )
+        }
         MessageKind.Unsupported -> UnsupportedEventCard(message)
-        else -> ContentRenderer(message.content, isMarkdownKind = message.kind == MessageKind.Markdown)
+        else -> ContentRenderer(message.content, isMarkdownKind = false, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
     }
 }
 
@@ -295,20 +445,36 @@ private fun UnsupportedEventCard(message: Message) {
  * Separated from MessageBody to keep the kind dispatch flat.
  */
 @Composable
-private fun ContentRenderer(content: MessageContent, isMarkdownKind: Boolean) {
+private fun ContentRenderer(
+    content: MessageContent,
+    isMarkdownKind: Boolean,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false
+) {
+    val colors = JunieViewerTheme.conversationColors
     when (content) {
         is MessageContent.Text -> {
             if (isMarkdownKind || looksLikeMarkdown(content.text)) {
-                MarkdownContent(
-                    markdown = content.text,
-                    modifier = Modifier.testTag("markdown_content")
-                )
+                SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                    MarkdownContent(
+                        markdown = content.text,
+                        modifier = Modifier.testTag("markdown_content"),
+                        searchQuery = searchQuery,
+                        isCurrentMatch = isCurrentMatch
+                    )
+                }
             } else {
-                Text(
-                    text = content.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.testTag("plain_text_content")
-                )
+                SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                    Text(
+                        text = themedHighlightSearchMatches(
+                        text = content.text,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch
+                    ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.testTag("plain_text_content")
+                    )
+                }
             }
         }
         is MessageContent.Code -> CodeBlockWithCopy(
@@ -318,19 +484,77 @@ private fun ContentRenderer(content: MessageContent, isMarkdownKind: Boolean) {
                 "bash", "sh" -> SyntaxLanguage.SHELL
                 else -> SyntaxLanguage.KOTLIN
             },
-            modifier = Modifier.testTag("code_block")
+            modifier = Modifier.testTag("code_block"),
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.code, searchQuery)
         )
         is MessageContent.Diff -> DiffBlock(
             diff = content.diff,
-            modifier = Modifier.testTag("diff_block")
+            modifier = Modifier.testTag("diff_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch,
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.diff, searchQuery)
         )
         is MessageContent.Terminal -> TerminalOutputBlock(
             output = content.output,
-            modifier = Modifier.testTag("terminal_block")
+            modifier = Modifier.testTag("terminal_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch,
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.output, searchQuery)
         )
         is MessageContent.Structured -> StructuredOutputBlock(
             data = content.data,
-            modifier = Modifier.testTag("structured_output_block")
+            modifier = Modifier.testTag("structured_output_block"),
+            searchQuery = searchQuery,
+            isCurrentMatch = isCurrentMatch,
+            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.data, searchQuery)
         )
     }
+}
+
+// ---------------------------------------------------------------------------
+// Expansion state helper — encapsulates auto-expand-on-search + manual collapse
+// ---------------------------------------------------------------------------
+
+/** Holds the expansion state for a collapsible message card. */
+class MessageExpansionState(
+    expanded: Boolean,
+    private val forceExpanded: Boolean
+) {
+    var expanded by mutableStateOf(expanded)
+        private set
+    var userDismissedForce by mutableStateOf(false)
+        internal set
+
+    /** Whether the content should be visually expanded. */
+    val isVisible: Boolean
+        get() = expanded || (forceExpanded && !userDismissedForce)
+
+    /** Toggles the expanded state, tracking user dismissal of force-expand. */
+    fun toggle() {
+        expanded = !expanded
+        if (!expanded && forceExpanded) {
+            userDismissedForce = true
+        }
+    }
+}
+
+/**
+ * Remembers a [MessageExpansionState] that auto-expands when the message is the
+ * current search match and resets the user-dismissed flag when force-expand ends.
+ */
+@Composable
+fun rememberMessageExpansionState(
+    isCurrentMatch: Boolean,
+    isHuman: Boolean,
+    searchQuery: String
+): MessageExpansionState {
+    val state = remember { MessageExpansionState(expanded = true, forceExpanded = false) }
+    val forceExpanded = isCurrentMatch && isHuman && searchQuery.isNotBlank()
+    val result = remember(forceExpanded) {
+        MessageExpansionState(expanded = state.expanded, forceExpanded = forceExpanded)
+    }
+    if (!forceExpanded) {
+        result.userDismissedForce = false
+    }
+    return result
 }
