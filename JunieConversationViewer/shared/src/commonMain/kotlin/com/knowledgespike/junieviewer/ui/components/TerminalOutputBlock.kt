@@ -59,15 +59,11 @@ fun TerminalOutputBlock(
                     output.lines().forEach { line ->
                         val isCommand = line.trimStart().startsWith("$")
                         Text(
-                            text = highlightSearchMatches(
-                                text = line,
-                                query = searchQuery,
-                                isCurrentMatch = isCurrentMatch,
-                                highlightBackground = colors.searchHighlightBackground,
-                                highlightText = colors.searchHighlightText,
-                                currentMatchBackground = colors.currentMatchBackground,
-                                currentMatchText = colors.currentMatchText
-                            ),
+                            text = themedHighlightSearchMatches(
+                        text = line,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch
+                    ),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontFamily = MonospaceFont
                             ),

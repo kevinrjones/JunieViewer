@@ -86,15 +86,11 @@ private fun InlineDiffView(
         diff.lines().forEach { line ->
             val (bgColor, textColor) = diffLineColors(line, colors)
             Text(
-                text = highlightSearchMatches(
-                    text = line,
-                    query = searchQuery,
-                    isCurrentMatch = isCurrentMatch,
-                    highlightBackground = colors.searchHighlightBackground,
-                    highlightText = colors.searchHighlightText,
-                    currentMatchBackground = colors.currentMatchBackground,
-                    currentMatchText = colors.currentMatchText
-                ),
+                text = themedHighlightSearchMatches(
+                        text = line,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch
+                    ),
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = MonospaceFont),
                 color = textColor,
                 modifier = Modifier

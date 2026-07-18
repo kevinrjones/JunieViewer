@@ -101,71 +101,89 @@ sealed interface MarkdownBlock {
     data class CodeFence(val code: String, val language: String) : MarkdownBlock
 }
 
-/** Parses Markdown text into a list of blocks. */
+/** Parses Markdown text into a list of blocks using line-based dispatch. */
 fun parseMarkdownBlocks(markdown: String): List<MarkdownBlock> {
-    val blocks = mutableListOf<MarkdownBlock>()
     val lines = markdown.lines()
-    var i = 0
+    return MarkdownBlockParser(lines).parse()
+}
 
-    while (i < lines.size) {
-        val line = lines[i]
-        when {
-            // Fenced code block
-            line.trimStart().startsWith("```") -> {
-                val lang = line.trimStart().removePrefix("```").trim()
-                val codeLines = mutableListOf<String>()
-                i++
-                while (i < lines.size && !lines[i].trimStart().startsWith("```")) {
-                    codeLines.add(lines[i])
-                    i++
-                }
-                blocks.add(MarkdownBlock.CodeFence(codeLines.joinToString("\n"), lang))
-                i++ // skip closing ```
-            }
-            // Heading
-            line.startsWith("#") -> {
-                val level = line.takeWhile { it == '#' }.length
-                val text = line.drop(level).trimStart()
-                blocks.add(MarkdownBlock.Heading(level.coerceIn(1, 6), text))
-                i++
-            }
-            // Unordered list
-            line.trimStart().let { it.startsWith("- ") || it.startsWith("* ") } -> {
-                val trimmed = line.trimStart()
-                val text = trimmed.drop(2)
-                blocks.add(MarkdownBlock.ListItem("•", text))
-                i++
-            }
-            // Ordered list
-            line.trimStart().matches(Regex("^\\d+\\.\\s.*")) -> {
-                val trimmed = line.trimStart()
-                val num = trimmed.takeWhile { it.isDigit() || it == '.' }
-                val text = trimmed.drop(num.length).trimStart()
-                blocks.add(MarkdownBlock.ListItem(num, text))
-                i++
-            }
-            // Blank line — skip
-            line.isBlank() -> {
-                i++
-            }
-            // Paragraph
-            else -> {
-                val paraLines = mutableListOf(line)
-                i++
-                while (i < lines.size && lines[i].isNotBlank() &&
-                    !lines[i].startsWith("#") &&
-                    !lines[i].trimStart().startsWith("```") &&
-                    !lines[i].trimStart().let { it.startsWith("- ") || it.startsWith("* ") } &&
-                    !lines[i].trimStart().matches(Regex("^\\d+\\.\\s.*"))
-                ) {
-                    paraLines.add(lines[i])
-                    i++
-                }
-                blocks.add(MarkdownBlock.Paragraph(paraLines.joinToString(" ")))
+/**
+ * Line-based Markdown block parser. Each block type is handled by a dedicated
+ * method, keeping the main parse loop small and extensible.
+ */
+private class MarkdownBlockParser(private val lines: List<String>) {
+    private var cursor = 0
+    private val blocks = mutableListOf<MarkdownBlock>()
+
+    fun parse(): List<MarkdownBlock> {
+        while (cursor < lines.size) {
+            val line = lines[cursor]
+            when {
+                line.trimStart().startsWith("```") -> parseCodeFence(line)
+                line.startsWith("#") -> parseHeading(line)
+                line.trimStart().let { it.startsWith("- ") || it.startsWith("* ") } -> parseUnorderedList(line)
+                line.trimStart().matches(ORDERED_LIST_REGEX) -> parseOrderedList(line)
+                line.isBlank() -> cursor++
+                else -> parseParagraph(line)
             }
         }
+        return blocks
     }
-    return blocks
+
+    private fun parseCodeFence(openingLine: String) {
+        val lang = openingLine.trimStart().removePrefix("```").trim()
+        val codeLines = mutableListOf<String>()
+        cursor++
+        while (cursor < lines.size && !lines[cursor].trimStart().startsWith("```")) {
+            codeLines.add(lines[cursor])
+            cursor++
+        }
+        blocks.add(MarkdownBlock.CodeFence(codeLines.joinToString("\n"), lang))
+        cursor++ // skip closing ```
+    }
+
+    private fun parseHeading(line: String) {
+        val level = line.takeWhile { it == '#' }.length
+        val text = line.drop(level).trimStart()
+        blocks.add(MarkdownBlock.Heading(level.coerceIn(1, 6), text))
+        cursor++
+    }
+
+    private fun parseUnorderedList(line: String) {
+        val text = line.trimStart().drop(2)
+        blocks.add(MarkdownBlock.ListItem("•", text))
+        cursor++
+    }
+
+    private fun parseOrderedList(line: String) {
+        val trimmed = line.trimStart()
+        val num = trimmed.takeWhile { it.isDigit() || it == '.' }
+        val text = trimmed.drop(num.length).trimStart()
+        blocks.add(MarkdownBlock.ListItem(num, text))
+        cursor++
+    }
+
+    private fun parseParagraph(firstLine: String) {
+        val paraLines = mutableListOf(firstLine)
+        cursor++
+        while (cursor < lines.size && isContinuationLine(lines[cursor])) {
+            paraLines.add(lines[cursor])
+            cursor++
+        }
+        blocks.add(MarkdownBlock.Paragraph(paraLines.joinToString(" ")))
+    }
+
+    /** Returns true when the line should be folded into the current paragraph. */
+    private fun isContinuationLine(line: String): Boolean =
+        line.isNotBlank() &&
+            !line.startsWith("#") &&
+            !line.trimStart().startsWith("```") &&
+            !line.trimStart().let { it.startsWith("- ") || it.startsWith("* ") } &&
+            !line.trimStart().matches(ORDERED_LIST_REGEX)
+
+    companion object {
+        private val ORDERED_LIST_REGEX = Regex("^\\d+\\.\\s.*")
+    }
 }
 
 /**

@@ -40,16 +40,11 @@ fun ErrorWarningBlock(
         forceExpanded = forceExpanded,
         body = {
             SelectionContainer(modifier = Modifier.testTag("selectable_error_warning_content")) {
-                val convColors = JunieViewerTheme.conversationColors
                 Text(
-                    text = highlightSearchMatches(
+                    text = themedHighlightSearchMatches(
                         text = text,
                         query = searchQuery,
-                        isCurrentMatch = isCurrentMatch,
-                        highlightBackground = convColors.searchHighlightBackground,
-                        highlightText = convColors.searchHighlightText,
-                        currentMatchBackground = convColors.currentMatchBackground,
-                        currentMatchText = convColors.currentMatchText
+                        isCurrentMatch = isCurrentMatch
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier

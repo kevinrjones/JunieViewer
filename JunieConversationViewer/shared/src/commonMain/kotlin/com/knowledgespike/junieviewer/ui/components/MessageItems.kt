@@ -113,14 +113,11 @@ private fun MessageCard(
 ) {
     val spacing = JunieViewerTheme.spacing
     val isHuman = message.sender == Sender.Human
-    var expanded by remember { mutableStateOf(true) }
-    // Track whether the user explicitly collapsed while forceExpanded was active.
-    var userDismissedForce by remember { mutableStateOf(false) }
-    val forceExpanded = isCurrentMatch && isHuman && searchQuery.isNotBlank()
-    if (!forceExpanded) {
-        userDismissedForce = false
-    }
-    val visibleExpanded = expanded || (forceExpanded && !userDismissedForce)
+    val expansionState = rememberMessageExpansionState(
+        isCurrentMatch = isCurrentMatch,
+        isHuman = isHuman,
+        searchQuery = searchQuery
+    )
 
     val cardModifier = Modifier
         .fillMaxWidth(widthFraction)
@@ -149,10 +146,7 @@ private fun MessageCard(
                             if (isHuman) Modifier
                                 .pointerInput(Unit) {
                                     detectTapGestures {
-                                        expanded = !expanded
-                                        if (!expanded && forceExpanded) {
-                                            userDismissedForce = true
-                                        }
+                                        expansionState.toggle()
                                     }
                                 }
                                 .testTag("human_block_header")
@@ -163,7 +157,7 @@ private fun MessageCard(
                 ) {
                     if (isHuman) {
                         Text(
-                            text = if (visibleExpanded) "▼" else "▶",
+                            text = if (expansionState.isVisible) "▼" else "▶",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -185,7 +179,7 @@ private fun MessageCard(
                 }
                 if (isHuman) {
                     AnimatedVisibility(
-                        visible = visibleExpanded,
+                        visible = expansionState.isVisible,
                         modifier = Modifier.testTag("human_block_body")
                     ) {
                         Column {
@@ -366,8 +360,60 @@ fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Bool
                 forceExpanded = isCurrentMatch && blockContainsSearchHit(toolText, searchQuery)
             )
         }
+        MessageKind.Markdown -> {
+            val mdText = (message.content as? MessageContent.Text)?.text ?: ""
+            val colors = JunieViewerTheme.conversationColors
+            CollapsibleBlock(
+                label = "Markdown",
+                backgroundColor = colors.codeBackground,
+                borderColor = colors.codeBorder,
+                headerTestTag = "markdown_block_header",
+                bodyTestTag = "markdown_block_body",
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(mdText, searchQuery),
+                body = {
+                    SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                        MarkdownContent(
+                            markdown = mdText,
+                            modifier = Modifier.testTag("markdown_content"),
+                            searchQuery = searchQuery,
+                            isCurrentMatch = isCurrentMatch
+                        )
+                    }
+                },
+                modifier = Modifier.testTag("markdown_collapsible_block")
+            )
+        }
+        MessageKind.SubAgent -> {
+            val subAgentText = (message.content as? MessageContent.Text)?.text ?: ""
+            val colors = JunieViewerTheme.conversationColors
+            CollapsibleBlock(
+                label = "Sub-Agent",
+                backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                borderColor = MaterialTheme.colorScheme.tertiary,
+                headerTestTag = "sub_agent_block_header",
+                bodyTestTag = "sub_agent_block_body",
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(subAgentText, searchQuery),
+                body = {
+                    SelectionContainer(modifier = Modifier.testTag("selectable_sub_agent_content")) {
+                        Text(
+                            text = themedHighlightSearchMatches(
+                                text = subAgentText,
+                                query = searchQuery,
+                                isCurrentMatch = isCurrentMatch
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(JunieViewerTheme.spacing.lg)
+                                .testTag("sub_agent_body")
+                        )
+                    }
+                },
+                modifier = Modifier.testTag("sub_agent_collapsible_block")
+            )
+        }
         MessageKind.Unsupported -> UnsupportedEventCard(message)
-        else -> ContentRenderer(message.content, isMarkdownKind = message.kind == MessageKind.Markdown, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+        else -> ContentRenderer(message.content, isMarkdownKind = false, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
     }
 }
 
@@ -420,15 +466,11 @@ private fun ContentRenderer(
             } else {
                 SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                     Text(
-                        text = highlightSearchMatches(
-                            text = content.text,
-                            query = searchQuery,
-                            isCurrentMatch = isCurrentMatch,
-                            highlightBackground = colors.searchHighlightBackground,
-                            highlightText = colors.searchHighlightText,
-                            currentMatchBackground = colors.currentMatchBackground,
-                            currentMatchText = colors.currentMatchText
-                        ),
+                        text = themedHighlightSearchMatches(
+                        text = content.text,
+                        query = searchQuery,
+                        isCurrentMatch = isCurrentMatch
+                    ),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.testTag("plain_text_content")
                     )
@@ -467,4 +509,52 @@ private fun ContentRenderer(
             forceExpanded = isCurrentMatch && blockContainsSearchHit(content.data, searchQuery)
         )
     }
+}
+
+// ---------------------------------------------------------------------------
+// Expansion state helper — encapsulates auto-expand-on-search + manual collapse
+// ---------------------------------------------------------------------------
+
+/** Holds the expansion state for a collapsible message card. */
+class MessageExpansionState(
+    expanded: Boolean,
+    private val forceExpanded: Boolean
+) {
+    var expanded by mutableStateOf(expanded)
+        private set
+    var userDismissedForce by mutableStateOf(false)
+        internal set
+
+    /** Whether the content should be visually expanded. */
+    val isVisible: Boolean
+        get() = expanded || (forceExpanded && !userDismissedForce)
+
+    /** Toggles the expanded state, tracking user dismissal of force-expand. */
+    fun toggle() {
+        expanded = !expanded
+        if (!expanded && forceExpanded) {
+            userDismissedForce = true
+        }
+    }
+}
+
+/**
+ * Remembers a [MessageExpansionState] that auto-expands when the message is the
+ * current search match and resets the user-dismissed flag when force-expand ends.
+ */
+@Composable
+fun rememberMessageExpansionState(
+    isCurrentMatch: Boolean,
+    isHuman: Boolean,
+    searchQuery: String
+): MessageExpansionState {
+    val state = remember { MessageExpansionState(expanded = true, forceExpanded = false) }
+    val forceExpanded = isCurrentMatch && isHuman && searchQuery.isNotBlank()
+    val result = remember(forceExpanded) {
+        MessageExpansionState(expanded = state.expanded, forceExpanded = forceExpanded)
+    }
+    if (!forceExpanded) {
+        result.userDismissedForce = false
+    }
+    return result
 }

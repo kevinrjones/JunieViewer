@@ -25,10 +25,10 @@ import kotlinx.coroutines.withContext
 import okio.FileSystem
 
 class ConversationViewModel(
-    private val repository: SessionRepository = SessionRepositoryImpl(),
-    private val preferencesRepository: PreferencesRepository = PreferencesRepository(),
+    private val repository: SessionRepository,
+    private val preferencesRepository: PreferencesRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val liveSessionTracker: LiveSessionTracker = LiveSessionTracker()
+    private val liveSessionTracker: LiveSessionTracker
 ) : ViewModel() {
 
     private val logger = Logger.withTag("ConversationViewModel")

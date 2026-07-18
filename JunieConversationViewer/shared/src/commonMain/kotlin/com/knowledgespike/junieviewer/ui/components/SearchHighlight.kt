@@ -1,9 +1,11 @@
 package com.knowledgespike.junieviewer.ui.components
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
  * Builds an [AnnotatedString] with search match highlighting applied to all
@@ -22,6 +24,28 @@ import androidx.compose.ui.text.buildAnnotatedString
 fun blockContainsSearchHit(text: String, query: String): Boolean {
     if (query.isBlank() || text.isEmpty()) return false
     return text.contains(query, ignoreCase = true)
+}
+
+/**
+ * Theme-aware overload that resolves highlight colours from [JunieViewerTheme.conversationColors].
+ * Use this in Composable contexts to avoid passing 4 colour parameters manually.
+ */
+@Composable
+fun themedHighlightSearchMatches(
+    text: String,
+    query: String,
+    isCurrentMatch: Boolean
+): AnnotatedString {
+    val colors = JunieViewerTheme.conversationColors
+    return highlightSearchMatches(
+        text = text,
+        query = query,
+        isCurrentMatch = isCurrentMatch,
+        highlightBackground = colors.searchHighlightBackground,
+        highlightText = colors.searchHighlightText,
+        currentMatchBackground = colors.currentMatchBackground,
+        currentMatchText = colors.currentMatchText
+    )
 }
 
 fun highlightSearchMatches(

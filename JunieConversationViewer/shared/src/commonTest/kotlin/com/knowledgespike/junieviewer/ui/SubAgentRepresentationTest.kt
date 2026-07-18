@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runComposeUiTest
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
@@ -40,7 +41,7 @@ class SubAgentRepresentationTest {
             override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
         }
 
-        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher) to tempPrefsPath
+        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker()) to tempPrefsPath
     }
 
     // -----------------------------------------------------------------------
@@ -56,7 +57,7 @@ class SubAgentRepresentationTest {
         setContent { ConversationRoot(viewModel = viewModel) }
 
         onNodeWithTag("sub_agent_badge").assertExists()
-        onNodeWithText("Sub-Agent").assertExists()
+        onNodeWithTag("sub_agent_block_header").assertExists()
         FileSystem.SYSTEM.delete(path)
     }
 

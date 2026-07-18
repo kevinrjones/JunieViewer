@@ -1,5 +1,6 @@
 package com.knowledgespike.junieviewer.data
 
+import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -13,6 +14,8 @@ import kotlinx.serialization.json.jsonPrimitive
  * Extracted from SessionRepository to separate concerns and enable independent testing.
  */
 object EventToMessageMapper {
+
+    private val logger = Logger.withTag("EventToMessageMapper")
 
     /** Maps a list of parsed events to UI messages, filtering out metadata-only events. */
     fun mapEventsToMessages(events: List<JunieEvent>): List<Message> =
@@ -135,7 +138,8 @@ object EventToMessageMapper {
                         try {
                             val q = askObj.jsonObject["question"]?.jsonPrimitive?.content
                             if (!q.isNullOrBlank()) append(q)
-                        } catch (_: Exception) {
+                        } catch (e: Exception) {
+                            logger.w(e) { "Failed to parse askRequest JSON" }
                             append(askObj.toString())
                         }
                     }
@@ -156,7 +160,8 @@ object EventToMessageMapper {
                                 val id = opt.jsonObject["id"]?.jsonPrimitive?.content
                                 append("• ${desc ?: id ?: "option"}\n")
                             }
-                        } catch (_: Exception) {
+                        } catch (e: Exception) {
+                            logger.w(e) { "Failed to parse choiceRequest JSON" }
                             append(choiceObj.toString())
                         }
                     }
@@ -171,8 +176,26 @@ object EventToMessageMapper {
                 MessageContent.Text("Unsupported event: ${agentEvent.kind}"),
                 MessageKind.Unsupported
             )
-            // Metadata-only agent events — parsed correctly but not rendered
-            else -> null
+            // Metadata-only agent events — parsed correctly but not rendered.
+            // Listed explicitly so the compiler enforces exhaustiveness when new subclasses are added.
+            is AgentCurrentStatusUpdatedEvent -> null
+            is AgentTaskNameUpdatedEvent -> null
+            is AgentPlanUpdatedEvent -> null
+            is AvailablePullRequestsEvent -> null
+            is LlmResponseMetadataEvent -> null
+            is CurrentDirectoryUpdatedEvent -> null
+            is EnvironmentVariablesUpdatedEvent -> null
+            is ViewFilesBlockUpdatedEvent -> null
+            is ContextWindowReportEvent -> null
+            is FileChangesBlockUpdatedEvent -> null
+            is TipSuggestionCreatedEvent -> null
+            is ShowPlanProgressEvent -> null
+            is NextPromptSuggestionEvent -> null
+            is AskAsyncRequestUpdatedEvent -> null
+            is AuthorizationAvailabilityEvent -> null
+            is AgentStartedEvent -> null
+            is SuggestPlanEvent -> null
+            is AgentStateUpdatedEvent -> null
         }
     }
 

@@ -55,14 +55,10 @@ fun ToolCallBlock(
         body = {
             SelectionContainer(modifier = Modifier.testTag("selectable_tool_call_content")) {
                 Text(
-                    text = highlightSearchMatches(
+                    text = themedHighlightSearchMatches(
                         text = content,
                         query = searchQuery,
-                        isCurrentMatch = isCurrentMatch,
-                        highlightBackground = colors.searchHighlightBackground,
-                        highlightText = colors.searchHighlightText,
-                        currentMatchBackground = colors.currentMatchBackground,
-                        currentMatchText = colors.currentMatchText
+                        isCurrentMatch = isCurrentMatch
                     ),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = MonospaceFont

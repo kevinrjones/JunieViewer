@@ -1,6 +1,7 @@
 package com.knowledgespike.junieviewer.ui
 
 import app.cash.turbine.test
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
@@ -64,7 +65,7 @@ class ConversationViewModelTest {
     fun `initial state is correctly loaded from preferences`() = runTest {
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "saved-session", junieHomePath = "/custom/path"))
         
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         
         viewModel.state.test {
             val state = awaitItem()
@@ -77,7 +78,7 @@ class ConversationViewModelTest {
 
     @Test
     fun `search query updates filtered messages`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         // Ensure a session is selected and messages are loaded
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
@@ -101,7 +102,7 @@ class ConversationViewModelTest {
 
     @Test
     fun `toggling session picker updates state and loads sessions`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         viewModel.state.test {
@@ -122,7 +123,7 @@ class ConversationViewModelTest {
 
     @Test
     fun `selecting session updates preference and loads messages`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         val newSession = SessionInfo("new-session", "/path/new-session", 456L)
@@ -136,7 +137,7 @@ class ConversationViewModelTest {
 
     @Test
     fun `toggling filters updates filtered messages`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
 
@@ -159,7 +160,7 @@ class ConversationViewModelTest {
 
     @Test
     fun `changing home path updates state and preferences`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         viewModel.onAction(ConversationAction.OnHomePathChange("/new/home"))
@@ -172,7 +173,7 @@ class ConversationViewModelTest {
     fun `selectedSession is populated on startup when preferences contain a saved session`() = runTest {
         fakePreferencesRepository.save(AppPreferences(lastSessionId = "startup-session"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         val state = viewModel.state.value
@@ -186,7 +187,7 @@ class ConversationViewModelTest {
 
     @Test
     fun `toggling settings updates state`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         viewModel.state.test {
@@ -202,7 +203,7 @@ class ConversationViewModelTest {
 
     @Test
     fun `changing theme mode updates state and persists preference`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         viewModel.onAction(ConversationAction.OnThemeModeChange(ThemeMode.Dark))
@@ -215,7 +216,7 @@ class ConversationViewModelTest {
     fun `theme mode is loaded from preferences on startup`() = runTest {
         fakePreferencesRepository.save(AppPreferences(themeMode = "Light"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         assertEquals(ThemeMode.Light, viewModel.state.value.themeMode)
@@ -225,7 +226,7 @@ class ConversationViewModelTest {
     fun `invalid theme mode in preferences defaults to System`() = runTest {
         fakePreferencesRepository.save(AppPreferences(themeMode = "InvalidValue"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher)
+        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
         advanceUntilIdle()
 
         assertEquals(ThemeMode.System, viewModel.state.value.themeMode)

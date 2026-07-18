@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
@@ -40,7 +41,7 @@ class RichContentRenderingTest {
             override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
         }
 
-        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher) to tempPrefsPath
+        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker()) to tempPrefsPath
     }
 
     @Test

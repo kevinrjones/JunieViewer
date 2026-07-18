@@ -25,7 +25,8 @@ data class AgentEventWrapper(
  */
 @Serializable(with = AgentEventSerializer::class)
 sealed interface AgentEvent {
-    val kind: String
+    /** Discriminator value — defaults to the simple class name, matching the JSONL `kind` field. */
+    val kind: String get() = this::class.simpleName ?: "unknown"
 }
 
 // -- Known agent events --
@@ -35,17 +36,13 @@ sealed interface AgentEvent {
 data class AgentThoughtBlockUpdatedEvent(
     val text: String? = null,
     val stepId: String? = null
-) : AgentEvent {
-    override val kind: String get() = "AgentThoughtBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** A patch (diff) created by Junie. */
 @Serializable
 data class AgentPatchCreatedEvent(
     val patch: String? = null
-) : AgentEvent {
-    override val kind: String get() = "AgentPatchCreatedEvent"
-}
+) : AgentEvent
 
 /** Final result block from Junie's response. */
 @Serializable
@@ -55,9 +52,7 @@ data class ResultBlockUpdatedEvent(
     val cancelled: Boolean? = null,
     val changes: JsonElement? = null,
     val errorCode: String? = null
-) : AgentEvent {
-    override val kind: String get() = "ResultBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Tool invocation block. */
 @Serializable
@@ -67,9 +62,7 @@ data class ToolBlockUpdatedEvent(
     val text: String? = null,
     val status: String? = null,
     val details: String? = null
-) : AgentEvent {
-    override val kind: String get() = "ToolBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Terminal command execution block. */
 @Serializable
@@ -78,39 +71,29 @@ data class TerminalBlockUpdatedEvent(
     val output: String? = null,
     val stepId: String? = null,
     val status: String? = null
-) : AgentEvent {
-    override val kind: String get() = "TerminalBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Agent status update (metadata-only). */
 @Serializable
-data object AgentCurrentStatusUpdatedEvent : AgentEvent {
-    override val kind: String get() = "AgentCurrentStatusUpdatedEvent"
-}
+data object AgentCurrentStatusUpdatedEvent : AgentEvent
 
 /** Agent task name update (metadata-only). */
 @Serializable
-data class AgentTaskNameUpdatedEvent(val name: String? = null) : AgentEvent {
-    override val kind: String get() = "AgentTaskNameUpdatedEvent"
-}
+data class AgentTaskNameUpdatedEvent(val name: String? = null) : AgentEvent
 
 /** Agent plan update (metadata-only). */
 @Serializable
 data class AgentPlanUpdatedEvent(
     val plan: String? = null,
     val items: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "AgentPlanUpdatedEvent"
-}
+) : AgentEvent
 
 /** Available pull requests metadata event. */
 @Serializable
 data class AvailablePullRequestsEvent(
     val pullRequests: JsonElement? = null,
     val agent: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "AvailablePullRequestsEvent"
-}
+) : AgentEvent
 
 /** LLM response metadata (token counts, model info). */
 @Serializable
@@ -119,25 +102,19 @@ data class LlmResponseMetadataEvent(
     val inputTokens: Int? = null,
     val outputTokens: Int? = null,
     val modelUsage: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "LlmResponseMetadataEvent"
-}
+) : AgentEvent
 
 /** Current working directory update (metadata-only). */
 @Serializable
 data class CurrentDirectoryUpdatedEvent(
     val directory: String? = null
-) : AgentEvent {
-    override val kind: String get() = "CurrentDirectoryUpdatedEvent"
-}
+) : AgentEvent
 
 /** Environment variables update (metadata-only). */
 @Serializable
 data class EnvironmentVariablesUpdatedEvent(
     val variables: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "EnvironmentVariablesUpdatedEvent"
-}
+) : AgentEvent
 
 /** View files block update — files Junie is examining. */
 @Serializable
@@ -145,9 +122,7 @@ data class ViewFilesBlockUpdatedEvent(
     val files: JsonElement? = null,
     val stepId: String? = null,
     val status: String? = null
-) : AgentEvent {
-    override val kind: String get() = "ViewFilesBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Context window usage report (metadata-only). */
 @Serializable
@@ -155,9 +130,7 @@ data class ContextWindowReportEvent(
     val usedTokens: Int? = null,
     val maxTokens: Int? = null,
     val percentage: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "ContextWindowReportEvent"
-}
+) : AgentEvent
 
 /** File changes block update — files Junie has modified. */
 @Serializable
@@ -165,9 +138,7 @@ data class FileChangesBlockUpdatedEvent(
     val changes: JsonElement? = null,
     val stepId: String? = null,
     val status: String? = null
-) : AgentEvent {
-    override val kind: String get() = "FileChangesBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Tip suggestion for the user (metadata-only). */
 @Serializable
@@ -175,26 +146,20 @@ data class TipSuggestionCreatedEvent(
     val tip: String? = null,
     val id: String? = null,
     val description: String? = null
-) : AgentEvent {
-    override val kind: String get() = "TipSuggestionCreatedEvent"
-}
+) : AgentEvent
 
 /** Plan progress indicator. */
 @Serializable
 data class ShowPlanProgressEvent(
     val progress: JsonElement? = null,
     val items: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "ShowPlanProgressEvent"
-}
+) : AgentEvent
 
 /** Next prompt suggestion for the user. */
 @Serializable
 data class NextPromptSuggestionEvent(
     val suggestion: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "NextPromptSuggestionEvent"
-}
+) : AgentEvent
 
 /** Async request update (e.g. HITL approval request). */
 @Serializable
@@ -205,9 +170,7 @@ data class AskAsyncRequestUpdatedEvent(
     val title: String? = null,
     val request: JsonElement? = null,
     val status: String? = null
-) : AgentEvent {
-    override val kind: String get() = "AskAsyncRequestUpdatedEvent"
-}
+) : AgentEvent
 
 /** Authorization availability status (metadata-only). */
 @Serializable
@@ -215,9 +178,7 @@ data class AuthorizationAvailabilityEvent(
     val available: Boolean? = null,
     val agent: JsonElement? = null,
     val authorized: Boolean? = null
-) : AgentEvent {
-    override val kind: String get() = "AuthorizationAvailabilityEvent"
-}
+) : AgentEvent
 
 /** Agent started indicator (metadata-only). */
 @Serializable
@@ -226,9 +187,7 @@ data class AgentStartedEvent(
     val agent: JsonElement? = null,
     val stepId: String? = null,
     val agentType: String? = null
-) : AgentEvent {
-    override val kind: String get() = "AgentStartedEvent"
-}
+) : AgentEvent
 
 /** Plan suggestion from the agent. */
 @Serializable
@@ -237,9 +196,7 @@ data class SuggestPlanEvent(
     val sections: JsonElement? = null,
     val deliveryPlan: JsonElement? = null,
     val readyForReview: Boolean? = null
-) : AgentEvent {
-    override val kind: String get() = "SuggestPlanEvent"
-}
+) : AgentEvent
 
 /** Test execution block — when Junie runs tests. */
 @Serializable
@@ -247,9 +204,7 @@ data class TestRunBlockUpdatedEvent(
     val stepId: String? = null,
     val status: String? = null,
     val name: String? = null
-) : AgentEvent {
-    override val kind: String get() = "TestRunBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** MCP (Model Context Protocol) tool invocation. */
 @Serializable
@@ -258,9 +213,7 @@ data class McpBlockUpdatedEvent(
     val toolName: String? = null,
     val status: String? = null,
     val details: String? = null
-) : AgentEvent {
-    override val kind: String get() = "McpBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Custom subagent invocation block. */
 @Serializable
@@ -268,26 +221,20 @@ data class CustomAgentBlockUpdatedEvent(
     val stepId: String? = null,
     val name: String? = null,
     val status: String? = null
-) : AgentEvent {
-    override val kind: String get() = "CustomAgentBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Agent-level failure (LLM connection issues, errors). */
 @Serializable
 data class AgentFailureEvent(
     val message: String? = null,
     val errorCode: String? = null
-) : AgentEvent {
-    override val kind: String get() = "AgentFailureEvent"
-}
+) : AgentEvent
 
 /** Serialized snapshot of the agent's internal state (metadata-only). */
 @Serializable
 data class AgentStateUpdatedEvent(
     val blob: String? = null
-) : AgentEvent {
-    override val kind: String get() = "AgentStateUpdatedEvent"
-}
+) : AgentEvent
 
 /** Synchronous question from the agent to the user. */
 @Serializable
@@ -296,9 +243,7 @@ data class AskRequestUpdatedEvent(
     val title: String? = null,
     val askRequest: JsonElement? = null,
     val status: String? = null
-) : AgentEvent {
-    override val kind: String get() = "AskRequestUpdatedEvent"
-}
+) : AgentEvent
 
 /** Presents the user with a set of choices. */
 @Serializable
@@ -307,18 +252,14 @@ data class ChoiceRequestUpdatedEvent(
     val title: String? = null,
     val choiceRequest: JsonElement? = null,
     val status: String? = null
-) : AgentEvent {
-    override val kind: String get() = "ChoiceRequestUpdatedEvent"
-}
+) : AgentEvent
 
 /** Standalone markdown text block from the agent. */
 @Serializable
 data class MarkdownBlockUpdatedEvent(
     val stepId: String? = null,
     val text: String? = null
-) : AgentEvent {
-    override val kind: String get() = "MarkdownBlockUpdatedEvent"
-}
+) : AgentEvent
 
 /** Subagent spawn event — records when Junie delegates work to a sub-agent. */
 @Serializable
@@ -327,9 +268,7 @@ data class SubagentSpawnedEvent(
     val task: String? = null,
     val stepId: String? = null,
     val agent: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "SubagentSpawnedEvent"
-}
+) : AgentEvent
 
 /** Task-level failure event — tolerant nullable model since no real payload examples exist. */
 @Serializable
@@ -339,9 +278,7 @@ data class AgentTaskFailedEvent(
     val taskId: String? = null,
     val stepId: String? = null,
     val details: JsonElement? = null
-) : AgentEvent {
-    override val kind: String get() = "AgentTaskFailedEvent"
-}
+) : AgentEvent
 
 /**
  * Fallback for any nested agent event kind not yet modelled.

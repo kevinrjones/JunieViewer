@@ -48,14 +48,10 @@ fun ThoughtBlock(
         body = {
             SelectionContainer(modifier = Modifier.testTag("selectable_thought_content")) {
                 Text(
-                    text = highlightSearchMatches(
+                    text = themedHighlightSearchMatches(
                         text = text,
                         query = searchQuery,
-                        isCurrentMatch = isCurrentMatch,
-                        highlightBackground = colors.searchHighlightBackground,
-                        highlightText = colors.searchHighlightText,
-                        currentMatchBackground = colors.currentMatchBackground,
-                        currentMatchText = colors.currentMatchText
+                        isCurrentMatch = isCurrentMatch
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

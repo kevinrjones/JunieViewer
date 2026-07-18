@@ -16,5 +16,6 @@ import kotlinx.serialization.Serializable
  */
 @Serializable(with = JunieEventSerializer::class)
 sealed interface JunieEvent {
-    val kind: String
+    /** Discriminator value — defaults to the simple class name, matching the JSONL `kind` field. */
+    val kind: String get() = this::class.simpleName ?: "unknown"
 }

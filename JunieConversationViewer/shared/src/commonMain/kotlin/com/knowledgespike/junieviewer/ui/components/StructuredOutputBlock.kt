@@ -46,14 +46,10 @@ fun StructuredOutputBlock(
         body = {
             SelectionContainer(modifier = Modifier.testTag("selectable_structured_content")) {
                 Text(
-                    text = highlightSearchMatches(
+                    text = themedHighlightSearchMatches(
                         text = data,
                         query = searchQuery,
-                        isCurrentMatch = isCurrentMatch,
-                        highlightBackground = colors.searchHighlightBackground,
-                        highlightText = colors.searchHighlightText,
-                        currentMatchBackground = colors.currentMatchBackground,
-                        currentMatchText = colors.currentMatchText
+                        isCurrentMatch = isCurrentMatch
                     ),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = MonospaceFont

@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
-import com.knowledgespike.junieviewer.domain.lazyColumnIndexForMessage
 import com.knowledgespike.junieviewer.ui.components.*
 
 /**

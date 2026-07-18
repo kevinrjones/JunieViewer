@@ -113,3 +113,33 @@
 - **HITL Tasks**: 7.8 (AgentTaskFailedEvent review) and 9.7 (final approval) left pending — require HITL verification.
 - **Cyclomatic Complexity**: No configured tool found; lightweight manual review performed — no high-complexity functions identified in Sprint 4 changes.
 - **Deferred**: Syntax highlighting theme wiring, side-by-side diff view, Windows/Linux platform verification.
+
+## 16:57
+### SubagentSpawnedEvent Support
+- **New Event Type**: Added `SubagentSpawnedEvent` data class to `AgentEvents.kt` with tolerant nullable fields (`name`, `task`, `stepId`, `agent: JsonElement?`). Registered in `agentEventRegistry` in `EventSerializers.kt` for polymorphic deserialization.
+- **Mapper**: Maps to `MessageKind.SubAgent` / `Sender.Junie` with "Sub-agent spawned: {name}" label and 200-character task preview truncation.
+- **Testing**: 3 parser tests (valid, minimal, extra fields) and 4 mapper tests (kind/sender, content, null fallback, task truncation) added. All passing.
+- **Commit**: `303c3be` — Add `SubagentSpawnedEvent` support with serializer, mapper, and tests
+
+# 2026-07-18
+
+## 06:57
+### Thermo-Nuclear Code Quality Review and Fixes
+- **Code Quality Review**: Full codebase review (48 production files, 4,685 lines) identified 3 blockers, 4 high, 7 medium, and 3 low findings. Verdict: NOT APPROVED due to systemic boilerplate and leaky layer boundaries.
+- **8 Findings Fixed**:
+  - **B1**: Removed 46 duplicated `override val kind` properties from event classes; added default `this::class.simpleName` implementation to `AgentEvent` and `JunieEvent` sealed interfaces.
+  - **B3**: Extracted `themedHighlightSearchMatches()` composable in `SearchHighlight.kt` that resolves colours from theme internally, replacing verbose 4-colour-param calls across 7 component files.
+  - **H2**: Refactored `parseMarkdownBlocks` god-function into `MarkdownBlockParser` class with dedicated methods per block type.
+  - **H3**: Removed default concrete implementations from `ConversationViewModel` constructor; wired dependencies explicitly in `App.kt` and all test files.
+  - **M1**: Moved `lazyColumnIndexForMessage` to UI layer (`ConversationListMapper.kt`).
+  - **M4**: Replaced `else -> null` catch-all with exhaustive 18-branch listing in agent event mapper.
+  - **M6**: Extracted `MessageExpansionState` helper for expansion state logic.
+  - **L1**: Added logging for swallowed exceptions in `EventToMessageMapper`.
+- **Deferred Findings**: B2 (SerializersModule migration), H1 (JsonElement in domain), H4 (unstable IDs), M2/M3/M5/M7, L2/L3 — higher risk for lower incremental value.
+
+### Collapsible Markdown and Sub-Agent Blocks
+- **Markdown Blocks**: Added explicit `MessageKind.Markdown` case in `MessageBody` wrapping `MarkdownContent` inside a `CollapsibleBlock` with label "Markdown", search highlighting support, and stable test tags.
+- **Sub-Agent Blocks**: Added explicit `MessageKind.SubAgent` case in `MessageBody` wrapping sub-agent text inside a `CollapsibleBlock` with label "Sub-Agent", themed tertiary colours, and search highlighting.
+- **Test Fix**: Updated `SubAgentRepresentationTest` to use `onNodeWithTag("sub_agent_block_header")` instead of `onNodeWithText("Sub-Agent")` to avoid ambiguity with the new CollapsibleBlock header.
+- **All 314 tests passing**: `./gradlew :shared:jvmTest` — BUILD SUCCESSFUL.
+- **Commit**: `023bdfe` — Move `lazyColumnIndexForMessage` to `ConversationListMapper` and inject `LiveSessionTracker` into `ConversationViewModel`. Update tests accordingly.

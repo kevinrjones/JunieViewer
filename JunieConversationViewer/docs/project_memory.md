@@ -322,6 +322,7 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - Sub-agent representation (`CustomAgentBlockUpdatedEvent` → `MessageKind.SubAgent`).
 - Filter coverage audit — all MessageKind values mapped to FilterCategory with AlwaysShow bypass.
 - `AgentTaskFailedEvent` support: tolerant nullable model, serializer registration, mapper to `MessageKind.Error`, rendered via `ErrorWarningBlock` with "Task Failed" label.
+- `SubagentSpawnedEvent` support: tolerant nullable model (`name`, `task`, `stepId`, `agent: JsonElement?`), registered in serializer, mapped to `MessageKind.SubAgent` with "Sub-agent spawned: {name}" label and truncated task preview.
 - Documentation: `docs/HOW_TO_USE.md` created, README updated, TESTING.md updated, RECAP.md updated.
 
 ### Key decisions
@@ -330,6 +331,7 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - `AgentTaskFailedEvent` uses tolerant nullable fields since no real payload examples exist — `message`, `errorCode`, `taskId`, `stepId`, `details: JsonElement?`.
 - Unknown event fallback (`UnknownAgentEvent`/`UnknownJunieEvent`) preserved — new events don't break existing fallback.
 - Reused existing `ErrorWarningBlock` for Task Failed rendering rather than creating a new component.
+- `SubagentSpawnedEvent` reuses `MessageKind.SubAgent` and truncates task preview at 200 characters.
 
 ### Gotchas
 - LazyColumn virtualisation means off-screen items are not rendered in UI tests — assertions must target visible items.
@@ -342,5 +344,37 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - Mapper: `AgentTaskFailedEvent` → `Sender.Junie`, `MessageKind.Error`, content includes "Task Failed".
 - UI: Error block rendering for task failed messages via `CollapsibleBlockTest`.
 - Unknown fallback: fabricated unknown event still produces `UnknownAgentEvent`.
+- Parser: `SubagentSpawnedEvent` deserialization (valid, minimal, extra fields) — 3 tests.
+- Mapper: `SubagentSpawnedEvent` → `Sender.Junie`, `MessageKind.SubAgent`, content/truncation — 4 tests.
 - All existing tests continue to pass.
 - Commands: `./gradlew :shared:jvmTest`, `./gradlew test` — both BUILD SUCCESSFUL.
+
+## Code Quality Refactoring — Thermo-Nuclear Review Fixes
+
+**Date/Time:** 2026-07-17 17:13
+
+### What was shipped
+- **B1**: Eliminated 46 duplicated `override val kind` properties across `AgentEvents.kt` and `TopLevelEvents.kt`. Added default implementation `this::class.simpleName ?: "unknown"` to sealed interfaces.
+- **B3**: Extracted `themedHighlightSearchMatches()` composable that resolves colours from theme internally, removing ~40 lines of repeated colour-passing across 7 components.
+- **H2**: Refactored `parseMarkdownBlocks` from a 64-line while loop into a `MarkdownBlockParser` class with dedicated methods per block type.
+- **H3**: Removed default concrete implementations from `ConversationViewModel` constructor — dependencies now injected explicitly at call site (`App.kt`).
+- **M1**: Moved `lazyColumnIndexForMessage` from `domain/Turn.kt` to `ui/ConversationListMapper.kt` — it's a UI/presentation concern.
+- **M4**: Replaced `else -> null` catch-all in agent event mapping with exhaustive listing of all 18 metadata-only agent events, enabling compiler enforcement.
+- **M6**: Extracted `MessageExpansionState` and `rememberMessageExpansionState` helper from `MessageCard` to encapsulate auto-expand-on-search + manual collapse logic.
+- **L1**: Added logger to `EventToMessageMapper` and replaced swallowed exceptions with `logger.w()` calls for `askRequest` and `choiceRequest` JSON parsing.
+
+### Key decisions
+- Kept registry maps in `EventSerializers.kt` (B2) rather than migrating to `SerializersModule` — the map approach works well and a full migration risks breaking unknown-event fallback behaviour.
+- Deferred H1 (JsonElement in domain) — requires typed data classes for `askRequest`/`choiceRequest` which changes the serialization contract.
+- Deferred H4 (unstable message IDs) — requires careful migration of ID generation strategy across mapper and live tracker.
+- Deferred M2 (FilterCategory/label to UI), M3 (SessionRepository parser reuse), M5 (design tokens), M7 (getMessages waste), L2 (FilterBar DRY), L3 (color mapping) — lower priority, higher risk of test breakage.
+
+### Gotchas
+- `UnknownAgentEvent` and `UnknownJunieEvent` must keep their `override val kind` as constructor parameters since they receive the kind from JSON at runtime.
+- `MessageExpansionState.userDismissedForce` needs `internal` visibility (not `private`) so `rememberMessageExpansionState` can reset it.
+- Test files constructing `ConversationViewModel` needed a 4th `liveSessionTracker` parameter added after removing defaults.
+
+### Test coverage areas
+- All existing tests pass: `./gradlew :shared:jvmTest` and `./gradlew test` both BUILD SUCCESSFUL.
+- Markdown parser tests continue to pass with refactored `MarkdownBlockParser` class.
+- No new tests added — this was a pure refactoring with no behaviour changes.

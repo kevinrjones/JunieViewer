@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runComposeUiTest
 import app.cash.turbine.test
+import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
@@ -82,7 +83,7 @@ class FilterBehaviourTest {
     }
 
     private fun createLoadedViewModel(): ConversationViewModel =
-        ConversationViewModel(fakeRepository, prefsRepo, testDispatcher)
+        ConversationViewModel(fakeRepository, prefsRepo, testDispatcher, LiveSessionTracker())
 
     // -----------------------------------------------------------------------
     // Tools filter hides Tool, StructuredOutput, Mcp, and SubAgent
@@ -195,7 +196,7 @@ class FilterBehaviourTest {
     @Test
     fun `filter bar renders six filter chips with canonical labels`() = runComposeUiTest {
         val prefs = uiPrefs("labels")
-        val vm = ConversationViewModel(fakeRepository, prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepository, prefs, testDispatcher, LiveSessionTracker())
         setContent { ConversationRoot(viewModel = vm) }
 
         // Verify all six filter tags exist
@@ -218,7 +219,7 @@ class FilterBehaviourTest {
     @Test
     fun `no dedicated SubAgent filter chip exists`() = runComposeUiTest {
         val prefs = uiPrefs("no-subagent")
-        val vm = ConversationViewModel(fakeRepository, prefs, testDispatcher)
+        val vm = ConversationViewModel(fakeRepository, prefs, testDispatcher, LiveSessionTracker())
         setContent { ConversationRoot(viewModel = vm) }
 
         onNodeWithTag("filter_subagent").assertDoesNotExist()
