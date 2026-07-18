@@ -5,4 +5,6 @@ package com.knowledgespike.junieviewer.ui
  */
 sealed interface ConversationEvent {
     data class ShowError(val message: String) : ConversationEvent
+    /** Requests the UI to move keyboard focus to the Search Messages field. */
+    data object FocusSearch : ConversationEvent
 }

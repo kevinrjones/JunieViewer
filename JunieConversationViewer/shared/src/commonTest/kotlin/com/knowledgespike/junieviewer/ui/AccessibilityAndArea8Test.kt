@@ -49,23 +49,28 @@ class AccessibilityAndArea8Test {
     // -- Area 7.2: Semantic labels / content descriptions --
 
     @Test
-    fun `session picker button has content description`() = runComposeUiTest {
+    fun `open session button has content description`() = runComposeUiTest {
         val prefs = tempPrefs("a7-picker")
         val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
-        robot.assertContentDescriptionExists("Select Session")
+        robot.assertContentDescriptionExists("Open Session")
     }
 
     @Test
-    fun `settings button has content description`() = runComposeUiTest {
+    fun `toolbar buttons have content descriptions`() = runComposeUiTest {
         val prefs = tempPrefs("a7-settings")
         val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
         val robot = ConversationRobot(this)
         setContent { ConversationRoot(viewModel = vm) }
 
-        robot.assertContentDescriptionExists("Settings")
+        robot.assertContentDescriptionExists("Refresh")
+        robot.assertContentDescriptionExists("Copy")
+        robot.assertContentDescriptionExists("Auto-Refresh")
+        robot.assertContentDescriptionExists("Sort Order")
+        robot.assertContentDescriptionExists("Collapse All")
+        robot.assertContentDescriptionExists("Show All")
     }
 
     @Test
@@ -230,8 +235,8 @@ class AccessibilityAndArea8Test {
         setContent { ConversationRoot(viewModel = vm) }
 
         onNodeWithTag("search_field").assertExists()
-        onNodeWithTag("session_picker_button").assertExists()
-        onNodeWithTag("settings_button").assertExists()
+        onNodeWithTag("toolbar_open_session").assertExists()
+        onNodeWithTag("conversation_toolbar").assertExists()
         onNodeWithTag("filter_human").assertExists()
         onNodeWithTag("filter_junie").assertExists()
         onNodeWithTag("filter_thought").assertExists()

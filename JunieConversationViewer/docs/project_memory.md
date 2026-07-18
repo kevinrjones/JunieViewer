@@ -378,3 +378,22 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - All existing tests pass: `./gradlew :shared:jvmTest` and `./gradlew test` both BUILD SUCCESSFUL.
 - Markdown parser tests continue to pass with refactored `MarkdownBlockParser` class.
 - No new tests added — this was a pure refactoring with no behaviour changes.
+
+## Sprint 5 — Toolbar, Menu, and Navigation Controls (Planning)
+**Date/Time:** 2026-07-18 09:15
+
+### What was shipped
+- Created `docs/tasks/junie-conversation-viewer-tasks-sprint-5-toolbar-menu-and-navigation-controls.md` with 67 trackable tasks.
+- Task breakdown follows the exact 11-section structure of Sprint 4.
+- Documented 10 implementation areas, 6 HITL review checkpoints, and 12 open questions.
+
+### Key decisions
+- Decided to reuse the shared command model pattern from LogViewer to unify menu, toolbar, and shortcut actions.
+- Integrated the search field directly into the toolbar to declutter the main conversation surface.
+- Deferred "Open Recent", "Reveal in Finder", and Settings dialog to Sprint 6 to maintain focus on the core navigation framework.
+
+### Gotchas
+- None.
+
+### Test coverage areas
+- Documentation only; no code changes.

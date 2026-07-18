@@ -51,6 +51,78 @@ class ConversationViewModel(
         loadPreferences()
     }
 
+    /**
+     * Handles a [ConversationCommand] dispatched from the toolbar, menu, or keyboard shortcut.
+     * Maps each command to existing [ConversationAction] handling or updates state directly.
+     */
+    fun onCommand(command: ConversationCommand) {
+        logger.d { "Command received: $command" }
+        try {
+            when (command) {
+                ConversationCommand.Copy -> {
+                    // TODO Area 8: selected-text copy via OS shortcut passthrough.
+                    // Currently a no-op — Compose Desktop does not expose selected text.
+                    logger.d { "Copy command: no-op (selected-text detection not available)" }
+                }
+                ConversationCommand.Refresh -> {
+                    logger.i { "Refresh command: reloading current Session" }
+                    loadMessages()
+                }
+                ConversationCommand.OpenSession -> {
+                    onAction(ConversationAction.OnToggleSessionPicker)
+                }
+                ConversationCommand.ToggleAutoRefresh -> {
+                    // TODO Area 5: wire to LiveSessionTracker start/stop
+                    _state.update { it.copy(isAutoRefreshEnabled = !it.isAutoRefreshEnabled) }
+                    logger.i { "Auto-refresh toggled: ${_state.value.isAutoRefreshEnabled}" }
+                }
+                ConversationCommand.ToggleSortOrder -> {
+                    // TODO Area 6: apply actual sort to filteredMessages
+                    _state.update { currentState ->
+                        val newOrder = when (currentState.sortOrder) {
+                            SortOrder.OldestFirst -> SortOrder.NewestFirst
+                            SortOrder.NewestFirst -> SortOrder.OldestFirst
+                        }
+                        currentState.copy(sortOrder = newOrder)
+                    }
+                    logger.i { "Sort order toggled: ${_state.value.sortOrder}" }
+                }
+                ConversationCommand.CollapseAll -> {
+                    // TODO Area 7: emit global collapse event to all CollapsibleBlock instances
+                    logger.d { "CollapseAll command: stub (full implementation in Area 7)" }
+                }
+                ConversationCommand.ShowAll -> {
+                    // TODO Area 7: emit global expand event to all CollapsibleBlock instances
+                    logger.d { "ShowAll command: stub (full implementation in Area 7)" }
+                }
+                ConversationCommand.FocusSearch -> {
+                    // Handled at the UI level via FocusRequester — emit event
+                    viewModelScope.launch { _events.send(ConversationEvent.FocusSearch) }
+                }
+                ConversationCommand.FindNext -> {
+                    onAction(ConversationAction.OnNextMatch)
+                }
+                ConversationCommand.FindPrevious -> {
+                    onAction(ConversationAction.OnPreviousMatch)
+                }
+                ConversationCommand.Settings -> {
+                    onAction(ConversationAction.OnToggleSettings)
+                }
+                ConversationCommand.Quit -> {
+                    // Handled at the platform/Window level
+                    logger.d { "Quit command: handled at platform level" }
+                }
+                ConversationCommand.About -> {
+                    // TODO Area 4: show About dialog
+                    logger.d { "About command: stub (full implementation in Area 4)" }
+                }
+            }
+        } catch (t: Throwable) {
+            logger.e(t) { "Error processing command: $command" }
+            FatalErrorManager.reportFatalError(t)
+        }
+    }
+
     fun onAction(action: ConversationAction) {
         logger.d { "Action received: $action" }
         try {

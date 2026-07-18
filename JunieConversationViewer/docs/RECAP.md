@@ -143,3 +143,10 @@
 - **Test Fix**: Updated `SubAgentRepresentationTest` to use `onNodeWithTag("sub_agent_block_header")` instead of `onNodeWithText("Sub-Agent")` to avoid ambiguity with the new CollapsibleBlock header.
 - **All 314 tests passing**: `./gradlew :shared:jvmTest` — BUILD SUCCESSFUL.
 - **Commit**: `023bdfe` — Move `lazyColumnIndexForMessage` to `ConversationListMapper` and inject `LiveSessionTracker` into `ConversationViewModel`. Update tests accordingly.
+
+## 09:15
+### Sprint 5 — Toolbar, Menu, and Navigation Controls (Planning Complete)
+- **Sprint 5 Task Breakdown Created**: Produced `docs/tasks/junie-conversation-viewer-tasks-sprint-5-toolbar-menu-and-navigation-controls.md` with 67 trackable tasks across 10 areas, matching the depth and structure of the Sprint 4 task document.
+- **Scope and Traceability**: Areas cover discovery, shared command model design, toolbar UI, native menu bar implementation, sort order logic, global collapse/show-all, and integration of copy/search.
+- **Status Tracking**: 10 implementation areas, 6 HITL review checkpoints, and 12 open questions (Q1–Q12) recorded for HITL feedback.
+- **No code changes**: Documentation only.
