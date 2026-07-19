@@ -21,5 +21,7 @@ data class AppPreferences(
     val junieHomePath: String = "~/.junie",
     val lastSessionId: String? = null,
     /** Persisted theme mode — "Light", "Dark", or "System". Defaults to "System" if missing or invalid. */
-    val themeMode: String = "System"
+    val themeMode: String = "System",
+    /** Whether live auto-refresh is enabled. Defaults to true for new or migrated preference files. */
+    val isAutoRefreshEnabled: Boolean = true
 )

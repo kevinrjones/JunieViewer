@@ -38,7 +38,7 @@ sealed interface ConversationCommand {
     /** Open/toggle the Session picker dialog. */
     data object OpenSession : ConversationCommand
 
-    /** Toggle live auto-refresh on/off. Full implementation in Area 5. */
+    /** Toggle live auto-refresh on/off. Starts/stops live tracking and persists preference. */
     data object ToggleAutoRefresh : ConversationCommand
 
     /** Toggle sort order between oldest-first and newest-first. Full implementation in Area 6. */

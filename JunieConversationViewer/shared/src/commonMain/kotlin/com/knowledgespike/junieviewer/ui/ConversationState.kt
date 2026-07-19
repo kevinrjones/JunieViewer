@@ -42,7 +42,7 @@ data class ConversationState(
     val currentMatchIndex: Int = -1,
     /** The currently active theme mode. */
     val themeMode: ThemeMode = ThemeMode.System,
-    /** Whether live auto-refresh is enabled. Full start/stop wiring in Area 5. */
+    /** Whether live auto-refresh is enabled. Controls live tracking start/stop and is persisted. */
     val isAutoRefreshEnabled: Boolean = true,
     /** Current sort order for displaying Messages. Full sorting in Area 6. */
     val sortOrder: SortOrder = SortOrder.OldestFirst

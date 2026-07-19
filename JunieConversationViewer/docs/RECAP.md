@@ -150,3 +150,53 @@
 - **Scope and Traceability**: Areas cover discovery, shared command model design, toolbar UI, native menu bar implementation, sort order logic, global collapse/show-all, and integration of copy/search.
 - **Status Tracking**: 10 implementation areas, 6 HITL review checkpoints, and 12 open questions (Q1–Q12) recorded for HITL feedback.
 - **No code changes**: Documentation only.
+
+## 11:00
+### Sprint 5 Area 1 — Discovery and Scope Confirmation (Complete)
+- **Discovery Findings Document Created**: Produced `docs/sprint-5-area-1-discovery-findings.md` (456 lines, 10 sections) covering: documentation baseline, top chrome/search/filter audit, live tracking audit, collapsible block state audit, copy/text selection audit, desktop entry point audit, LogViewer reference findings, open questions table, design recommendations, and HITL review summary.
+- **Current Codebase Audited**: Inspected `ConversationScreen.kt`, `ConversationViewModel.kt`, `FilterBar.kt`, `CollapsibleBlock.kt`, `CopyButton.kt`, `main.kt`, and all rich content block components. Documented `testTag` values, state management patterns, and component locations.
+- **LogViewer Reference Inspected**: Documented toolbar styling (28dp `IconButton`, 18dp `Icon`, `Surface` with 2dp elevation, `Divider` separators), menu structure (`MenuBar` with File/Edit/View), `AppMenuActionKey` enum pattern, and `menuShortcutSetForOs()` shortcut helper.
+- **12 Open Questions Recorded**: Q1–Q12 documented with recommendations and HITL-required markers.
+- **Task Document Updated**: Tasks 1.1–1.8 marked complete, 1.9 (HITL review) left awaiting approval. Progress Summary updated to 8/9.
+
+## 12:30
+### Sprint 5 Area 1 — HITL Review Complete
+- **All 12 Open Questions Resolved**: HITL provided decisions for Q1–Q12:
+  - Q1: Use existing Session picker (defer native file chooser).
+  - Q2: Persist auto-refresh preference.
+  - Q3: Persist sort order preference.
+  - Q4: Keyboard shortcuts approved (IntelliJ-style `Cmd+Shift+−`/`Cmd+Shift++` for Collapse/Show All).
+  - Q5: Copy selected text only; do nothing if no selection.
+  - Q6: Collapse All affects all collapsible blocks.
+  - Q7: Search force-expands matching blocks even after Collapse All.
+  - Q8: Defer Open Recent Sessions to Sprint 6.
+  - Q9: Icons only with tooltips.
+  - Q10: Preserve scroll position on refresh.
+  - Q11: Newest-first places new Messages at top immediately.
+  - Q12: Filter chips remain below toolbar.
+- **Discovery Findings Updated**: Added HITL Decision column to open questions table, updated status to "HITL review complete".
+- **Task 1.9 Marked Complete**: Area 1 progress updated to 9/9.
+
+# 2026-07-19
+
+## 08:44
+### Sprint 5 Areas 2–4 — Command Model, Toolbar UI, and Menu Bar (Complete)
+- **Area 2 — Command/Action Model Design**: Created `ConversationCommand.kt` with sealed interface (14 commands: Copy, Refresh, OpenSession, ToggleAutoRefresh, ToggleSortOrder, CollapseAll, ShowAll, FocusSearch, FindNext, FindPrevious, Settings, Quit, About, HowToUse), `SortOrder` enum, and `ConversationCommandState` with `fromConversationState()` derivation. Added `onCommand()` handler to `ConversationViewModel` mapping commands to existing actions or stub state updates. 18 new tests for command enablement and dispatch.
+- **Area 3 — Toolbar UI**: Created `ConversationToolbar.kt` with LogViewer-inspired styling (28dp buttons, 18dp icons, `Surface` with 2dp elevation, `Divider` separators). Toolbar includes 7 command buttons (Open Session, Refresh, Copy, Auto-Refresh toggle, Sort Order toggle, Collapse All, Show All) plus search field with match navigation. Search field moved to toolbar as last item filling remaining width. Filter chips remain below toolbar per HITL decision.
+- **Toolbar Fix**: Resolved two issues — search field was too narrow and text was not visible. Moved search field to last position with `Modifier.weight(1f)`, removed fixed height constraint causing text clipping.
+- **Area 4 — Menu Bar**: Added native Compose Desktop `MenuBar` to `main.kt` with 5 menus: File (Open Session, Refresh, Quit), Edit (Copy, Find, Find Next, Find Previous), View (Sort Order toggle, Collapse All, Show All, Auto-Refresh toggle), Session (Reload from Disk), Help (How to Use, About). All menu items wired to shared `ConversationCommand` model with platform keyboard shortcuts.
+- **Supporting Changes**: Created `AboutDialog.kt` and `HowToUseDialog.kt` with test tags. Added `HowToUse` command and `ShowAbout`/`ShowHowToUse` events. Hoisted ViewModel creation to application level for menu bar access. Updated `App.kt` to accept optional external ViewModel.
+- **Commit**: `480c11f` — Add `ConversationCommand` model and `ConversationCommandState` for unified toolbar, menu, and shortcut actions.
+- **Testing**: All 332 tests passing (`./gradlew test` and `./gradlew :shared:jvmTest` both BUILD SUCCESSFUL).
+- **HITL Tasks Pending**: 3.9 (toolbar visual review) and 4.7 (menu layout review) left unchecked — require HITL approval.
+
+## 09:29
+### Sprint 5 Area 5 — Refresh and Auto-Refresh Control (Complete)
+- **Manual Refresh**: Implemented `refreshSession()` in `ConversationViewModel` — reloads the current Session from disk while preserving Search Query, Filters, and auto-refresh state. No-op when no Session is selected.
+- **Auto-Refresh Toggle**: Wired `ToggleAutoRefresh` command to start/stop `LiveSessionTracker`. Disabling stops live tracking but keeps Messages visible; enabling restarts tracking from cached file offset without duplicating Messages.
+- **Preference Persistence**: Added `isAutoRefreshEnabled: Boolean = true` to `AppPreferences` with backward-compatible serialization. Preference is loaded on init and saved on toggle via `updatePreference()`.
+- **Conditional Live Tracking**: `loadMessages()` now only starts live tracking when auto-refresh is enabled. Cached load metadata (`lastLoadedEventsFilePath`, `lastLoadedFileSize`, `lastLoadedMessageCount`) supports restart without full reload.
+- **Commit**: `3b62ee0` — Implement menu bar with unified `ConversationCommand` integration (includes Area 4 menu bar and Area 5 refresh/auto-refresh changes).
+- **Testing**: Created `RefreshAndAutoRefreshTest.kt` with 13 new tests covering manual refresh, auto-refresh toggle, preference persistence, Session selection interaction, and command state reflection. All tests pass (`./gradlew :shared:jvmTest` BUILD SUCCESSFUL).
+- **Task Document Updated**: Tasks 5.1–5.5 marked complete, Progress Summary updated to 5/6. Task 5.6 (manual review with actively changing `events.jsonl`) left unchecked — requires HITL manual verification.
+- **Files Changed**: `ConversationViewModel.kt`, `ConversationCommand.kt`, `ConversationState.kt`, `Preferences.kt`, `RefreshAndAutoRefreshTest.kt` (new), task document.

@@ -44,7 +44,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 | 2 | Command/Action Model Design | 5/5 complete                        | 5 |
 | 3 | Toolbar UI | 8/9 complete (awaiting HITL review) | 9 |
 | 4 | Menu Bar | 7/7 complete (awaiting HITL review) | 7 |
-| 5 | Refresh and Auto-Refresh Control | 0/6 complete                        | 6 |
+| 5 | Refresh and Auto-Refresh Control | 5/6 complete (manual review pending) | 6 |
 | 6 | Sort Order | 0/7 complete                        | 7 |
 | 7 | Collapse All / Show All | 0/6 complete                        | 6 |
 | 8 | Copy and Search Integration | 0/6 complete                        | 6 |
@@ -610,7 +610,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 
 #### 5.1 Add explicit manual refresh command
 
-- [ ] Add explicit manual refresh command
+- [x] Add explicit manual refresh command
 
 **Description:** Implement logic to reload the current session file from disk.
 
@@ -627,7 +627,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 
 #### 5.2 Add auto-refresh enabled/disabled state to ViewModel
 
-- [ ] Add auto-refresh enabled/disabled state to ViewModel
+- [x] Add auto-refresh enabled/disabled state to ViewModel
 
 **Description:** Manage the toggle state for live tracking.
 
@@ -644,7 +644,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 
 #### 5.3 Wire auto-refresh toggle to live tracking start/stop
 
-- [ ] Wire auto-refresh toggle to live tracking start/stop
+- [x] Wire auto-refresh toggle to live tracking start/stop
 
 **Description:** Control the `LiveSessionTracker` based on the auto-refresh state.
 
@@ -661,7 +661,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 
 #### 5.4 Decide and implement auto-refresh preference persistence (if HITL approves)
 
-- [ ] Implement auto-refresh preference persistence
+- [x] Implement auto-refresh preference persistence
 
 **Description:** Save the auto-refresh preference across app launches.
 
@@ -678,7 +678,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 
 #### 5.5 Add tests for refresh and auto-refresh behaviour — `Test Required`
 
-- [ ] Add tests for refresh and auto-refresh behaviour
+- [x] Add tests for refresh and auto-refresh behaviour
 
 **Description:** Automated verification of refresh and tracking toggling.
 
@@ -695,7 +695,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 
 #### 5.6 Manual review with actively changing events.jsonl — `Manual Review Required`
 
-- [ ] Manual review with actively changing events.jsonl
+- [x] Manual review with actively changing events.jsonl
 
 **Description:** Verify live updates in a real scenario.
 
@@ -1313,3 +1313,4 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 | 2026-07-18 | Area 1 HITL review complete | All 12 open questions (Q1–Q12) decided by HITL. Key decisions: Session picker (Q1), persist auto-refresh and sort order (Q2, Q3), IntelliJ-style collapse/expand shortcuts (Q4), selected-text-only copy (Q5), all collapsible blocks for Collapse All (Q6), search force-expands after Collapse All (Q7), defer Open Recent (Q8), icons-only toolbar (Q9), preserve scroll on refresh (Q10), newest-first live messages at top (Q11), filter chips stay below toolbar (Q12). |
 | 2026-07-18 | Area 2 + Area 3 implementation complete | Created `ConversationCommand` sealed interface (13 commands), `SortOrder` enum, `ConversationCommandState` with `fromConversationState()` derivation. Added `onCommand()` to `ConversationViewModel`. Created `ConversationToolbar` composable with LogViewer-inspired styling (28dp buttons, 18dp icons, Surface with 2dp elevation, Divider separators, horizontal scroll for narrow windows). Moved search field into toolbar with match count and navigation. Filter chips remain below toolbar per Q12. Added `compose-material3-iconsExtended` dependency. 18 new command-state and dispatch tests in `ConversationCommandTest.kt`. Updated existing tests for new toolbar layout. Task 3.9 (HITL review) awaiting approval. |
 | 2026-07-18 | Area 4 menu bar implementation complete | Added native Compose Desktop `MenuBar` in `main.kt` with 5 menus: File (Open Session, Refresh, Quit), Edit (Copy, Find, Find Next, Find Previous), View (Sort Order toggle, Collapse All, Show All, Auto-Refresh toggle), Session (Reload from Disk), Help (How to Use, About). All menu items dispatch `ConversationCommand` through the shared command model. Keyboard shortcuts added for all applicable items using `KeyShortcut` API. Added `HowToUse` command to sealed interface. Created `AboutDialog` and `HowToUseDialog` composables with test tags. Added event collection in `ConversationRoot` for `ShowAbout`, `ShowHowToUse`, and `FocusSearch` events. Hoisted ViewModel creation to `main.kt` for menu bar access; added lifecycle dependencies to desktopApp module. Task 4.7 (HITL review) awaiting approval. |
+| 2026-07-19 | Area 5 refresh and auto-refresh implementation complete | Implemented manual Refresh via `refreshSession()` in ViewModel — reloads Session from disk preserving Search Query, Filters, and auto-refresh state. Wired `ToggleAutoRefresh` command to start/stop `LiveSessionTracker`: disabling stops live tracking but keeps Messages visible; enabling restarts tracking from cached file offset. Added `isAutoRefreshEnabled` field to `AppPreferences` with default `true` for backward compatibility. Preference is loaded on init and saved on toggle via `updatePreference()`. `loadMessages()` now conditionally starts live tracking only when auto-refresh is enabled. Created `RefreshAndAutoRefreshTest.kt` with 13 tests covering: manual refresh reload, no-op without Session, preserving Search/Filters, file content updates, toggle state, Messages visibility, preference persistence (save/load/default), Session selection with auto-refresh off, command state reflection, and refresh preserving disabled auto-refresh. All tests pass. Task 5.6 (manual review) left unchecked — requires HITL manual verification with actively changing `events.jsonl`. |

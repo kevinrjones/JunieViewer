@@ -46,6 +46,11 @@ class ConversationViewModel(
     /** Job for the current live tracking coroutine — cancelled when Session changes. */
     private var liveTrackingJob: Job? = null
 
+    /** Cached metadata from the last successful load, used to restart live tracking. */
+    private var lastLoadedEventsFilePath: okio.Path? = null
+    private var lastLoadedFileSize: Long = 0L
+    private var lastLoadedMessageCount: Int = 0
+
     init {
         logger.d { "ConversationViewModel initialized" }
         loadPreferences()
@@ -66,15 +71,13 @@ class ConversationViewModel(
                 }
                 ConversationCommand.Refresh -> {
                     logger.i { "Refresh command: reloading current Session" }
-                    loadMessages()
+                    refreshSession()
                 }
                 ConversationCommand.OpenSession -> {
                     onAction(ConversationAction.OnToggleSessionPicker)
                 }
                 ConversationCommand.ToggleAutoRefresh -> {
-                    // TODO Area 5: wire to LiveSessionTracker start/stop
-                    _state.update { it.copy(isAutoRefreshEnabled = !it.isAutoRefreshEnabled) }
-                    logger.i { "Auto-refresh toggled: ${_state.value.isAutoRefreshEnabled}" }
+                    toggleAutoRefresh()
                 }
                 ConversationCommand.ToggleSortOrder -> {
                     // TODO Area 6: apply actual sort to filteredMessages
@@ -211,9 +214,11 @@ class ConversationViewModel(
             it.copy(
                 junieHomePath = prefs.junieHomePath,
                 selectedSessionId = prefs.lastSessionId,
-                themeMode = themeMode
+                themeMode = themeMode,
+                isAutoRefreshEnabled = prefs.isAutoRefreshEnabled
             )
         }
+        logger.d { "Auto-refresh preference loaded: ${prefs.isAutoRefreshEnabled}" }
         loadMessages()
     }
 
@@ -233,6 +238,49 @@ class ConversationViewModel(
 
     private fun saveThemeMode(themeMode: ThemeMode) =
         updatePreference { it.copy(themeMode = themeMode.name) }
+
+    private fun saveAutoRefresh(enabled: Boolean) =
+        updatePreference { it.copy(isAutoRefreshEnabled = enabled) }
+
+    /**
+     * Toggles auto-refresh on/off, starting or stopping live tracking accordingly.
+     * Persists the new preference to disk.
+     */
+    private fun toggleAutoRefresh() {
+        val newEnabled = !_state.value.isAutoRefreshEnabled
+        _state.update { it.copy(isAutoRefreshEnabled = newEnabled) }
+        logger.i { "Auto-refresh toggled: $newEnabled" }
+        saveAutoRefresh(newEnabled)
+
+        if (newEnabled) {
+            // Restart live tracking for the current Session from cached metadata
+            val path = lastLoadedEventsFilePath
+            if (path != null && _state.value.selectedSessionId != null) {
+                val currentMessageCount = _state.value.messages.size
+                // Use current message count and recalculate approximate file offset
+                logger.i { "Restarting live tracking after auto-refresh enabled" }
+                startLiveTracking(path, lastLoadedFileSize, currentMessageCount)
+            }
+        } else {
+            // Stop live tracking but keep Messages visible
+            logger.i { "Stopping live tracking after auto-refresh disabled" }
+            stopLiveTracking()
+        }
+    }
+
+    /**
+     * Refreshes the current Session by reloading from disk.
+     * Preserves Search Query, Filters, and auto-refresh state.
+     * Restarts live tracking only when auto-refresh is enabled.
+     */
+    private fun refreshSession() {
+        if (_state.value.selectedSessionId == null) {
+            logger.d { "Refresh skipped: no Session selected" }
+            return
+        }
+        logger.i { "Refreshing current Session" }
+        loadMessages()
+    }
 
     private fun loadSessions() {
         viewModelScope.launch(exceptionHandler) {
@@ -279,8 +327,17 @@ class ConversationViewModel(
                 filterMessages(_state.value.searchQuery)
                 logger.d { "Successfully loaded ${loadResult.messages.size} messages" }
 
-                // Start live tracking from the end of the loaded file
-                startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.messages.size)
+                // Cache load metadata for potential live tracking restart
+                lastLoadedEventsFilePath = loadResult.eventsFilePath
+                lastLoadedFileSize = loadResult.fileSizeAfterLoad
+                lastLoadedMessageCount = loadResult.messages.size
+
+                // Start live tracking only when auto-refresh is enabled
+                if (_state.value.isAutoRefreshEnabled) {
+                    startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.messages.size)
+                } else {
+                    logger.i { "Auto-refresh disabled — skipping live tracking after load" }
+                }
             } catch (e: Exception) {
                 logger.e(e) { "Failed to load messages for session $sessionId" }
                 _state.update { it.copy(
