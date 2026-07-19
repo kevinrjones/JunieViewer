@@ -200,3 +200,22 @@
 - **Testing**: Created `RefreshAndAutoRefreshTest.kt` with 13 new tests covering manual refresh, auto-refresh toggle, preference persistence, Session selection interaction, and command state reflection. All tests pass (`./gradlew :shared:jvmTest` BUILD SUCCESSFUL).
 - **Task Document Updated**: Tasks 5.1–5.5 marked complete, Progress Summary updated to 5/6. Task 5.6 (manual review with actively changing `events.jsonl`) left unchecked — requires HITL manual verification.
 - **Files Changed**: `ConversationViewModel.kt`, `ConversationCommand.kt`, `ConversationState.kt`, `Preferences.kt`, `RefreshAndAutoRefreshTest.kt` (new), task document.
+
+## 09:42
+### Sprint 5 Area 6 — Sort Order: Oldest First / Newest First (Complete)
+- **Sort Order State**: Added `SortOrder` enum (`OldestFirst`, `NewestFirst`) to `ConversationState` with toggle via `ConversationCommand.ToggleSortOrder`. Default is `OldestFirst`.
+- **Visible Message Ordering**: `filterMessages()` now applies sort order after filtering — `NewestFirst` reverses the filtered list via `asReversed()`. Safe `currentMatchIndex` clamping prevents out-of-bounds after sort changes.
+- **Preference Persistence**: Added `sortOrder: String = "OldestFirst"` to `AppPreferences` with backward-compatible serialization. Sort order is loaded on init (with invalid-value fallback to `OldestFirst`) and saved on toggle via `updatePreference()`.
+- **Filter/Search Interaction**: Filters and Search Query apply consistently in both sort orders. Find Next/Find Previous navigate in visible sorted order. Match index stays valid after sort toggles.
+- **Live Tracking Integration**: Canonical `messages` list remains chronological; `filteredMessages` is re-derived with current sort order when new live-tracked Messages arrive. New Messages appear at bottom in `OldestFirst`, at top in `NewestFirst`.
+- **Testing**: Created `SortOrderTest.kt` with 15 new tests covering: default state, toggle, visible ordering, persistence (save/load/invalid fallback), filter/search interaction, Find Next/Previous in sorted order, match index validity, manual refresh respecting sort, and command state reflection. All tests pass (`./gradlew :shared:jvmTest` BUILD SUCCESSFUL).
+- **Task Document Updated**: Tasks 6.1–6.6 marked complete, Progress Summary updated to 6/7. Task 6.7 (HITL sort-order UX review) left unchecked — requires HITL approval.
+- **Files Changed**: `ConversationViewModel.kt`, `ConversationCommand.kt`, `ConversationState.kt`, `Preferences.kt`, `SortOrderTest.kt` (new), task document.
+- **No new commit yet** — changes are staged/unstaged pending commit.
+
+## 09:50
+### Auto-Scroll Fix for Sort Order Modes
+- **Bug Fix**: Auto-scroll during live tracking did not work correctly in `NewestFirst` mode. Updated `ConversationScreen.kt` auto-scroll `LaunchedEffect`: in `OldestFirst` mode, scrolls to bottom when near bottom (existing behaviour); in `NewestFirst` mode, scrolls to top when near top (new behaviour for new Messages appearing at the top).
+- **Testing**: `./gradlew :shared:compileKotlinJvm` and `./gradlew :shared:jvmTest` both BUILD SUCCESSFUL, all tests pass.
+- **Files Changed**: `ConversationScreen.kt`.
+- **No new commit yet** — changes pending commit.

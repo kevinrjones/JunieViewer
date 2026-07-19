@@ -80,15 +80,7 @@ class ConversationViewModel(
                     toggleAutoRefresh()
                 }
                 ConversationCommand.ToggleSortOrder -> {
-                    // TODO Area 6: apply actual sort to filteredMessages
-                    _state.update { currentState ->
-                        val newOrder = when (currentState.sortOrder) {
-                            SortOrder.OldestFirst -> SortOrder.NewestFirst
-                            SortOrder.NewestFirst -> SortOrder.OldestFirst
-                        }
-                        currentState.copy(sortOrder = newOrder)
-                    }
-                    logger.i { "Sort order toggled: ${_state.value.sortOrder}" }
+                    toggleSortOrder()
                 }
                 ConversationCommand.CollapseAll -> {
                     // TODO Area 7: emit global collapse event to all CollapsibleBlock instances
@@ -210,15 +202,21 @@ class ConversationViewModel(
         } catch (_: IllegalArgumentException) {
             ThemeMode.System
         }
+        val sortOrder = try {
+            SortOrder.valueOf(prefs.sortOrder)
+        } catch (_: IllegalArgumentException) {
+            SortOrder.OldestFirst
+        }
         _state.update { 
             it.copy(
                 junieHomePath = prefs.junieHomePath,
                 selectedSessionId = prefs.lastSessionId,
                 themeMode = themeMode,
-                isAutoRefreshEnabled = prefs.isAutoRefreshEnabled
+                isAutoRefreshEnabled = prefs.isAutoRefreshEnabled,
+                sortOrder = sortOrder
             )
         }
-        logger.d { "Auto-refresh preference loaded: ${prefs.isAutoRefreshEnabled}" }
+        logger.d { "Preferences loaded: autoRefresh=${prefs.isAutoRefreshEnabled}, sortOrder=$sortOrder" }
         loadMessages()
     }
 
@@ -241,6 +239,9 @@ class ConversationViewModel(
 
     private fun saveAutoRefresh(enabled: Boolean) =
         updatePreference { it.copy(isAutoRefreshEnabled = enabled) }
+
+    private fun saveSortOrder(sortOrder: SortOrder) =
+        updatePreference { it.copy(sortOrder = sortOrder.name) }
 
     /**
      * Toggles auto-refresh on/off, starting or stopping live tracking accordingly.
@@ -418,8 +419,39 @@ class ConversationViewModel(
 
                 messageContentText(message.content).contains(query, ignoreCase = true)
             }
-            currentState.copy(filteredMessages = filtered)
+            // Apply sort order: canonical messages list is always chronological;
+            // reverse for NewestFirst display order
+            val sorted = when (currentState.sortOrder) {
+                SortOrder.OldestFirst -> filtered
+                SortOrder.NewestFirst -> filtered.asReversed()
+            }
+
+            // Reset currentMatchIndex safely after re-derivation
+            val newMatchIndex = when {
+                sorted.isEmpty() -> -1
+                currentState.currentMatchIndex < 0 -> if (query.isNotBlank() && sorted.isNotEmpty()) 0 else -1
+                currentState.currentMatchIndex >= sorted.size -> 0
+                else -> currentState.currentMatchIndex
+            }
+
+            currentState.copy(filteredMessages = sorted, currentMatchIndex = newMatchIndex)
         }
+        logger.d { "Visible messages derived: ${_state.value.filteredMessages.size} (sortOrder=${_state.value.sortOrder})" }
+    }
+
+    /**
+     * Toggles sort order between OldestFirst and NewestFirst.
+     * Re-derives visible Messages and persists the new preference.
+     */
+    private fun toggleSortOrder() {
+        val newOrder = when (_state.value.sortOrder) {
+            SortOrder.OldestFirst -> SortOrder.NewestFirst
+            SortOrder.NewestFirst -> SortOrder.OldestFirst
+        }
+        _state.update { it.copy(sortOrder = newOrder) }
+        logger.i { "Sort order toggled: $newOrder" }
+        saveSortOrder(newOrder)
+        filterMessages(_state.value.searchQuery)
     }
 
     /** Extracts searchable plain text from any MessageContent variant. */

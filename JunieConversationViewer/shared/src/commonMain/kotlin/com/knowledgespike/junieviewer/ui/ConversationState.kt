@@ -44,6 +44,6 @@ data class ConversationState(
     val themeMode: ThemeMode = ThemeMode.System,
     /** Whether live auto-refresh is enabled. Controls live tracking start/stop and is persisted. */
     val isAutoRefreshEnabled: Boolean = true,
-    /** Current sort order for displaying Messages. Full sorting in Area 6. */
+    /** Current sort order for displaying Messages. Persisted across app launches. */
     val sortOrder: SortOrder = SortOrder.OldestFirst
 )

@@ -41,7 +41,7 @@ sealed interface ConversationCommand {
     /** Toggle live auto-refresh on/off. Starts/stops live tracking and persists preference. */
     data object ToggleAutoRefresh : ConversationCommand
 
-    /** Toggle sort order between oldest-first and newest-first. Full implementation in Area 6. */
+    /** Toggle sort order between oldest-first and newest-first. Persists preference and re-derives visible Messages. */
     data object ToggleSortOrder : ConversationCommand
 
     /** Collapse all collapsible content blocks. Full implementation in Area 7. */
