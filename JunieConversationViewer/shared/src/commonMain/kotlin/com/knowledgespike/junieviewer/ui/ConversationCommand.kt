@@ -67,6 +67,9 @@ sealed interface ConversationCommand {
 
     /** Show the About dialog. Handled at the UI/platform level. */
     data object About : ConversationCommand
+
+    /** Show the How to Use dialog. Handled at the UI/platform level. */
+    data object HowToUse : ConversationCommand
 }
 
 /**

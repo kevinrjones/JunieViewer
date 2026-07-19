@@ -15,6 +15,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -24,7 +26,8 @@ import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.ui.components.*
 
 /**
- * Root composable that collects ViewModel state and delegates to ConversationScreen.
+ * Root composable that collects ViewModel state, handles one-time events,
+ * and delegates to ConversationScreen.
  */
 @Composable
 fun ConversationRoot(
@@ -33,11 +36,41 @@ fun ConversationRoot(
     val state by viewModel.state.collectAsState()
     val commandState = ConversationCommandState.fromConversationState(state)
 
+    // Dialog state driven by ViewModel events
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showHowToUseDialog by remember { mutableStateOf(false) }
+
+    // Search focus requester shared between event handling and toolbar
+    val searchFocusRequester = remember { FocusRequester() }
+
+    // Collect one-time events from the ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is ConversationEvent.ShowError -> { /* handled elsewhere */ }
+                ConversationEvent.FocusSearch -> searchFocusRequester.requestFocus()
+                ConversationEvent.ShowAbout -> showAboutDialog = true
+                ConversationEvent.ShowHowToUse -> showHowToUseDialog = true
+            }
+        }
+    }
+
+    // About dialog
+    if (showAboutDialog) {
+        AboutDialog(onDismiss = { showAboutDialog = false })
+    }
+
+    // How to Use dialog
+    if (showHowToUseDialog) {
+        HowToUseDialog(onDismiss = { showHowToUseDialog = false })
+    }
+
     ConversationScreen(
         state = state,
         commandState = commandState,
         onAction = viewModel::onAction,
-        onCommand = viewModel::onCommand
+        onCommand = viewModel::onCommand,
+        searchFocusRequester = searchFocusRequester
     )
 }
 
@@ -50,7 +83,8 @@ fun ConversationScreen(
     state: ConversationState,
     commandState: ConversationCommandState = ConversationCommandState.fromConversationState(state),
     onAction: (ConversationAction) -> Unit,
-    onCommand: (ConversationCommand) -> Unit = {}
+    onCommand: (ConversationCommand) -> Unit = {},
+    searchFocusRequester: FocusRequester = remember { FocusRequester() }
 ) {
     if (state.isSessionPickerOpen) {
         SessionSelector(
@@ -70,8 +104,6 @@ fun ConversationScreen(
             onDismiss = { onAction(ConversationAction.OnToggleSettings) }
         )
     }
-
-    val searchFocusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier

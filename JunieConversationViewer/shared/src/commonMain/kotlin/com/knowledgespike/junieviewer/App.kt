@@ -15,11 +15,18 @@ import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 /**
  * Application entry point composable.
  * Wraps the entire UI in [JunieViewerTheme] with the persisted theme mode from preferences.
+ *
+ * @param externalViewModel Optional ViewModel provided by the platform layer (e.g. desktop `main.kt`
+ *   for menu bar wiring). When null, a default ViewModel is created internally.
+ * @param onExit Callback invoked when the application should exit.
  */
 @Composable
 @Preview
-fun App(onExit: () -> Unit = {}) {
-    val viewModel = viewModel {
+fun App(
+    externalViewModel: ConversationViewModel? = null,
+    onExit: () -> Unit = {}
+) {
+    val viewModel = externalViewModel ?: viewModel {
         ConversationViewModel(
             repository = SessionRepositoryImpl(),
             preferencesRepository = PreferencesRepository(),

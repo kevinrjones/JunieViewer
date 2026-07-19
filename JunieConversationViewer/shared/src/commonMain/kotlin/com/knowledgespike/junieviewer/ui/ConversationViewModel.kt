@@ -113,8 +113,10 @@ class ConversationViewModel(
                     logger.d { "Quit command: handled at platform level" }
                 }
                 ConversationCommand.About -> {
-                    // TODO Area 4: show About dialog
-                    logger.d { "About command: stub (full implementation in Area 4)" }
+                    viewModelScope.launch { _events.send(ConversationEvent.ShowAbout) }
+                }
+                ConversationCommand.HowToUse -> {
+                    viewModelScope.launch { _events.send(ConversationEvent.ShowHowToUse) }
                 }
             }
         } catch (t: Throwable) {
