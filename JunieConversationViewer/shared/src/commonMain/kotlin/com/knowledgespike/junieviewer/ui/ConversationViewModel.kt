@@ -46,9 +46,77 @@ class ConversationViewModel(
     /** Job for the current live tracking coroutine — cancelled when Session changes. */
     private var liveTrackingJob: Job? = null
 
+    /** Cached metadata from the last successful load, used to restart live tracking. */
+    private var lastLoadedEventsFilePath: okio.Path? = null
+    private var lastLoadedFileSize: Long = 0L
+    private var lastLoadedMessageCount: Int = 0
+
     init {
         logger.d { "ConversationViewModel initialized" }
         loadPreferences()
+    }
+
+    /**
+     * Handles a [ConversationCommand] dispatched from the toolbar, menu, or keyboard shortcut.
+     * Maps each command to existing [ConversationAction] handling or updates state directly.
+     */
+    fun onCommand(command: ConversationCommand) {
+        logger.d { "Command received: $command" }
+        try {
+            when (command) {
+                ConversationCommand.Copy -> {
+                    // Emit a CopyText event so the platform layer can dispatch a native
+                    // copy action (synthetic Cmd+C / Ctrl+C) to the focused component.
+                    logger.d { "Copy command: emitting CopyText event for platform handling" }
+                    viewModelScope.launch { _events.send(ConversationEvent.CopyText) }
+                }
+                ConversationCommand.Refresh -> {
+                    logger.i { "Refresh command: reloading current Session" }
+                    refreshSession()
+                }
+                ConversationCommand.OpenSession -> {
+                    onAction(ConversationAction.OnToggleSessionPicker)
+                }
+                ConversationCommand.ToggleAutoRefresh -> {
+                    toggleAutoRefresh()
+                }
+                ConversationCommand.ToggleSortOrder -> {
+                    toggleSortOrder()
+                }
+                ConversationCommand.CollapseAll -> {
+                    collapseAllBlocks()
+                }
+                ConversationCommand.ShowAll -> {
+                    showAllBlocks()
+                }
+                ConversationCommand.FocusSearch -> {
+                    // Handled at the UI level via FocusRequester — emit event
+                    viewModelScope.launch { _events.send(ConversationEvent.FocusSearch) }
+                }
+                ConversationCommand.FindNext -> {
+                    onAction(ConversationAction.OnNextMatch)
+                }
+                ConversationCommand.FindPrevious -> {
+                    onAction(ConversationAction.OnPreviousMatch)
+                }
+                ConversationCommand.Settings -> {
+                    onAction(ConversationAction.OnToggleSettings)
+                }
+                ConversationCommand.Quit -> {
+                    // Handled at the platform/Window level
+                    logger.d { "Quit command: handled at platform level" }
+                }
+                ConversationCommand.About -> {
+                    viewModelScope.launch { _events.send(ConversationEvent.ShowAbout) }
+                }
+                ConversationCommand.HowToUse -> {
+                    viewModelScope.launch { _events.send(ConversationEvent.ShowHowToUse) }
+                }
+            }
+        } catch (t: Throwable) {
+            logger.e(t) { "Error processing command: $command" }
+            FatalErrorManager.reportFatalError(t)
+        }
     }
 
     fun onAction(action: ConversationAction) {
@@ -118,6 +186,12 @@ class ConversationViewModel(
                     _state.update { it.copy(themeMode = action.themeMode) }
                     saveThemeMode(action.themeMode)
                 }
+                is ConversationAction.OnToggleBlockExpansion -> {
+                    toggleBlockExpansion(action.blockId)
+                }
+                is ConversationAction.OnTextSelectionChanged -> {
+                    updateTextSelection(action.containerId, action.hasSelection)
+                }
             }
         } catch (t: Throwable) {
             logger.e(t) { "Error processing action: $action" }
@@ -133,13 +207,21 @@ class ConversationViewModel(
         } catch (_: IllegalArgumentException) {
             ThemeMode.System
         }
+        val sortOrder = try {
+            SortOrder.valueOf(prefs.sortOrder)
+        } catch (_: IllegalArgumentException) {
+            SortOrder.OldestFirst
+        }
         _state.update { 
             it.copy(
                 junieHomePath = prefs.junieHomePath,
                 selectedSessionId = prefs.lastSessionId,
-                themeMode = themeMode
+                themeMode = themeMode,
+                isAutoRefreshEnabled = prefs.isAutoRefreshEnabled,
+                sortOrder = sortOrder
             )
         }
+        logger.d { "Preferences loaded: autoRefresh=${prefs.isAutoRefreshEnabled}, sortOrder=$sortOrder" }
         loadMessages()
     }
 
@@ -159,6 +241,52 @@ class ConversationViewModel(
 
     private fun saveThemeMode(themeMode: ThemeMode) =
         updatePreference { it.copy(themeMode = themeMode.name) }
+
+    private fun saveAutoRefresh(enabled: Boolean) =
+        updatePreference { it.copy(isAutoRefreshEnabled = enabled) }
+
+    private fun saveSortOrder(sortOrder: SortOrder) =
+        updatePreference { it.copy(sortOrder = sortOrder.name) }
+
+    /**
+     * Toggles auto-refresh on/off, starting or stopping live tracking accordingly.
+     * Persists the new preference to disk.
+     */
+    private fun toggleAutoRefresh() {
+        val newEnabled = !_state.value.isAutoRefreshEnabled
+        _state.update { it.copy(isAutoRefreshEnabled = newEnabled) }
+        logger.i { "Auto-refresh toggled: $newEnabled" }
+        saveAutoRefresh(newEnabled)
+
+        if (newEnabled) {
+            // Restart live tracking for the current Session from cached metadata
+            val path = lastLoadedEventsFilePath
+            if (path != null && _state.value.selectedSessionId != null) {
+                val currentMessageCount = _state.value.messages.size
+                // Use current message count and recalculate approximate file offset
+                logger.i { "Restarting live tracking after auto-refresh enabled" }
+                startLiveTracking(path, lastLoadedFileSize, currentMessageCount)
+            }
+        } else {
+            // Stop live tracking but keep Messages visible
+            logger.i { "Stopping live tracking after auto-refresh disabled" }
+            stopLiveTracking()
+        }
+    }
+
+    /**
+     * Refreshes the current Session by reloading from disk.
+     * Preserves Search Query, Filters, and auto-refresh state.
+     * Restarts live tracking only when auto-refresh is enabled.
+     */
+    private fun refreshSession() {
+        if (_state.value.selectedSessionId == null) {
+            logger.d { "Refresh skipped: no Session selected" }
+            return
+        }
+        logger.i { "Refreshing current Session" }
+        loadMessages()
+    }
 
     private fun loadSessions() {
         viewModelScope.launch(exceptionHandler) {
@@ -205,8 +333,17 @@ class ConversationViewModel(
                 filterMessages(_state.value.searchQuery)
                 logger.d { "Successfully loaded ${loadResult.messages.size} messages" }
 
-                // Start live tracking from the end of the loaded file
-                startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.messages.size)
+                // Cache load metadata for potential live tracking restart
+                lastLoadedEventsFilePath = loadResult.eventsFilePath
+                lastLoadedFileSize = loadResult.fileSizeAfterLoad
+                lastLoadedMessageCount = loadResult.messages.size
+
+                // Start live tracking only when auto-refresh is enabled
+                if (_state.value.isAutoRefreshEnabled) {
+                    startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.messages.size)
+                } else {
+                    logger.i { "Auto-refresh disabled — skipping live tracking after load" }
+                }
             } catch (e: Exception) {
                 logger.e(e) { "Failed to load messages for session $sessionId" }
                 _state.update { it.copy(
@@ -265,6 +402,85 @@ class ConversationViewModel(
         logger.d { "ConversationViewModel cleared" }
     }
 
+    // ---------------------------------------------------------------------------
+    // Collapse All / Show All / per-block toggle (Area 7)
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Builds the set of stable block IDs for all collapsible blocks in the current Messages.
+     * IDs follow the pattern "{messageId}:{blockType}".
+     */
+    private fun collectCollapsibleBlockIds(messages: List<com.knowledgespike.junieviewer.domain.Message>): Set<String> {
+        val ids = mutableSetOf<String>()
+        for (msg in messages) {
+            when (msg.kind) {
+                com.knowledgespike.junieviewer.domain.MessageKind.Thought -> ids.add("${msg.id}:thought")
+                com.knowledgespike.junieviewer.domain.MessageKind.Tool,
+                com.knowledgespike.junieviewer.domain.MessageKind.Mcp -> ids.add("${msg.id}:tool")
+                com.knowledgespike.junieviewer.domain.MessageKind.Markdown -> ids.add("${msg.id}:markdown")
+                com.knowledgespike.junieviewer.domain.MessageKind.SubAgent -> ids.add("${msg.id}:subagent")
+                else -> {
+                    // Content-level collapsible blocks (Text, Code, Diff, Terminal, Structured)
+                    when (msg.content) {
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Text -> ids.add("${msg.id}:text")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Code -> ids.add("${msg.id}:code")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Diff -> ids.add("${msg.id}:diff")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Terminal -> ids.add("${msg.id}:terminal")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Structured -> ids.add("${msg.id}:structured")
+                        else -> { /* not collapsible */ }
+                    }
+                }
+            }
+        }
+        return ids
+    }
+
+    /** Collapses all collapsible blocks by setting every known block ID to false. */
+    private fun collapseAllBlocks() {
+        val allIds = collectCollapsibleBlockIds(_state.value.messages)
+        val collapsed = allIds.associateWith { false }
+        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + collapsed) }
+        logger.i { "Collapse All: ${allIds.size} blocks collapsed" }
+    }
+
+    /** Expands all collapsible blocks by setting every known block ID to true. */
+    private fun showAllBlocks() {
+        val allIds = collectCollapsibleBlockIds(_state.value.messages)
+        val expanded = allIds.associateWith { true }
+        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + expanded) }
+        logger.i { "Show All: ${allIds.size} blocks expanded" }
+    }
+
+    /** Container ids that currently report an active text selection. */
+    private val containersWithSelection = mutableSetOf<String>()
+
+    /**
+     * Records whether a tracked selection container currently holds a text selection and
+     * updates [ConversationState.hasTextSelection], which drives Copy command enablement.
+     */
+    private fun updateTextSelection(containerId: String, hasSelection: Boolean) {
+        if (hasSelection) containersWithSelection.add(containerId)
+        else containersWithSelection.remove(containerId)
+        val anySelection = containersWithSelection.isNotEmpty()
+        if (_state.value.hasTextSelection != anySelection) {
+            _state.update { it.copy(hasTextSelection = anySelection) }
+            logger.d { "Text selection state changed: hasTextSelection=$anySelection" }
+        }
+    }
+
+    /** Toggles the expansion state of a single block identified by its stable block ID. */
+    private fun toggleBlockExpansion(blockId: String) {
+        _state.update { currentState ->
+            val currentExpanded = currentState.blockExpansionStates[blockId]
+            // If no explicit state exists, the block is at its default — toggle from default
+            val newExpanded = !(currentExpanded ?: true)
+            currentState.copy(
+                blockExpansionStates = currentState.blockExpansionStates + (blockId to newExpanded)
+            )
+        }
+        logger.d { "Block toggled: $blockId" }
+    }
+
     private fun filterMessages(query: String) {
         _state.update { currentState ->
             val filtered = currentState.messages.filter { message ->
@@ -287,8 +503,39 @@ class ConversationViewModel(
 
                 messageContentText(message.content).contains(query, ignoreCase = true)
             }
-            currentState.copy(filteredMessages = filtered)
+            // Apply sort order: canonical messages list is always chronological;
+            // reverse for NewestFirst display order
+            val sorted = when (currentState.sortOrder) {
+                SortOrder.OldestFirst -> filtered
+                SortOrder.NewestFirst -> filtered.asReversed()
+            }
+
+            // Reset currentMatchIndex safely after re-derivation
+            val newMatchIndex = when {
+                sorted.isEmpty() -> -1
+                currentState.currentMatchIndex < 0 -> if (query.isNotBlank() && sorted.isNotEmpty()) 0 else -1
+                currentState.currentMatchIndex >= sorted.size -> 0
+                else -> currentState.currentMatchIndex
+            }
+
+            currentState.copy(filteredMessages = sorted, currentMatchIndex = newMatchIndex)
         }
+        logger.d { "Visible messages derived: ${_state.value.filteredMessages.size} (sortOrder=${_state.value.sortOrder})" }
+    }
+
+    /**
+     * Toggles sort order between OldestFirst and NewestFirst.
+     * Re-derives visible Messages and persists the new preference.
+     */
+    private fun toggleSortOrder() {
+        val newOrder = when (_state.value.sortOrder) {
+            SortOrder.OldestFirst -> SortOrder.NewestFirst
+            SortOrder.NewestFirst -> SortOrder.OldestFirst
+        }
+        _state.update { it.copy(sortOrder = newOrder) }
+        logger.i { "Sort order toggled: $newOrder" }
+        saveSortOrder(newOrder)
+        filterMessages(_state.value.searchQuery)
     }
 
     /** Extracts searchable plain text from any MessageContent variant. */

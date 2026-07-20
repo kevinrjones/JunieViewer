@@ -15,6 +15,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -24,28 +26,75 @@ import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.ui.components.*
 
 /**
- * Root composable that collects ViewModel state and delegates to ConversationScreen.
+ * Root composable that collects ViewModel state, handles one-time events,
+ * and delegates to ConversationScreen.
  */
 @Composable
 fun ConversationRoot(
-    viewModel: ConversationViewModel
+    viewModel: ConversationViewModel,
+    onCopyText: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
+    val commandState = ConversationCommandState.fromConversationState(state)
 
-    ConversationScreen(
-        state = state,
-        onAction = viewModel::onAction
-    )
+    // Dialog state driven by ViewModel events
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showHowToUseDialog by remember { mutableStateOf(false) }
+
+    // Search focus requester shared between event handling and toolbar
+    val searchFocusRequester = remember { FocusRequester() }
+
+    // Collect one-time events from the ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is ConversationEvent.ShowError -> { /* handled elsewhere */ }
+                ConversationEvent.FocusSearch -> searchFocusRequester.requestFocus()
+                ConversationEvent.ShowAbout -> showAboutDialog = true
+                ConversationEvent.ShowHowToUse -> showHowToUseDialog = true
+                ConversationEvent.CopyText -> onCopyText()
+            }
+        }
+    }
+
+    // About dialog
+    if (showAboutDialog) {
+        AboutDialog(onDismiss = { showAboutDialog = false })
+    }
+
+    // How to Use dialog
+    if (showHowToUseDialog) {
+        HowToUseDialog(onDismiss = { showHowToUseDialog = false })
+    }
+
+    // Provide the text selection reporter so TrackedSelectionContainer instances can
+    // publish selection changes to the ViewModel, driving Copy command enablement.
+    CompositionLocalProvider(
+        LocalTextSelectionReporter provides { containerId, hasSelection ->
+            viewModel.onAction(ConversationAction.OnTextSelectionChanged(containerId, hasSelection))
+        }
+    ) {
+        ConversationScreen(
+            state = state,
+            commandState = commandState,
+            onAction = viewModel::onAction,
+            onCommand = viewModel::onCommand,
+            searchFocusRequester = searchFocusRequester
+        )
+    }
 }
 
 /**
- * Main Conversation screen with search/filter controls at the top,
+ * Main Conversation screen with toolbar at the top, filter chips below,
  * conversation content in the middle, and a Session metadata footer.
  */
 @Composable
 fun ConversationScreen(
     state: ConversationState,
-    onAction: (ConversationAction) -> Unit
+    commandState: ConversationCommandState = ConversationCommandState.fromConversationState(state),
+    onAction: (ConversationAction) -> Unit,
+    onCommand: (ConversationCommand) -> Unit = {},
+    searchFocusRequester: FocusRequester = remember { FocusRequester() }
 ) {
     if (state.isSessionPickerOpen) {
         SessionSelector(
@@ -66,9 +115,6 @@ fun ConversationScreen(
         )
     }
 
-    val searchFocusRequester = remember { FocusRequester() }
-    val isSearchOrFilterActive = state.searchQuery.isNotBlank() || !state.filter.isDefault()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -84,7 +130,17 @@ fun ConversationScreen(
                 }
             }
     ) {
-        SearchAndFilterChrome(state, onAction, searchFocusRequester, isSearchOrFilterActive)
+        // Toolbar with search field, command buttons, and navigation controls
+        ConversationToolbar(
+            state = state,
+            commandState = commandState,
+            onCommand = onCommand,
+            onSearchQueryChange = { onAction(ConversationAction.OnSearchQueryChange(it)) },
+            searchFocusRequester = searchFocusRequester
+        )
+
+        // Filter chips remain below the toolbar per HITL decision (Q12)
+        FilterChrome(state, onAction)
 
         Box(
             modifier = Modifier
@@ -98,7 +154,7 @@ fun ConversationScreen(
                 state.selectedSessionId == null -> NoSessionState()
                 state.messages.isEmpty() -> EmptyConversationState()
                 state.filteredMessages.isEmpty() -> NoResultsState()
-                else -> ConversationList(state)
+                else -> ConversationList(state, onAction)
             }
         }
 
@@ -107,15 +163,14 @@ fun ConversationScreen(
 }
 
 // ---------------------------------------------------------------------------
-// Search and filter chrome (replaces the former top bar with app title)
+// Filter chrome — filter chips below the toolbar (per HITL decision Q12)
 // ---------------------------------------------------------------------------
 
+/** Filter chips and active-filter summary, displayed below the toolbar. */
 @Composable
-private fun SearchAndFilterChrome(
+private fun FilterChrome(
     state: ConversationState,
-    onAction: (ConversationAction) -> Unit,
-    searchFocusRequester: FocusRequester,
-    isSearchOrFilterActive: Boolean
+    onAction: (ConversationAction) -> Unit
 ) {
     val spacing = JunieViewerTheme.spacing
 
@@ -124,141 +179,16 @@ private fun SearchAndFilterChrome(
         tonalElevation = 1.dp
     ) {
         Column {
-            // Search row with compact session/settings controls
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.md, vertical = spacing.sm),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = state.searchQuery,
-                    onValueChange = { onAction(ConversationAction.OnSearchQueryChange(it)) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(searchFocusRequester)
-                        .testTag("search_field"),
-                    placeholder = { Text("Search Messages...") },
-                    trailingIcon = {
-                        if (state.searchQuery.isNotEmpty()) {
-                            IconButton(
-                                onClick = { onAction(ConversationAction.OnSearchQueryChange("")) },
-                                modifier = Modifier.testTag("search_clear_button")
-                                    .semantics { contentDescription = "Clear search" }
-                            ) {
-                                Text(
-                                    "✕",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        cursorColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-                TextButton(
-                    onClick = { onAction(ConversationAction.OnToggleSessionPicker) },
-                    modifier = Modifier
-                        .padding(start = spacing.sm)
-                        .testTag("session_picker_button")
-                        .semantics { contentDescription = "Select Session" }
-                ) {
-                    Text(
-                        text = state.selectedSessionId ?: "Session",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-                TextButton(
-                    onClick = { onAction(ConversationAction.OnToggleSettings) },
-                    modifier = Modifier
-                        .padding(start = spacing.xs)
-                        .testTag("settings_button")
-                        .semantics { contentDescription = "Settings" }
-                ) {
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            // Filter chips row
             FilterBar(
                 filter = state.filter,
                 onToggleFilter = { onAction(ConversationAction.OnToggleFilter(it)) },
                 modifier = Modifier.padding(vertical = spacing.sm)
             )
 
-            // Match navigation when search/filter is active
-            if (isSearchOrFilterActive) {
-                MatchNavigationBar(state, onAction)
-            }
-
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
-
-/** Match count and previous/next navigation controls. */
-@Composable
-private fun MatchNavigationBar(state: ConversationState, onAction: (ConversationAction) -> Unit) {
-    val spacing = JunieViewerTheme.spacing
-    val matchCount = state.filteredMessages.size
-    val totalCount = state.messages.size
-    val countText = if (matchCount == 0) "No matching Messages" else "$matchCount of $totalCount Messages"
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.xl, vertical = spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = countText,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f).testTag("result_count")
-        )
-        if (matchCount > 1) {
-            val matchLabel = if (state.currentMatchIndex >= 0) "${state.currentMatchIndex + 1} / $matchCount" else ""
-            Text(
-                text = matchLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = spacing.sm).testTag("match_position")
-            )
-            IconButton(
-                onClick = { onAction(ConversationAction.OnPreviousMatch) },
-                modifier = Modifier.size(MATCH_NAV_BUTTON_SIZE).testTag("prev_match_button")
-                    .semantics { contentDescription = "Previous match" }
-            ) {
-                Text(
-                    "▲",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(
-                onClick = { onAction(ConversationAction.OnNextMatch) },
-                modifier = Modifier.size(MATCH_NAV_BUTTON_SIZE).testTag("next_match_button")
-                    .semantics { contentDescription = "Next match" }
-            ) {
-                Text(
-                    "▼",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-/** Fixed size for match navigation icon buttons — not part of the spacing scale. */
-private val MATCH_NAV_BUTTON_SIZE = 32.dp
 
 // ---------------------------------------------------------------------------
 // Content states
@@ -376,7 +306,7 @@ private fun NoResultsState() = CenteredStateMessage(
 )
 
 @Composable
-private fun BoxScope.ConversationList(state: ConversationState) {
+private fun BoxScope.ConversationList(state: ConversationState, onAction: (ConversationAction) -> Unit) {
     val turns = groupMessagesIntoTurns(state.filteredMessages)
     val listState = rememberLazyListState()
 
@@ -389,17 +319,26 @@ private fun BoxScope.ConversationList(state: ConversationState) {
         }
     }
 
-    // Auto-scroll to bottom when new messages arrive and user is near the bottom
+    // Auto-scroll when new messages arrive: scroll to the edge where new messages appear
+    // In OldestFirst mode, new messages appear at the bottom — scroll to bottom if near bottom.
+    // In NewestFirst mode, new messages appear at the top — scroll to top if near top.
     val messageCount = state.filteredMessages.size
     LaunchedEffect(messageCount) {
         if (messageCount > 0 && state.searchQuery.isBlank()) {
             val layoutInfo = listState.layoutInfo
-            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             val totalItems = layoutInfo.totalItemsCount
-            // "Near bottom" = last visible item is within 3 items of the end
-            val nearBottom = totalItems == 0 || lastVisibleIndex >= totalItems - 3
-            if (nearBottom) {
-                listState.animateScrollToItem(maxOf(0, layoutInfo.totalItemsCount - 1))
+            if (state.sortOrder == SortOrder.NewestFirst) {
+                val firstVisibleIndex = layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: 0
+                val nearTop = totalItems == 0 || firstVisibleIndex <= 2
+                if (nearTop) {
+                    listState.animateScrollToItem(0)
+                }
+            } else {
+                val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                val nearBottom = totalItems == 0 || lastVisibleIndex >= totalItems - 3
+                if (nearBottom) {
+                    listState.animateScrollToItem(maxOf(0, totalItems - 1))
+                }
             }
         }
     }
@@ -417,7 +356,13 @@ private fun BoxScope.ConversationList(state: ConversationState) {
                 items(items = turn.messages, key = { it.id }) { message ->
                     val msgIndex = state.filteredMessages.indexOf(message)
                     val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
-                    HumanMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
+                    HumanMessageItem(
+                        message = message,
+                        searchQuery = state.searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        blockExpansionStates = state.blockExpansionStates,
+                        onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
+                    )
                 }
             } else {
                 item(key = "turn-header-${turn.messages.first().id}") {
@@ -427,7 +372,13 @@ private fun BoxScope.ConversationList(state: ConversationState) {
                 items(items = turn.messages, key = { it.id }) { message ->
                     val msgIndex = state.filteredMessages.indexOf(message)
                     val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
-                    JunieMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
+                    JunieMessageItem(
+                        message = message,
+                        searchQuery = state.searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        blockExpansionStates = state.blockExpansionStates,
+                        onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
+                    )
                 }
             }
         }

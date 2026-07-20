@@ -8,8 +8,13 @@ Junie Conversation Viewer is a Kotlin Multiplatform application (Desktop/JVM) de
 - **Live Session Tracking**: Polls the selected session’s `events.jsonl` for appended events, preserving scroll position and auto-scrolling at the bottom.
 - **Theme Support**: Light, Dark, and System (follow OS) theme modes with persisted preference. Material 3 colour schemes plus semantic conversation colour tokens for consistent styling.
 - **Polished Conversation UI**: Asymmetric Human/Junie message layout with accent-coloured rails, themed message cards with rounded corners and elevation, Turn headers for conversation grouping, and Message Kind markers with coloured dots and text labels.
+- **Desktop Toolbar**: Integrated toolbar with 7 command buttons (Open, Refresh, Copy, Auto-Refresh, Sort Order, Collapse All, Show All) and integrated search field with match navigation.
+- **Native Menu Bar**: Platform-specific application menu (File, Edit, View, Session, Help) with standard keyboard shortcuts (e.g., Cmd+F for search, Cmd+R for refresh).
 - **Rich Content Rendering**: Themed display of code blocks (with copy), diffs (added/removed/hunk colouring), terminal output (command highlighting), thoughts (collapsible, de-emphasised), tool calls (collapsible with tool name), structured output, and error/warning blocks — all using semantic colour tokens.
-- **Text Selection and Partial Copy**: Select and copy partial text inside messages, plus copy buttons on rich content blocks.
+- **Global Visibility Controls**: Collapse All / Show All buttons to quickly manage visibility across all rich content blocks, including text messages.
+- **Sort Order**: Toggle between Oldest First and Newest First display order with auto-scroll adaptation and preference persistence.
+- **Manual & Auto-Refresh**: Manually reload Sessions from disk or toggle live tracking with preference persistence.
+- **Text Selection and Copy**: Programmatic copy of selected text via toolbar/menu, plus per-block copy buttons for full rich content.
 - **Metadata Filtering**: Pill-shaped filter chips to show or hide specific Message Kinds (Human, Junie, Thoughts, Tools, Patches, Terminal).
 - **Full-Text Search**: Filter messages across the entire Conversation with match-to-match navigation (▲/▼ controls, result count, match position).
 - **Search Highlighting**: Matching text is highlighted in the Conversation, with a distinct highlight for the current match.

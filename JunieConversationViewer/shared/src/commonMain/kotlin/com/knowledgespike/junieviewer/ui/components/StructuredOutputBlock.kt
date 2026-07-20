@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
 
@@ -27,7 +26,9 @@ fun StructuredOutputBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false
+    forceExpanded: Boolean = false,
+    externalExpanded: Boolean? = null,
+    onToggle: (() -> Unit)? = null
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -39,12 +40,14 @@ fun StructuredOutputBlock(
         headerTestTag = "structured_output_block_header",
         bodyTestTag = "structured_output_block_body",
         forceExpanded = forceExpanded,
+        externalExpanded = externalExpanded,
+        onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = data)
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_structured_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_structured_content")) {
                 Text(
                     text = themedHighlightSearchMatches(
                         text = data,

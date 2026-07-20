@@ -8,7 +8,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
@@ -39,7 +38,7 @@ fun ErrorWarningBlock(
         bodyTestTag = "error_warning_block_body",
         forceExpanded = forceExpanded,
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_error_warning_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_error_warning_content")) {
                 Text(
                     text = themedHighlightSearchMatches(
                         text = text,

@@ -14,6 +14,8 @@ dependencies {
     implementation(libs.kotlinx.coroutinesSwing)
 
     implementation(libs.compose.uiToolingPreview)
+    implementation(libs.androidx.lifecycle.viewmodelCompose)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.kermit)
     implementation(libs.slf4j.api)
     implementation(libs.logback.classic)

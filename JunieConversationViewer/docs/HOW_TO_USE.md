@@ -7,9 +7,47 @@ Junie Conversation Viewer is a desktop application for reading and exploring Con
 ## Selecting a Session
 
 - On launch, the viewer scans `~/.junie/sessions/` for available Sessions.
-- Select a Session from the session picker button in the top chrome.
+- Select a Session from the session picker button in the **Toolbar** (or from the **File** menu).
 - To change the Junie home path, open **Settings** and update the path.
 - If no Sessions appear, verify that `~/.junie/sessions/` contains session directories with `events.jsonl` files.
+
+## Toolbar
+
+The Toolbar provides quick access to common commands:
+
+- **Open Session**: Opens the session picker to select a different Conversation.
+- **Refresh**: Manually reloads the current Session from disk, preserving your Search Query and Filters.
+- **Copy**: Copies the currently selected text to the clipboard.
+- **Auto-Refresh**: Toggles live tracking. When enabled, the viewer automatically polls the Session file for new Events.
+- **Sort Order**: Toggles between **Oldest First** and **Newest First**.
+- **Collapse All**: Collapses all collapsible rich content blocks (Text, Thoughts, Tool Calls, Code, Diffs, etc.).
+- **Show All**: Expands all collapsible rich content blocks.
+- **Search Messages**: A text field for entering a **Search Query**, with ▲/▼ buttons to navigate between matches.
+
+## Application Menu
+
+On macOS, the viewer uses the native system menu bar. On Windows and Linux, the menu bar is integrated into the window frame.
+
+- **File**: Open Session, Refresh, and Quit.
+- **Edit**: Copy, Find (focuses search field), Find Next, and Find Previous.
+- **View**: Toggle Sort Order, Collapse All, Show All, and Toggle Auto-Refresh.
+- **Session**: Reload from Disk (Refresh).
+- **Help**: About and How to Use.
+
+## Keyboard Shortcuts
+
+| Command | macOS | Windows / Linux |
+| :--- | :--- | :--- |
+| **Open Session** | Cmd+O | Ctrl+O |
+| **Refresh** | Cmd+R | Ctrl+R |
+| **Auto-Refresh** | Cmd+Shift+R | Ctrl+Shift+R |
+| **Copy** | Cmd+C | Ctrl+C |
+| **Find** | Cmd+F | Ctrl+F |
+| **Find Next** | Cmd+G | F3 |
+| **Find Previous** | Cmd+Shift+G | Shift+F3 |
+| **Collapse All** | Cmd+Shift+− | Ctrl+Shift+− |
+| **Show All** | Cmd+Shift++ | Ctrl+Shift++ |
+| **Quit** | Cmd+Q | Alt+F4 |
 
 ## Reading the Conversation
 
@@ -46,7 +84,8 @@ Some Message Kinds are **always shown** regardless of filter state: Errors, Warn
 ## Copying and Text Selection
 
 - **Select partial text**: Click and drag to select text within any Message. Most content is selectable.
-- **Copy buttons**: Rich content blocks (code, terminal, diff, tool calls) include a copy button for copying the full block content.
+- **Copy command**: The global **Copy** command (Cmd+C / Ctrl+C) and the **Copy** button in the **Toolbar** or **Edit** menu copy the currently selected text. If no text is selected, these commands do nothing.
+- **Copy buttons**: Rich content blocks (code, terminal, diff, tool calls) include a dedicated copy button for copying the full block content, regardless of current selection.
 - Copied content is placed on the clipboard as **plain text**.
 
 ## Rich Content Blocks
@@ -64,15 +103,42 @@ The viewer renders several types of rich content:
 
 Rich content blocks are **collapsible** — click the header to expand or collapse. Some blocks (like Thoughts and Tool Calls) start collapsed by default.
 
+## Sort Order
+
+You can toggle the display order of Messages:
+
+- **Oldest First**: Messages appear in chronological order (default).
+- **Newest First**: The most recent Messages appear at the top of the Conversation.
+- **Persistence**: Your sort order preference is saved and restored when you restart the application.
+- **Live tracking**: In **Newest First** mode, new Events appended to the file appear at the top immediately.
+
+## Collapse All / Show All
+
+Use the global collapse and expand controls in the **Toolbar** or **View** menu:
+
+- **Collapse All**: Collapses all collapsible blocks in the current Conversation, including Text blocks.
+- **Show All**: Expands all collapsible blocks.
+- **Override**: You can still manually toggle individual blocks after a global command.
+- **Search Interaction**: Searching for text will automatically expand any collapsed blocks that contain a match, even if **Collapse All** was previously applied.
+
 ## Live Session Tracking
 
-When a Session is selected, the viewer automatically watches the `events.jsonl` file for changes.
+When a Session is selected, the viewer automatically watches the `events.jsonl` file for changes if **Auto-Refresh** is enabled.
 
-- Updates are checked on a regular polling interval.
-- New Events appended to the file appear as new Messages in the Conversation.
+- **Refresh**: Use the **Refresh** button in the **Toolbar** or **File** menu to manually reload the current Session from disk. This reloads all Events while preserving your current Search Query and Filters.
+- **Auto-Refresh**: Toggle live tracking using the **Auto-Refresh** button in the **Toolbar** or **View** menu.
+- **Persistence**: Your auto-refresh preference is saved and restored when you restart the application.
+- **Updates**: Updates are checked on a regular polling interval when auto-refresh is enabled.
+- **New Events**: New Events appended to the file appear as new Messages in the Conversation.
 - **Scroll preservation**: If you are scrolled up reading earlier content, the view stays in place. If you are at the bottom, new Messages auto-scroll into view.
 - **Partial writes**: If Junie is mid-write, there may be a brief delay before the partial line is complete and parseable.
 - **File deletion/truncation**: If the file is deleted or truncated, the viewer reloads from the current file state.
+
+## About and How to Use
+
+Information about the application and this guide are available from the **Help** menu:
+- **About**: Displays version information and project details.
+- **How to Use**: Opens this documentation for quick reference.
 
 ## Theme
 

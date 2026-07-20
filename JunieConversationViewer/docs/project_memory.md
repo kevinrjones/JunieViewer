@@ -378,3 +378,62 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - All existing tests pass: `./gradlew :shared:jvmTest` and `./gradlew test` both BUILD SUCCESSFUL.
 - Markdown parser tests continue to pass with refactored `MarkdownBlockParser` class.
 - No new tests added — this was a pure refactoring with no behaviour changes.
+
+## Sprint 5 — Toolbar, Menu, and Navigation Controls (Planning)
+**Date/Time:** 2026-07-18 09:15
+
+### What was shipped
+- Created `docs/tasks/junie-conversation-viewer-tasks-sprint-5-toolbar-menu-and-navigation-controls.md` with 67 trackable tasks.
+- Task breakdown follows the exact 11-section structure of Sprint 4.
+- Documented 10 implementation areas, 6 HITL review checkpoints, and 12 open questions.
+
+### Key decisions
+- Decided to reuse the shared command model pattern from LogViewer to unify menu, toolbar, and shortcut actions.
+- Integrated the search field directly into the toolbar to declutter the main conversation surface.
+- Deferred "Open Recent", "Reveal in Finder", and Settings dialog to Sprint 6 to maintain focus on the core navigation framework.
+
+### Gotchas
+- None.
+
+### Test coverage areas
+- Documentation only; no code changes.
+
+
+## Sprint 5 — Toolbar, Menu, and Navigation Controls
+**Date/Time:** 2026-07-20 07:15
+
+### What was shipped
+- Application toolbar with 7 command buttons + integrated search field
+- Native Compose Desktop MenuBar with 5 menus and keyboard shortcuts
+- Manual refresh and auto-refresh toggle with preference persistence
+- Sort order (OldestFirst/NewestFirst) with preference persistence
+- Global Collapse All / Show All for all collapsible blocks
+- Copy/Search integration (selected-text-only global Copy, per-block copy preserved)
+- About and How to Use dialogs
+
+### Key decisions
+- Copy command is selected-text only — Compose Desktop does not expose selected text to external code; OS-level Cmd+C handles actual copying
+- Per-block copy buttons remain separate from global Copy command
+- Toolbar uses icons-only with tooltips (LogViewer-inspired 28dp buttons, 18dp icons, 2dp elevation)
+- Filter chips remain below toolbar (not moved into toolbar or menu)
+- Search field is last item in toolbar, fills remaining width
+- Collapse All/Show All affects all collapsible blocks including Text blocks
+- Search force-expands matching collapsed blocks even after Collapse All
+- Auto-refresh and sort order preferences persisted in AppPreferences JSON
+- Keyboard shortcuts follow IntelliJ conventions for Collapse/Show All (Cmd+Shift+−/+)
+- Shared ConversationCommand sealed interface maps toolbar, menu, and keyboard actions to single dispatch
+
+### Gotchas
+- Compose Desktop MenuBar renders in macOS system menu bar, not in the window frame
+- Compose Desktop does not expose selected text from SelectionContainer — no programmatic way to query current selection
+- horizontalScroll modifier is incompatible with weight() in Row — toolbar uses fixed buttons + weighted search field instead
+- LazyColumn recycling requires hoisted expansion state (in ViewModel) for global Collapse All/Show All to work reliably
+- StateFlow updates can emit intermediate states — Turbine tests must consume multiple items
+
+### Test coverage areas
+- ConversationCommandTest: 24 tests (command enablement, dispatch, Area 8 copy/search)
+- RefreshAndAutoRefreshTest: 13 tests (manual refresh, auto-refresh toggle, preference persistence)
+- SortOrderTest: 15 tests (ordering, persistence, filter/search interaction)
+- CollapseShowAllTest: 10 tests (global commands, per-block override, search force-expand)
+- AccessibilityAndArea8Test: toolbar content descriptions, search navigation
+- All existing Sprint 4 tests continue to pass

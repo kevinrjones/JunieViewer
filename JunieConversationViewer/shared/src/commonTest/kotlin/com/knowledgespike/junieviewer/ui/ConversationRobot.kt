@@ -31,13 +31,13 @@ class ConversationRobot(private val semanticMatcher: SemanticsNodeInteractionsPr
     }
 
     fun openSessionPicker() {
-        semanticMatcher.onNodeWithTag("session_picker_button")
+        semanticMatcher.onNodeWithTag("toolbar_open_session")
             .performClick()
     }
 
     fun openSettings() {
-        semanticMatcher.onNodeWithTag("settings_button")
-            .performClick()
+        // Settings is no longer a toolbar button; it is accessed via menu (Area 4).
+        // For tests that need to toggle settings, use the command model directly.
     }
 
     // Assertions

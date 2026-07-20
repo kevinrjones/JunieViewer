@@ -20,6 +20,10 @@ sealed interface ConversationAction {
     data object OnPreviousMatch : ConversationAction
     /** Change the application theme mode. */
     data class OnThemeModeChange(val themeMode: ThemeMode) : ConversationAction
+    /** Toggle expansion state for a single collapsible block identified by its stable block ID. */
+    data class OnToggleBlockExpansion(val blockId: String) : ConversationAction
+    /** Reports whether text is currently selected inside a tracked selection container. */
+    data class OnTextSelectionChanged(val containerId: String, val hasSelection: Boolean) : ConversationAction
 }
 
 enum class FilterKind {

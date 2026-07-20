@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
@@ -23,7 +22,9 @@ fun ThoughtBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false
+    forceExpanded: Boolean = false,
+    externalExpanded: Boolean? = null,
+    onToggle: (() -> Unit)? = null
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -35,6 +36,8 @@ fun ThoughtBlock(
         headerTestTag = "thought_header",
         bodyTestTag = "thought_block_body",
         forceExpanded = forceExpanded,
+        externalExpanded = externalExpanded,
+        onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.width(spacing.md))
             Text(
@@ -46,7 +49,7 @@ fun ThoughtBlock(
             )
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_thought_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_thought_content")) {
                 Text(
                     text = themedHighlightSearchMatches(
                         text = text,

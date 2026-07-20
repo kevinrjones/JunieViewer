@@ -41,5 +41,20 @@ data class ConversationState(
     /** Zero-based index of the currently focused match in filteredMessages, or -1 if none. */
     val currentMatchIndex: Int = -1,
     /** The currently active theme mode. */
-    val themeMode: ThemeMode = ThemeMode.System
+    val themeMode: ThemeMode = ThemeMode.System,
+    /** Whether live auto-refresh is enabled. Controls live tracking start/stop and is persisted. */
+    val isAutoRefreshEnabled: Boolean = true,
+    /** Current sort order for displaying Messages. Persisted across app launches. */
+    val sortOrder: SortOrder = SortOrder.OldestFirst,
+    /**
+     * Per-block expansion state keyed by stable block ID (e.g. "{messageId}:thought").
+     * When a block ID is absent from the map, the block uses its default initial expansion state.
+     * Entries are set by global Collapse All / Show All commands and per-block manual toggles.
+     */
+    val blockExpansionStates: Map<String, Boolean> = emptyMap(),
+    /**
+     * True while text is selected in any tracked selection container.
+     * Drives the enabled state of the global Copy command (Edit menu and toolbar).
+     */
+    val hasTextSelection: Boolean = false
 )

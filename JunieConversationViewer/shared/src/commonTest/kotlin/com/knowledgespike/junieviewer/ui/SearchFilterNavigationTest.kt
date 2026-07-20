@@ -142,6 +142,9 @@ class SearchFilterNavigationTest {
         }
         // First human message should appear before last human message
         onNodeWithText("Hello Junie", substring = true).assertExists()
+        // Scroll to the last message which may be off-screen due to CollapsibleBlock headers
+        onNodeWithTag("message_list").performScrollToIndex(5)
+        waitForIdle()
         onNodeWithText("Thanks!", substring = true).assertExists()
     }
 
