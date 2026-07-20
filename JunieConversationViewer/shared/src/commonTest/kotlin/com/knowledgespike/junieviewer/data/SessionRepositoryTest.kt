@@ -12,6 +12,7 @@ import strikt.api.expectThat
 import strikt.assertions.hasSize
 import strikt.assertions.isA
 import strikt.assertions.isEqualTo
+import strikt.assertions.isNull
 import kotlin.random.Random
 
 class SessionRepositoryTest {
@@ -55,6 +56,92 @@ class SessionRepositoryTest {
         expectThat(result).hasSize(2)
         expectThat(result[0].id).isEqualTo("session-2")
         expectThat(result[1].id).isEqualTo("session-1")
+    }
+
+    @Test
+    fun `given a session with a direct currentDirectory field when listSessions then workingDirectory is extracted`() {
+        val sessionDir = testDir / "sessions" / "session-direct"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                {"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hello"}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/my-project"}},"timestampMs":1}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/my-project")
+    }
+
+    @Test
+    fun `given a session with currentDirectory nested in blob when listSessions then workingDirectory is extracted`() {
+        val sessionDir = testDir / "sessions" / "session-blob"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                {"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hello"}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentStateUpdatedEvent","blob":"{\"currentDirectory\":\"/Users/dev/blob-project\",\"other\":1}"}},"timestampMs":1}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/blob-project")
+    }
+
+    @Test
+    fun `given a session without a working directory when listSessions then workingDirectory is null`() {
+        val sessionDir = testDir / "sessions" / "session-none"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8("""{"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hello"}""")
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isNull()
+    }
+
+    @Test
+    fun `given malformed lines before the working directory when listSessions then they are skipped without throwing`() {
+        val sessionDir = testDir / "sessions" / "session-malformed"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                this is not json but mentions currentDirectory
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentStateUpdatedEvent","blob":"not-json currentDirectory"}},"timestampMs":1}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/after-malformed"}},"timestampMs":2}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/after-malformed")
+    }
+
+    @Test
+    fun `given multiple working directory events when listSessions then the first hit wins`() {
+        val sessionDir = testDir / "sessions" / "session-first"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/first"}},"timestampMs":1}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/second"}},"timestampMs":2}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/first")
     }
 
     @Test

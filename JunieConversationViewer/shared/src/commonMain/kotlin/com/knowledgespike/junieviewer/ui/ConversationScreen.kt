@@ -22,7 +22,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
-import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.ui.components.*
 
 /**
@@ -307,7 +306,8 @@ private fun NoResultsState() = CenteredStateMessage(
 
 @Composable
 private fun BoxScope.ConversationList(state: ConversationState, onAction: (ConversationAction) -> Unit) {
-    val turns = groupMessagesIntoTurns(state.filteredMessages)
+    // Turns are derived in the ViewModel alongside filteredMessages (F10) — no per-recomposition grouping
+    val turns = state.turns
     val listState = rememberLazyListState()
 
     // Scroll to current search match

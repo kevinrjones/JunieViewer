@@ -12,6 +12,7 @@ import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
 import com.knowledgespike.junieviewer.domain.AppPreferences
 import com.knowledgespike.junieviewer.domain.FilterCategory
 import com.knowledgespike.junieviewer.domain.MessageContent
+import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
@@ -124,8 +125,14 @@ class ConversationViewModel(
         try {
             when (action) {
                 is ConversationAction.OnSearchQueryChange -> {
-                    _state.update { it.copy(searchQuery = action.query, currentMatchIndex = if (action.query.isBlank()) -1 else 0) }
-                    filterMessages(action.query)
+                    // Single atomic emission per Search Query change (F8)
+                    _state.update {
+                        filterMessages(
+                            it.copy(searchQuery = action.query, currentMatchIndex = if (action.query.isBlank()) -1 else 0),
+                            action.query
+                        )
+                    }
+                    logVisibleMessages()
                 }
                 ConversationAction.OnRetryClick -> loadMessages()
                 ConversationAction.OnToggleSessionPicker -> {
@@ -163,9 +170,9 @@ class ConversationViewModel(
                             FilterKind.Patch -> currentState.filter.copy(showPatches = !currentState.filter.showPatches)
                             FilterKind.Terminal -> currentState.filter.copy(showTerminal = !currentState.filter.showTerminal)
                         }
-                        currentState.copy(filter = newFilter)
+                        filterMessages(currentState.copy(filter = newFilter), currentState.searchQuery)
                     }
-                    filterMessages(_state.value.searchQuery)
+                    logVisibleMessages()
                 }
                 ConversationAction.OnNextMatch -> {
                     _state.update { currentState ->
@@ -321,16 +328,18 @@ class ConversationViewModel(
                     val info = repository.getSessionInfo(sessionId, homePath)
                     result to info
                 }
-                _state.update { 
-                    it.copy(
-                        messages = loadResult.messages,
-                        filteredMessages = loadResult.messages,
-                        isLoading = false,
-                        errorMessage = null,
-                        selectedSession = sessionInfo ?: it.selectedSession
+                _state.update {
+                    filterMessages(
+                        it.copy(
+                            messages = loadResult.messages,
+                            isLoading = false,
+                            errorMessage = null,
+                            selectedSession = sessionInfo ?: it.selectedSession
+                        ),
+                        it.searchQuery
                     )
                 }
-                filterMessages(_state.value.searchQuery)
+                logVisibleMessages()
                 logger.d { "Successfully loaded ${loadResult.messages.size} messages" }
 
                 // Cache load metadata for potential live tracking restart
@@ -370,9 +379,9 @@ class ConversationViewModel(
                             logger.d { "Live tracking: ${event.messages.size} new messages" }
                             _state.update { currentState ->
                                 val updatedMessages = currentState.messages + event.messages
-                                currentState.copy(messages = updatedMessages)
+                                filterMessages(currentState.copy(messages = updatedMessages), currentState.searchQuery)
                             }
-                            filterMessages(_state.value.searchQuery)
+                            logVisibleMessages()
                         }
                         is LiveTrackingEvent.FileReset -> {
                             logger.i { "Live tracking: file reset — reloading session" }
@@ -481,8 +490,14 @@ class ConversationViewModel(
         logger.d { "Block toggled: $blockId" }
     }
 
-    private fun filterMessages(query: String) {
-        _state.update { currentState ->
+    /**
+     * Pure derivation of the visible Messages for [currentState] and the given Search Query.
+     * Applies Filters, search matching, and sort order, regroups the result into Turns,
+     * and returns the new state without emitting — callers fold it into a single
+     * `_state.update` so each user action produces exactly one state emission.
+     */
+    private fun filterMessages(currentState: ConversationState, query: String): ConversationState =
+        run {
             val filtered = currentState.messages.filter { message ->
                 val kindMatch = when (message.kind.filterCategory) {
                     FilterCategory.Human -> currentState.filter.showHuman
@@ -518,10 +533,16 @@ class ConversationViewModel(
                 else -> currentState.currentMatchIndex
             }
 
-            currentState.copy(filteredMessages = sorted, currentMatchIndex = newMatchIndex)
+            currentState.copy(
+                filteredMessages = sorted,
+                turns = groupMessagesIntoTurns(sorted),
+                currentMatchIndex = newMatchIndex
+            )
         }
+
+    /** Logs the size of the derived visible Message list after a state emission. */
+    private fun logVisibleMessages() =
         logger.d { "Visible messages derived: ${_state.value.filteredMessages.size} (sortOrder=${_state.value.sortOrder})" }
-    }
 
     /**
      * Toggles sort order between OldestFirst and NewestFirst.
@@ -532,10 +553,9 @@ class ConversationViewModel(
             SortOrder.OldestFirst -> SortOrder.NewestFirst
             SortOrder.NewestFirst -> SortOrder.OldestFirst
         }
-        _state.update { it.copy(sortOrder = newOrder) }
+        _state.update { filterMessages(it.copy(sortOrder = newOrder), it.searchQuery) }
         logger.i { "Sort order toggled: $newOrder" }
         saveSortOrder(newOrder)
-        filterMessages(_state.value.searchQuery)
     }
 
     /** Extracts searchable plain text from any MessageContent variant. */

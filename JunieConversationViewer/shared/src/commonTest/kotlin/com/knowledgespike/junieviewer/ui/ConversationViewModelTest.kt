@@ -89,9 +89,7 @@ class ConversationViewModelTest {
             assertEquals(4, initialState.filteredMessages.size)
 
             viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
-            // First item: searchQuery changed
-            val intermediateState = awaitItem()
-            // Second item: filteredMessages updated
+            // Single atomic emission: searchQuery and filteredMessages update together (F8)
             val finalState = awaitItem()
             
             assertEquals("Hello", finalState.searchQuery)
@@ -146,9 +144,7 @@ class ConversationViewModelTest {
 
             // Toggle off Junie messages
             viewModel.onAction(ConversationAction.OnToggleFilter(FilterKind.Junie))
-            // First item: filter changed
-            awaitItem()
-            // Second item: filteredMessages updated
+            // Single atomic emission: filter and filteredMessages update together (F8)
             val state = awaitItem()
             
             assertFalse(state.filter.showJunie)

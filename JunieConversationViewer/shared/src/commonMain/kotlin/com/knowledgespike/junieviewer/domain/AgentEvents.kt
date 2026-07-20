@@ -1,7 +1,9 @@
 package com.knowledgespike.junieviewer.domain
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.json.JsonObject
 
 // ---------------------------------------------------------------------------
@@ -107,6 +109,9 @@ data class LlmResponseMetadataEvent(
 /** Current working directory update (metadata-only). */
 @Serializable
 data class CurrentDirectoryUpdatedEvent(
+    // The JSONL emits this field as `currentDirectory`; accept both names.
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("currentDirectory")
     val directory: String? = null
 ) : AgentEvent
 

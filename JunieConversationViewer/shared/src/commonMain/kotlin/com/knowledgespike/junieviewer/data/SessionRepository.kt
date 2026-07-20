@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
 import com.knowledgespike.junieviewer.getPlatform
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okio.FileSystem
@@ -166,8 +167,9 @@ class SessionRepositoryImpl(
     }
 
     /**
-     * Scans a session's events.jsonl for the first AgentStateUpdatedEvent containing
-     * a `currentDirectory` field and returns it.
+     * Scans a session's events.jsonl for the first parsed event carrying a working
+     * directory and returns it. Lines are parsed with [JsonlParser]; malformed lines
+     * are skipped.
      */
     private fun extractWorkingDirectory(sessionDir: Path): String? {
         val eventsFile = sessionDir / "events.jsonl"
@@ -177,23 +179,13 @@ class SessionRepositoryImpl(
             fileSystem.source(eventsFile).buffer().use { source ->
                 while (true) {
                     val line = source.readUtf8Line() ?: break
+                    // Cheap fast-path: only lines mentioning the field can produce a hit.
                     if (!line.contains("currentDirectory")) continue
-                    try {
-                        val root = Json.parseToJsonElement(line).jsonObject
-                        val agentEvent = root["event"]?.jsonObject?.get("agentEvent")?.jsonObject
-
-                        val directDir = agentEvent?.get("currentDirectory")?.jsonPrimitive?.content
-                        if (!directDir.isNullOrBlank()) return@use directDir
-
-                        val blob = agentEvent?.get("blob")?.jsonPrimitive?.content
-                        if (blob != null) {
-                            val blobJson = Json.parseToJsonElement(blob).jsonObject
-                            val dir = blobJson["currentDirectory"]?.jsonPrimitive?.content
-                            if (!dir.isNullOrBlank()) return@use dir
-                        }
-                    } catch (_: Exception) {
-                        // Skip malformed lines
-                    }
+                    JsonlParser.parseLine(line)
+                        .onLeft { logger.d { "Skipping malformed line while extracting working directory: ${it.message}" } }
+                        .getOrNull()
+                        ?.let { event -> workingDirectoryOf(event) }
+                        ?.let { directory -> return@use directory }
                 }
                 null
             }
@@ -201,6 +193,36 @@ class SessionRepositoryImpl(
             logger.d { "Could not extract working directory from $eventsFile: ${e.message}" }
             null
         }
+    }
+
+    /** Extracts the working directory from a parsed event, or null when it carries none. */
+    private fun workingDirectoryOf(event: JunieEvent): String? {
+        val agentEvent = (event as? SessionA2uxEvent)?.event?.agentEvent ?: return null
+        return when (agentEvent) {
+            is CurrentDirectoryUpdatedEvent -> agentEvent.directory?.takeIf { it.isNotBlank() }
+            is AgentStateUpdatedEvent -> agentEvent.blob?.let { workingDirectoryFromBlob(it) }
+            is UnknownAgentEvent -> workingDirectoryFromRaw(agentEvent.raw)
+            else -> null
+        }
+    }
+
+    /** Parses the serialized agent-state blob and returns its `currentDirectory`, or null. */
+    private fun workingDirectoryFromBlob(blob: String): String? = try {
+        Json.parseToJsonElement(blob).jsonObject["currentDirectory"]
+            ?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+    } catch (e: Exception) {
+        logger.d { "Skipping malformed agent-state blob: ${e.message}" }
+        null
+    }
+
+    /** Reads a working directory from an unknown agent event's raw JSON payload. */
+    private fun workingDirectoryFromRaw(raw: JsonObject): String? = try {
+        val direct = raw["currentDirectory"]?.jsonPrimitive?.content
+        if (!direct.isNullOrBlank()) direct
+        else raw["blob"]?.jsonPrimitive?.content?.let { workingDirectoryFromBlob(it) }
+    } catch (e: Exception) {
+        logger.d { "Skipping malformed unknown agent event payload: ${e.message}" }
+        null
     }
 
     private fun expandPath(path: String): String {

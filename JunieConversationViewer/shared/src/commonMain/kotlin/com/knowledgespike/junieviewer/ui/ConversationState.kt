@@ -2,6 +2,8 @@ package com.knowledgespike.junieviewer.ui
 
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.SessionInfo
+import com.knowledgespike.junieviewer.domain.Turn
+import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 
 /**
@@ -26,6 +28,8 @@ data class FilterState(
 data class ConversationState(
     val messages: List<Message> = emptyList(),
     val filteredMessages: List<Message> = emptyList(),
+    /** Visible Messages grouped into Turns, derived alongside [filteredMessages]. */
+    val turns: List<Turn> = groupMessagesIntoTurns(filteredMessages),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     /** User-facing error message when session loading fails, null when no error. */
