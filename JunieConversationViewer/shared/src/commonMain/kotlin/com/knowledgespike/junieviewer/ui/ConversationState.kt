@@ -51,5 +51,10 @@ data class ConversationState(
      * When a block ID is absent from the map, the block uses its default initial expansion state.
      * Entries are set by global Collapse All / Show All commands and per-block manual toggles.
      */
-    val blockExpansionStates: Map<String, Boolean> = emptyMap()
+    val blockExpansionStates: Map<String, Boolean> = emptyMap(),
+    /**
+     * True while text is selected in any tracked selection container.
+     * Drives the enabled state of the global Copy command (Edit menu and toolbar).
+     */
+    val hasTextSelection: Boolean = false
 )

@@ -117,8 +117,9 @@ data class ConversationCommandState(
             val hasSearchResults = state.searchQuery.isNotBlank() && state.filteredMessages.isNotEmpty()
 
             return ConversationCommandState(
-                // Copy: disabled — selected-text detection not available in Compose Desktop (Area 8 TODO)
-                copyEnabled = false,
+                // Copy: enabled only while text is actually selected somewhere in the app.
+                // Selection state is reported by TrackedSelectionContainer instances.
+                copyEnabled = state.hasTextSelection,
                 refreshEnabled = hasSession && !state.isLoading,
                 openSessionEnabled = true,
                 toggleAutoRefreshEnabled = hasSession,

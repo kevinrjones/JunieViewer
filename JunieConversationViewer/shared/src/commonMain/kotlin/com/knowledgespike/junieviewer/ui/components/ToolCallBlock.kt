@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
@@ -57,7 +56,7 @@ fun ToolCallBlock(
             CopyButton(text = content)
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_tool_call_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_tool_call_content")) {
                 Text(
                     text = themedHighlightSearchMatches(
                         text = content,

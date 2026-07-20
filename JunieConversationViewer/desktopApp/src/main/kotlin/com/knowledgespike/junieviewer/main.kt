@@ -108,6 +108,11 @@ fun main() {
             state = windowState,
             title = "Junie Conversation Viewer",
         ) {
+            // Copy enabled state: TrackedSelectionContainer instances report real text
+            // selection changes into ConversationState.hasTextSelection, so the Copy menu
+            // item is enabled only while text is actually selected somewhere in the app.
+            val copyMenuEnabled = commandState.copyEnabled
+
             MenuBar {
                 // File menu
                 Menu("File") {
@@ -133,11 +138,18 @@ fun main() {
 
                 // Edit menu
                 Menu("Edit") {
+                    // Copy carries the standard Cmd+C / Ctrl+C accelerator so the menu item
+                    // looks and behaves like a conventional desktop Edit → Copy. The menu
+                    // accelerator intercepts the shortcut before Compose sees it, so onClick
+                    // forwards a synthetic copy key event to the focused Compose component,
+                    // letting SelectionContainer copy the selected text. A re-entrancy guard
+                    // inside dispatchSyntheticCopy prevents the accelerator from re-triggering
+                    // itself off that synthetic event (which previously hung the app).
                     Item(
                         "Copy",
                         shortcut = KeyShortcut(Key.C, meta = true),
-                        enabled = commandState.copyEnabled,
-                        onClick = { viewModel.onCommand(ConversationCommand.Copy) }
+                        enabled = copyMenuEnabled,
+                        onClick = { dispatchSyntheticCopy(window) }
                     )
                     Separator()
                     Item(
@@ -217,9 +229,75 @@ fun main() {
                 }
             }
 
-            App(externalViewModel = viewModel, onExit = ::exitApplication)
+            App(
+                externalViewModel = viewModel,
+                onExit = ::exitApplication,
+                onCopyText = {
+                    // Dispatch a synthetic Cmd+C / Ctrl+C to the Compose window so
+                    // SelectionContainer handles the copy internally.
+                    dispatchSyntheticCopy(window)
+                }
+            )
         }
     }
+}
+
+/**
+ * Re-entrancy guard for [dispatchSyntheticCopy]. When the Copy menu item carries the
+ * Cmd+C / Ctrl+C accelerator, the synthetic copy key event posted by the menu action can
+ * itself be matched by the menu shortcut (AWT re-dispatches unconsumed shortcuts to the
+ * menu), which would re-invoke the menu action forever and hang the app. While this flag
+ * is set, further dispatch requests are ignored. All access happens on the AWT EDT.
+ */
+private var syntheticCopyInFlight = false
+
+/**
+ * Dispatches a synthetic Cmd+C (macOS) or Ctrl+C (Windows/Linux) key event to the
+ * given AWT window. Compose Desktop's [SelectionContainer] handles the copy internally
+ * when it receives this key event, copying any currently selected text to the clipboard.
+ * If no text is selected, nothing happens (standard desktop behaviour).
+ */
+private fun dispatchSyntheticCopy(target: java.awt.Window) {
+    if (syntheticCopyInFlight) {
+        Logger.d { "Ignoring re-entrant synthetic copy dispatch" }
+        return
+    }
+    val modifiers = if (System.getProperty("os.name").lowercase().contains("mac"))
+        java.awt.event.InputEvent.META_DOWN_MASK
+    else
+        java.awt.event.InputEvent.CTRL_DOWN_MASK
+    // Target the current keyboard focus owner (the Compose panel) so the key event
+    // reaches Compose's key handling; fall back to the window if nothing has focus.
+    val focusOwner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner ?: target
+    val queue = java.awt.Toolkit.getDefaultToolkit().systemEventQueue
+    syntheticCopyInFlight = true
+    // Post PRESSED and RELEASED asynchronously via the system event queue so the
+    // dispatch happens after the menu action completes, never re-entrantly.
+    queue.postEvent(
+        java.awt.event.KeyEvent(
+            focusOwner,
+            java.awt.event.KeyEvent.KEY_PRESSED,
+            System.currentTimeMillis(),
+            modifiers,
+            java.awt.event.KeyEvent.VK_C,
+            'c'
+        )
+    )
+    queue.postEvent(
+        java.awt.event.KeyEvent(
+            focusOwner,
+            java.awt.event.KeyEvent.KEY_RELEASED,
+            System.currentTimeMillis(),
+            modifiers,
+            java.awt.event.KeyEvent.VK_C,
+            'c'
+        )
+    )
+    // Clear the guard after both key events have been processed. invokeLater posts an
+    // InvocationEvent behind the two key events on the same queue, so the flag is
+    // guaranteed to still be set if the menu shortcut re-fires during their dispatch.
+    java.awt.EventQueue.invokeLater { syntheticCopyInFlight = false }
+    Logger.d { "Dispatched synthetic copy key event to focus owner" }
 }
 
 private fun setupLogging(platform: Platform) {

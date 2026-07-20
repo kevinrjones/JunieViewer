@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
 
@@ -54,7 +53,7 @@ fun DiffBlock(
             CopyButton(text = diff)
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_diff_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_diff_content")) {
                 InlineDiffView(
                     diff = diff,
                     searchQuery = searchQuery,

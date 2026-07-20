@@ -232,3 +232,12 @@
 - **Commit**: `9f98bf7` — Add `CollapseShowAllTest` suite and expandability logic. Update collapsible block components to support `externalExpanded` state and toggle handlers.
 - **Task Document Updated**: Tasks 7.1–7.5 marked complete, Progress Summary updated to 5/6. Task 7.6 (HITL collapse/show-all review) left unchecked — requires HITL approval.
 - **Files Changed**: `ConversationViewModel.kt`, `ConversationState.kt`, `ConversationAction.kt`, `CollapsibleBlock.kt`, `ThoughtBlock.kt`, `ToolCallBlock.kt`, `CodeBlockWithCopy.kt`, `DiffBlock.kt`, `TerminalOutputBlock.kt`, `StructuredOutputBlock.kt`, `MessageItems.kt`, `ConversationScreen.kt`, `CollapseShowAllTest.kt` (new), `SearchFilterNavigationTest.kt`, task document.
+
+# 2026-07-20
+
+## 07:15
+### Sprint 5 Completion Milestone
+- **Areas 8–10 Complete**: Finalised Copy/Search integration, performed exhaustive documentation updates, and completed final integration testing.
+- **Testing**: Added 6 new Area 8 tests to `ConversationCommandTest.kt` verifying search navigation and copy command safety. Full test suite (332+ tests) passes.
+- **Documentation**: All core documentation (HOW_TO_USE, README, TESTING, RECAP, project_memory) updated to reflect Sprint 5 features and architecture.
+- **Sprint Status**: Sprint 5 is now complete and ready for final HITL approval.

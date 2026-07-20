@@ -65,9 +65,10 @@ class ConversationViewModel(
         try {
             when (command) {
                 ConversationCommand.Copy -> {
-                    // TODO Area 8: selected-text copy via OS shortcut passthrough.
-                    // Currently a no-op — Compose Desktop does not expose selected text.
-                    logger.d { "Copy command: no-op (selected-text detection not available)" }
+                    // Emit a CopyText event so the platform layer can dispatch a native
+                    // copy action (synthetic Cmd+C / Ctrl+C) to the focused component.
+                    logger.d { "Copy command: emitting CopyText event for platform handling" }
+                    viewModelScope.launch { _events.send(ConversationEvent.CopyText) }
                 }
                 ConversationCommand.Refresh -> {
                     logger.i { "Refresh command: reloading current Session" }
@@ -187,6 +188,9 @@ class ConversationViewModel(
                 }
                 is ConversationAction.OnToggleBlockExpansion -> {
                     toggleBlockExpansion(action.blockId)
+                }
+                is ConversationAction.OnTextSelectionChanged -> {
+                    updateTextSelection(action.containerId, action.hasSelection)
                 }
             }
         } catch (t: Throwable) {
@@ -445,6 +449,23 @@ class ConversationViewModel(
         val expanded = allIds.associateWith { true }
         _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + expanded) }
         logger.i { "Show All: ${allIds.size} blocks expanded" }
+    }
+
+    /** Container ids that currently report an active text selection. */
+    private val containersWithSelection = mutableSetOf<String>()
+
+    /**
+     * Records whether a tracked selection container currently holds a text selection and
+     * updates [ConversationState.hasTextSelection], which drives Copy command enablement.
+     */
+    private fun updateTextSelection(containerId: String, hasSelection: Boolean) {
+        if (hasSelection) containersWithSelection.add(containerId)
+        else containersWithSelection.remove(containerId)
+        val anySelection = containersWithSelection.isNotEmpty()
+        if (_state.value.hasTextSelection != anySelection) {
+            _state.update { it.copy(hasTextSelection = anySelection) }
+            logger.d { "Text selection state changed: hasTextSelection=$anySelection" }
+        }
     }
 
     /** Toggles the expansion state of a single block identified by its stable block ID. */

@@ -163,10 +163,36 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `copy is disabled by default`() {
-        val state = ConversationState(messages = testMessages)
+    fun `copy is enabled when text is selected`() {
+        val state = ConversationState(messages = testMessages, hasTextSelection = true)
+        val cmdState = ConversationCommandState.fromConversationState(state)
+        assertTrue(cmdState.copyEnabled)
+    }
+
+    @Test
+    fun `copy is disabled when no text is selected`() {
+        val state = ConversationState(messages = testMessages, hasTextSelection = false)
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.copyEnabled)
+    }
+
+    @Test
+    fun `text selection action updates hasTextSelection state`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.hasTextSelection)
+
+        viewModel.onAction(ConversationAction.OnTextSelectionChanged("container-1", true))
+        assertTrue(viewModel.state.value.hasTextSelection)
+
+        // A second container selecting then clearing keeps selection while any remains
+        viewModel.onAction(ConversationAction.OnTextSelectionChanged("container-2", true))
+        viewModel.onAction(ConversationAction.OnTextSelectionChanged("container-1", false))
+        assertTrue(viewModel.state.value.hasTextSelection)
+
+        viewModel.onAction(ConversationAction.OnTextSelectionChanged("container-2", false))
+        assertFalse(viewModel.state.value.hasTextSelection)
     }
 
     // -- Command Dispatch --
@@ -249,6 +275,97 @@ class ConversationCommandTest {
 
         viewModel.onCommand(ConversationCommand.ToggleSortOrder)
         assertEquals(SortOrder.OldestFirst, viewModel.state.value.sortOrder)
+    }
+
+    // -- Area 8: Copy and Search Integration --
+
+    @Test
+    fun `copy command does not crash when no selection exists`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // Copy emits a CopyText event — must not throw
+        viewModel.onCommand(ConversationCommand.Copy)
+        // State should remain unchanged
+        assertFalse(viewModel.state.value.isLoading)
+    }
+
+    @Test
+    fun `copy command emits CopyText event`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onCommand(ConversationCommand.Copy)
+            val event = awaitItem()
+            assertTrue(event is ConversationEvent.CopyText)
+        }
+    }
+
+    @Test
+    fun `focus search command emits FocusSearch event`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onCommand(ConversationCommand.FocusSearch)
+            val event = awaitItem()
+            assertEquals(ConversationEvent.FocusSearch, event)
+        }
+    }
+
+    @Test
+    fun `find next wraps around at end of matches`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("alpha"))
+        advanceUntilIdle()
+
+        val matchCount = viewModel.state.value.filteredMessages.size
+        // Navigate past the last match — should wrap
+        repeat(matchCount + 1) {
+            viewModel.onCommand(ConversationCommand.FindNext)
+        }
+        // After wrapping, index should be valid (0 or 1)
+        assertTrue(viewModel.state.value.currentMatchIndex in 0 until matchCount)
+    }
+
+    @Test
+    fun `find previous wraps around at beginning of matches`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("alpha"))
+        advanceUntilIdle()
+
+        val matchCount = viewModel.state.value.filteredMessages.size
+        // Navigate backward from index 0 — should wrap to end
+        viewModel.onCommand(ConversationCommand.FindPrevious)
+        assertEquals(matchCount - 1, viewModel.state.value.currentMatchIndex)
+    }
+
+    @Test
+    fun `match navigation respects current search query`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("beta"))
+        advanceUntilIdle()
+
+        // Only messages containing "beta" should be in filteredMessages
+        val filtered = viewModel.state.value.filteredMessages
+        assertTrue(filtered.all { msg ->
+            val text = (msg.content as? MessageContent.Text)?.text ?: ""
+            text.contains("beta", ignoreCase = true)
+        })
+
+        // FindNext should work within filtered results
+        viewModel.onCommand(ConversationCommand.FindNext)
+        assertTrue(viewModel.state.value.currentMatchIndex >= 0)
     }
 
     @Test

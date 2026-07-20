@@ -31,7 +31,8 @@ import com.knowledgespike.junieviewer.ui.components.*
  */
 @Composable
 fun ConversationRoot(
-    viewModel: ConversationViewModel
+    viewModel: ConversationViewModel,
+    onCopyText: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val commandState = ConversationCommandState.fromConversationState(state)
@@ -51,6 +52,7 @@ fun ConversationRoot(
                 ConversationEvent.FocusSearch -> searchFocusRequester.requestFocus()
                 ConversationEvent.ShowAbout -> showAboutDialog = true
                 ConversationEvent.ShowHowToUse -> showHowToUseDialog = true
+                ConversationEvent.CopyText -> onCopyText()
             }
         }
     }
@@ -65,13 +67,21 @@ fun ConversationRoot(
         HowToUseDialog(onDismiss = { showHowToUseDialog = false })
     }
 
-    ConversationScreen(
-        state = state,
-        commandState = commandState,
-        onAction = viewModel::onAction,
-        onCommand = viewModel::onCommand,
-        searchFocusRequester = searchFocusRequester
-    )
+    // Provide the text selection reporter so TrackedSelectionContainer instances can
+    // publish selection changes to the ViewModel, driving Copy command enablement.
+    CompositionLocalProvider(
+        LocalTextSelectionReporter provides { containerId, hasSelection ->
+            viewModel.onAction(ConversationAction.OnTextSelectionChanged(containerId, hasSelection))
+        }
+    ) {
+        ConversationScreen(
+            state = state,
+            commandState = commandState,
+            onAction = viewModel::onAction,
+            onCommand = viewModel::onCommand,
+            searchFocusRequester = searchFocusRequester
+        )
+    }
 }
 
 /**

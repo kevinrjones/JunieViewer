@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
@@ -50,7 +49,7 @@ fun ThoughtBlock(
             )
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_thought_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_thought_content")) {
                 Text(
                     text = themedHighlightSearchMatches(
                         text = text,

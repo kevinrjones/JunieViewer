@@ -24,7 +24,8 @@ import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 @Preview
 fun App(
     externalViewModel: ConversationViewModel? = null,
-    onExit: () -> Unit = {}
+    onExit: () -> Unit = {},
+    onCopyText: () -> Unit = {}
 ) {
     val viewModel = externalViewModel ?: viewModel {
         ConversationViewModel(
@@ -51,6 +52,6 @@ fun App(
             )
         }
 
-        ConversationRoot(viewModel = viewModel)
+        ConversationRoot(viewModel = viewModel, onCopyText = onCopyText)
     }
 }

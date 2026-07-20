@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
 
@@ -50,7 +49,7 @@ fun TerminalOutputBlock(
             CopyButton(text = output)
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_terminal_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_terminal_content")) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

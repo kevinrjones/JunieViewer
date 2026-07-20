@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
 
@@ -48,7 +47,7 @@ fun StructuredOutputBlock(
             CopyButton(text = data)
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_structured_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_structured_content")) {
                 Text(
                     text = themedHighlightSearchMatches(
                         text = data,

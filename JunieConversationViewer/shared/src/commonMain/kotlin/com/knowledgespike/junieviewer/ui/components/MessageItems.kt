@@ -17,7 +17,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -416,7 +415,7 @@ fun MessageBody(
                 externalExpanded = blockExpansionStates[blockId],
                 onToggle = { onToggleBlock(blockId) },
                 body = {
-                    SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                    TrackedSelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                         MarkdownContent(
                             markdown = mdText,
                             modifier = Modifier.testTag("markdown_content"),
@@ -442,7 +441,7 @@ fun MessageBody(
                 externalExpanded = blockExpansionStates[blockId],
                 onToggle = { onToggleBlock(blockId) },
                 body = {
-                    SelectionContainer(modifier = Modifier.testTag("selectable_sub_agent_content")) {
+                    TrackedSelectionContainer(modifier = Modifier.testTag("selectable_sub_agent_content")) {
                         Text(
                             text = themedHighlightSearchMatches(
                                 text = subAgentText,
@@ -525,7 +524,7 @@ private fun ContentRenderer(
                 onToggle = { onToggleBlock(blockId) },
                 body = {
                     if (isMarkdownKind || looksLikeMarkdown(content.text)) {
-                        SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                        TrackedSelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                             MarkdownContent(
                                 markdown = content.text,
                                 modifier = Modifier.testTag("markdown_content"),
@@ -534,7 +533,7 @@ private fun ContentRenderer(
                             )
                         }
                     } else {
-                        SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                        TrackedSelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                             Text(
                                 text = themedHighlightSearchMatches(
                                     text = content.text,

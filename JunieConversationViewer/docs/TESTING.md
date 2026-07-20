@@ -59,25 +59,33 @@ fun `searching for text filters the message list`() = runComposeUiTest {
 2. **UI Tests**: Place in `shared/src/commonTest/kotlin/...` using `runComposeUiTest`.
 3. **Test Tags**: When adding new UI components, use `Modifier.testTag("tag_name")` to make them accessible to the Robot.
 
-## Sprint 4 Testing Additions
+## Sprint 5 Testing Additions
 
-### Agent Event Parser Tests
-Tests for new event types (e.g., `AgentTaskFailedEvent`) follow the existing `JsonlParserTest` pattern. Nested agent events are wrapped in the `SessionA2uxEvent`/`AgentEventWrapper` JSONL structure. Cover valid, minimal (all nulls), extra-field, and structured-details payloads.
+### Command Model Tests
+`ConversationCommandTest.kt` verifies the shared command model. Tests cover command enablement state derivation (e.g., Copy is disabled if no session selected) and dispatch mapping from toolbar/menu actions to ViewModel functions.
 
-### Event-to-Message Mapper Tests
-`EventToMessageMapperTest` verifies that each event type maps to the correct `Sender`, `MessageKind`, and content. Use helper functions to construct `SessionA2uxEvent` wrappers for agent events.
+### Area 8 Control Tests
+`AccessibilityAndArea8Test.kt` was expanded to cover:
+- **Copy no-crash**: Verifies that the global Copy command executes safely even with no selection.
+- **Search Navigation**: Verifies `FindNext` and `FindPrevious` wrap-around behaviour and match index stability.
+- **Focus Search**: Verifies that the `FocusSearch` command correctly triggers focus on the search field.
 
-### Live Tracking Flow Tests
-Live tracking uses polling-based file watching with incremental offset parsing. Flow tests use Turbine to verify that new events appended to `events.jsonl` are emitted as Messages.
+### Feature-Specific Suites
+Three new test files provide exhaustive coverage for Sprint 5 logic:
+- **Refresh/Auto-Refresh**: `RefreshAndAutoRefreshTest.kt` (13 tests) covers manual refresh, auto-refresh toggle, preference persistence, and Session selection interaction.
+- **Sort Order**: `SortOrderTest.kt` (15 tests) covers display ordering, persistence, filter/search interaction, and auto-scroll adaptation in Newest First mode.
+- **Collapse/Show All**: `CollapseShowAllTest.kt` (10 tests) covers global collapse/expand commands, per-block manual overrides, and search force-expansion priority.
 
-### Robot Pattern Helpers
-New Robot helpers added during Sprint 4:
-- Error/failure block assertions via `error_warning_block` test tag.
-- Search highlighting verification.
-- Filter toggle helpers.
-
-### LazyColumn Virtualization Caveat
-Off-screen items in `LazyColumn` are not rendered during UI tests. Assertions must target visible items only, or scroll to the target item before asserting.
+### Toolbar and Menu Testing
+Native macOS menu items cannot be tested via the Compose Test Rule. Testing strategy for menus relies on verifying the shared `ConversationCommand` dispatch logic at the ViewModel level. Toolbar buttons are tested via the Robot pattern using stable `testTag` conventions:
+- `toolbar_open_session`
+- `toolbar_refresh`
+- `toolbar_copy`
+- `toolbar_auto_refresh`
+- `toolbar_sort_order`
+- `toolbar_collapse_all`
+- `toolbar_show_all`
+- `toolbar_search_field`
 
 ### Test Commands
 ```bash

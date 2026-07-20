@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import dev.snipme.highlights.model.SyntaxLanguage
 
@@ -38,7 +37,7 @@ fun CodeBlockWithCopy(
             CopyButton(text = code)
         },
         body = {
-            SelectionContainer(modifier = Modifier.testTag("selectable_code_content")) {
+            TrackedSelectionContainer(modifier = Modifier.testTag("selectable_code_content")) {
                 CodeBlock(code = code, language = language)
             }
         },
