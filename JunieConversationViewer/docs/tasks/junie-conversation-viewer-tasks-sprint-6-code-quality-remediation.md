@@ -40,7 +40,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 | # | Task Area | Status | Task Count |
 |---|-----------|--------|------------|
 | 1 | Discovery, Characterization, and Quick Wins (F7, F8, F10, F12) | Complete | 9 |
-| 2 | Test Infrastructure (F11) | Not started | 6 |
+| 2 | Test Infrastructure (F11) | Complete | 6 |
 | 3 | Typed Domain Events (F2) | Not started | 7 |
 | 4 | Self-Mapping Events and Stable IDs (F3, F9) | Not started | 7 |
 | 5 | Message Content Registry (F1) | Not started | 7 |
@@ -235,7 +235,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 2.1 Design and build runConversationUiTest DSL
 
-- [ ] Design and build runConversationUiTest DSL
+- [x] Design and build runConversationUiTest DSL
 
 **Description:** Create a `runConversationUiTest { }` DSL that wires temp session directory, `PreferencesRepository`, `ConversationViewModel`, and `ConversationRobot`, with automatic cleanup of temporary files.
 
@@ -252,7 +252,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 2.2 Migrate UI test files to the DSL
 
-- [ ] Migrate UI test files to the DSL
+- [x] Migrate UI test files to the DSL
 
 **Description:** Migrate the 14+ UI test files (e.g., `ConversationScreenTest`, `SortOrderTest`, `FilterBehaviourTest`, `CollapseShowAllTest`, `ConversationCommandTest`, `RefreshAndAutoRefreshTest`) to `runConversationUiTest { }`, file by file, keeping every assertion.
 
@@ -269,7 +269,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 2.3 Consolidate overlapping UI integration test files
 
-- [ ] Consolidate overlapping UI integration test files
+- [x] Consolidate overlapping UI integration test files
 
 **Description:** Merge overlapping integration-level UI test files into cohesive behaviour-area suites (per Q5 decision, ~6 suites: search, filters, sort, expansion, commands, live tracking) without losing any behaviour check.
 
@@ -286,7 +286,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 2.4 Parameterize JsonlParserTest — `Test Required`
 
-- [ ] Parameterize JsonlParserTest
+- [x] Parameterize JsonlParserTest
 
 **Description:** Refactor the 603-line `JsonlParserTest.kt` into parameterized/table-driven tests; where sensible, generate input JSON via the real serializers to verify round-trip symmetry.
 
@@ -303,7 +303,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 2.5 Verify green build after test restructuring
 
-- [ ] Verify green build after test restructuring
+- [x] Verify green build after test restructuring
 
 **Description:** Run `./gradlew :shared:jvmTest` and `./gradlew test`.
 
@@ -320,7 +320,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 2.6 Update docs/TESTING.md with the new DSL — `Manual Review Required`
 
-- [ ] Update docs/TESTING.md with the new DSL
+- [x] Update docs/TESTING.md with the new DSL
 
 **Description:** Document `runConversationUiTest { }`, the consolidated suite layout, and the parameterized parser-test pattern.
 
@@ -1297,3 +1297,4 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 | 2026-07-20 | Sprint 6 planned from code quality review | Whole-codebase "thermo-nuclear" review produced 12 findings (3 structural blockers, 5 high priority, 4 worth fixing). Sprint 6 scoped to resolve all of them via behaviour-preserving refactoring, ordered so the shared code-judo move (typed payloads → self-mapping events → content registry) resolves the blockers, with test infrastructure landing early as the safety net. |
 | 2026-07-20 | Area 1 completed (tasks 1.1–1.8); HITL review 1.9 pending | Discovery findings recorded in [`docs/sprint-6-area-1-discovery-findings.md`](../sprint-6-area-1-discovery-findings.md). All 12 findings confirmed with current line references; two amendments: F2 covers 19 event types (not 20+), and F11's "ViewModel+Prefs+Robot" triple wiring applies to 2 files while 14 files hand-wire ViewModel+Prefs. Quick wins shipped: F12 (slf4j `version.ref`), F8 (pure `filterMessages(state, query)`, one atomic emission per search/filter/sort/load/live update), F10 (Turns derived in ViewModel as `ConversationState.turns`), F7 (`extractWorkingDirectory` rebuilt on `JsonlParser`). Deviation flagged for HITL: `@JsonNames("currentDirectory")` alias added to `CurrentDirectoryUpdatedEvent.directory` — real logs use the `currentDirectory` key, required to preserve behaviour through the parser (proposed Q8). 38 new tests added (29 event-mapping characterization, 4 search-atomicity/turn-derivation, 5 working-directory characterization); two `ConversationViewModelTest` tests mechanically updated from two-emission to single-emission expectations. Baseline: pre-change `./gradlew :shared:jvmTest` + `./gradlew test` green (378 tests, 0 failures); post-change green (425 tests, 0 failures). Key risks/open questions: Q1–Q7 pending HITL plus proposed Q8; `turns` must only be written via `filterMessages` (staleness invariant); serializer field names may drift from real logs — recommend field-name audit in task 3.1. |
 | 2026-07-20 | HITL decisions Q1–Q8 recorded (task 1.9 complete) | **Q1:** Strategy — `toMessage()` on each event with a shared context parameter. **Q2:** Split registry — collapsibility + searchable text shared; renderer lookup in a UI-layer map. **Q3:** File line offset (session path + line number) as the stable Message ID source. **Q4:** ViewModel derivation of Turn grouping ratified (as shipped in Area 1). **Q5:** Consolidate UI tests into ~6 behaviour-area suites (search, filters, sort, expansion, commands, live tracking). **Q6:** Yes — one ADR per structural decision. **Q7:** **No deferral** — all ten areas are committed this sprint (HITL overrode the defer-8-then-7 recommendation). **Q8 (new):** Accept the `@JsonNames("currentDirectory")` alias and add a systematic serializer field-name audit against real logs to task 3.1. |
+| 2026-07-20 | Area 2 completed (tasks 2.1–2.6) | Shared test infrastructure shipped. **2.1:** New `ConversationUiTestDsl.kt` with `runConversationUiTest { }` (Compose; temp-prefs + `FakeSessionRepository` + lazy ViewModel/Robot, `setConversationContent()`, scope implements `SemanticsNodeInteractionsProvider`, automatic temp-file cleanup) and `runConversationStateTest { }` (ViewModel tests; `Dispatchers.setMain`/`resetMain`, `createViewModel()`, `advanceUntilIdle()`, exposed `testScope`). **2.2:** 15 hand-wiring files migrated (the 14 from discovery plus Area 1's `SearchStateDerivationTest`); 4 pure-component files (`MarkdownSearchHighlightTest`, `SessionSelectorTest`, `SessionStatesTest`, plus component-only tests) intentionally left un-wired since they render composables without the ViewModel; no assertion changed. **2.3 (Q5):** Six behaviour-area suites — new `ExpansionBehaviourTest` (CollapseShowAll 10t/30a + CollapsibleBlock 14t/26a = 24t/56a), `LiveTrackingBehaviourTest` (LiveTrackingViewModel 3t/8a + RefreshAndAutoRefresh 13t/20a = 16t/28a), `SearchBehaviourTest` (SearchFilterNavigation 9t/19a + SearchStateDerivation 4t/10a = 13t/29a); `FilterBehaviourTest`, `SortOrderTest`, `ConversationCommandTest` already 1:1; all merged assertions carried verbatim, source files deleted. **2.4:** `JsonlParserTest` now table-driven — 49 `ParserCase` rows under `@RunWith(Parameterized::class)` (case name in failure output; new event case = one row) plus new `JsonlParserTestRoundTrip` (5 tests via real serializers from `EventSerializers.kt`). **2.5:** `./gradlew :shared:jvmTest` (forced rerun) and `./gradlew test` green — 430 tests, 0 failures across 35 classes (425 baseline + 5 round-trip). **2.6:** `TESTING.md` documents the DSL, suite layout, and parser pattern (manual review of the doc still open for HITL). No Area 3+ work started; the serializer field-name audit remains scheduled for task 3.1 per Q8. |

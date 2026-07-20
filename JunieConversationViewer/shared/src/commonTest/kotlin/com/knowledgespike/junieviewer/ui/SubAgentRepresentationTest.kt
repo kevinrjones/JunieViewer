@@ -23,68 +23,47 @@ import org.junit.Test
 @OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
 class SubAgentRepresentationTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-
-    /** Creates a ViewModel with the given messages for testing. */
-    private fun createViewModel(messages: List<Message>): Pair<ConversationViewModel, okio.Path> {
-        val tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "sub-agent-test-${System.currentTimeMillis()}.json"
-        val fakePreferencesRepository = PreferencesRepository(
-            path = tempPrefsPath,
-            fileSystem = FileSystem.SYSTEM
-        )
-        fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
-
-        val fakeRepository = object : SessionRepository {
-            override fun getMessages(): List<Message> = messages
-            override fun listSessions(homePath: String): List<SessionInfo> = emptyList()
-            override fun setSession(sessionId: String, homePath: String) {}
-            override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
-        }
-
-        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker()) to tempPrefsPath
-    }
-
     // -----------------------------------------------------------------------
     // 3.5 — Sub-Agent badge renders for SubAgent messages
     // -----------------------------------------------------------------------
 
     @Test
-    fun `sub-agent message renders Sub-Agent badge`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `sub-agent message renders Sub-Agent badge`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.subAgentMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("sub_agent_badge").assertExists()
         onNodeWithTag("sub_agent_block_header").assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `sub-agent message content does not contain emoji`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `sub-agent message content does not contain emoji`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.subAgentMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // The sub-agent content should be visible without emoji prefix
         onNodeWithText("android-qa-agent [STARTED]", substring = true).assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `sub-agent message with missing fields renders fallback content`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `sub-agent message with missing fields renders fallback content`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.subAgentMessageMissingFields
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("sub_agent_badge").assertExists()
         onNodeWithText("Unnamed sub-agent [unknown]", substring = true).assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     // -----------------------------------------------------------------------
@@ -92,38 +71,38 @@ class SubAgentRepresentationTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `human message does not render Sub-Agent badge`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `human message does not render Sub-Agent badge`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             RepresentativeFixtures.humanTextMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("sub_agent_badge").assertDoesNotExist()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `junie text message does not render Sub-Agent badge`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `junie text message does not render Sub-Agent badge`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieTextMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("sub_agent_badge").assertDoesNotExist()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `tool call message does not render Sub-Agent badge`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `tool call message does not render Sub-Agent badge`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.junieToolCallMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("sub_agent_badge").assertDoesNotExist()
-        FileSystem.SYSTEM.delete(path)
     }
 
     // -----------------------------------------------------------------------
@@ -131,13 +110,14 @@ class SubAgentRepresentationTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `sub-agent messages maintain chronological order with other messages`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `sub-agent messages maintain chronological order with other messages`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             RepresentativeFixtures.humanTextMessage,
             RepresentativeFixtures.subAgentMessage,
             RepresentativeFixtures.junieTextMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // All three messages should render; badge only on the sub-agent one
         val badges = onAllNodesWithTag("sub_agent_badge").fetchSemanticsNodes()
@@ -145,6 +125,5 @@ class SubAgentRepresentationTest {
 
         val kindMarkers = onAllNodesWithTag("message_kind_marker").fetchSemanticsNodes()
         assert(kindMarkers.size >= 3) { "Expected at least 3 kind markers for 3 messages, got ${kindMarkers.size}" }
-        FileSystem.SYSTEM.delete(path)
     }
 }

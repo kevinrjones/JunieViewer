@@ -1,20 +1,29 @@
 package com.knowledgespike.junieviewer.ui
 
 import androidx.compose.ui.test.*
-import com.knowledgespike.junieviewer.domain.Message
-import com.knowledgespike.junieviewer.domain.MessageContent
-import com.knowledgespike.junieviewer.domain.MessageKind
-import com.knowledgespike.junieviewer.domain.Sender
-import kotlin.test.Test
+import app.cash.turbine.test
+import com.knowledgespike.junieviewer.domain.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import org.junit.Test
+import kotlin.test.assertEquals
 
 /**
- * Tests for Area 5 — Search, Filters, and Navigation.
- * Covers case-insensitive search, filter combinations, no-results state,
- * result count, filter labels, and chronological order preservation.
+ * Tests for the search behaviour area: case-insensitive search, search/filter
+ * combinations, no-results state, result count, filter labels, chronological
+ * order preservation, and the atomic state-derivation guarantees for search
+ * query changes (single emission per change, turn grouping derived alongside
+ * filtered messages).
  */
-class SearchFilterNavigationTest {
+@OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
+class SearchBehaviourTest {
 
-    private val testMessages = listOf(
+    // =========================================================================
+    // Origin: SearchFilterNavigationTest — Area 5 Search, Filters, and Navigation
+    // Covers case-insensitive search, filter combinations, no-results state,
+    // result count, filter labels, and chronological order preservation.
+    // =========================================================================
+
+    private val navigationTestMessages = listOf(
         Message(id = "1", sender = Sender.Human, content = MessageContent.Text("Hello Junie"), kind = MessageKind.Text),
         Message(id = "2", sender = Sender.Junie, content = MessageContent.Text("Hi there! How can I help?"), kind = MessageKind.Text),
         Message(id = "3", sender = Sender.Junie, content = MessageContent.Text("Let me think about that..."), kind = MessageKind.Thought),
@@ -23,14 +32,13 @@ class SearchFilterNavigationTest {
         Message(id = "6", sender = Sender.Human, content = MessageContent.Text("Thanks!"), kind = MessageKind.Text),
     )
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `search is case-insensitive`() = runComposeUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = testMessages.filter {
+                    messages = navigationTestMessages,
+                    filteredMessages = navigationTestMessages.filter {
                         messageContentText(it.content).contains("hello", ignoreCase = true)
                     },
                     searchQuery = "hello",
@@ -44,14 +52,13 @@ class SearchFilterNavigationTest {
         robot.assertHumanMessageCount(1)
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `clearing search restores all messages`() = runComposeUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = testMessages,
+                    messages = navigationTestMessages,
+                    filteredMessages = navigationTestMessages,
                     searchQuery = "",
                     selectedSessionId = "test"
                 ),
@@ -63,14 +70,13 @@ class SearchFilterNavigationTest {
         robot.assertResultCountNotVisible()
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `sender filters still work`() = runComposeUiTest {
-        val filtered = testMessages.filter { it.sender == Sender.Junie }
+        val filtered = navigationTestMessages.filter { it.sender == Sender.Junie }
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
+                    messages = navigationTestMessages,
                     filteredMessages = filtered,
                     filter = FilterState(showHuman = false),
                     selectedSessionId = "test"
@@ -80,15 +86,14 @@ class SearchFilterNavigationTest {
         }
         val robot = ConversationRobot(this)
         robot.assertHumanMessageCount(0)
-        robot.assertResultCount("${filtered.size} of ${testMessages.size} Messages")
+        robot.assertResultCount("${filtered.size} of ${navigationTestMessages.size} Messages")
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `filter labels use understandable names`() = runComposeUiTest {
         setContent {
             ConversationScreen(
-                state = ConversationState(messages = testMessages, filteredMessages = testMessages, selectedSessionId = "test"),
+                state = ConversationState(messages = navigationTestMessages, filteredMessages = navigationTestMessages, selectedSessionId = "test"),
                 onAction = {}
             )
         }
@@ -101,18 +106,17 @@ class SearchFilterNavigationTest {
         robot.assertFilterLabelVisible("Terminal")
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `search and filters combine with AND logic`() = runComposeUiTest {
         // Search for "help" with Human filter off — only Junie messages with "help" should show
-        val filtered = testMessages.filter { msg ->
+        val filtered = navigationTestMessages.filter { msg ->
             msg.sender != Sender.Human &&
                     messageContentText(msg.content).contains("help", ignoreCase = true)
         }
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
+                    messages = navigationTestMessages,
                     filteredMessages = filtered,
                     searchQuery = "help",
                     filter = FilterState(showHuman = false),
@@ -123,17 +127,16 @@ class SearchFilterNavigationTest {
         }
         val robot = ConversationRobot(this)
         robot.assertHumanMessageCount(0)
-        robot.assertResultCount("${filtered.size} of ${testMessages.size} Messages")
+        robot.assertResultCount("${filtered.size} of ${navigationTestMessages.size} Messages")
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `filtering preserves chronological order`() = runComposeUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = testMessages,
+                    messages = navigationTestMessages,
+                    filteredMessages = navigationTestMessages,
                     searchQuery = "",
                     selectedSessionId = "test"
                 ),
@@ -148,13 +151,12 @@ class SearchFilterNavigationTest {
         onNodeWithText("Thanks!", substring = true).assertExists()
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `no-results state appears when nothing matches`() = runComposeUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
+                    messages = navigationTestMessages,
                     filteredMessages = emptyList(),
                     searchQuery = "zzzznonexistent",
                     selectedSessionId = "test"
@@ -167,16 +169,15 @@ class SearchFilterNavigationTest {
         robot.assertResultCount("No matching Messages")
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `result count appears when search is active`() = runComposeUiTest {
-        val filtered = testMessages.filter {
+        val filtered = navigationTestMessages.filter {
             messageContentText(it.content).contains("hello", ignoreCase = true)
         }
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
+                    messages = navigationTestMessages,
                     filteredMessages = filtered,
                     searchQuery = "hello",
                     selectedSessionId = "test"
@@ -185,17 +186,16 @@ class SearchFilterNavigationTest {
             )
         }
         val robot = ConversationRobot(this)
-        robot.assertResultCount("of ${testMessages.size} Messages")
+        robot.assertResultCount("of ${navigationTestMessages.size} Messages")
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun `result count not shown when no search or filter active`() = runComposeUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = testMessages,
+                    messages = navigationTestMessages,
+                    filteredMessages = navigationTestMessages,
                     searchQuery = "",
                     selectedSessionId = "test"
                 ),
@@ -204,6 +204,92 @@ class SearchFilterNavigationTest {
         }
         val robot = ConversationRobot(this)
         robot.assertResultCountNotVisible()
+    }
+
+    // =========================================================================
+    // Origin: SearchStateDerivationTest — Sprint 6 Area 1 search state derivation
+    // - F8: a Search Query change produces exactly one atomic state emission.
+    // - F10: Turn grouping is derived in the ViewModel alongside filteredMessages,
+    //   not recomputed in composition.
+    // =========================================================================
+
+    private val derivationTestMessages = listOf(
+        Message("1", Sender.Human, MessageContent.Text("Hello"), MessageKind.Text),
+        Message("2", Sender.Junie, MessageContent.Text("Hello back"), MessageKind.Text),
+        Message("3", Sender.Human, MessageContent.Text("Other"), MessageKind.Text),
+        Message("4", Sender.Junie, MessageContent.Text("Other reply"), MessageKind.Text)
+    )
+
+    private fun ConversationStateTestScope.loadedViewModel(): ConversationViewModel {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
+        return viewModel
+    }
+
+    @Test
+    fun `search query change produces exactly one state emission`() = runConversationStateTest(derivationTestMessages) {
+        val viewModel = loadedViewModel()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitItem() // current state
+
+            viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
+
+            val emitted = awaitItem()
+            assertEquals("Hello", emitted.searchQuery)
+            assertEquals(2, emitted.filteredMessages.size)
+            assertEquals(0, emitted.currentMatchIndex)
+
+            // No further emissions for this action — the update is atomic
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `clearing the search query produces exactly one state emission`() = runConversationStateTest(derivationTestMessages) {
+        val viewModel = loadedViewModel()
+        advanceUntilIdle()
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitItem() // current state
+
+            viewModel.onAction(ConversationAction.OnSearchQueryChange(""))
+
+            val emitted = awaitItem()
+            assertEquals("", emitted.searchQuery)
+            assertEquals(4, emitted.filteredMessages.size)
+            assertEquals(-1, emitted.currentMatchIndex)
+
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `turns are derived alongside filtered messages after load`() = runConversationStateTest(derivationTestMessages) {
+        val viewModel = loadedViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(groupMessagesIntoTurns(state.filteredMessages), state.turns)
+        assertEquals(4, state.turns.sumOf { it.messages.size })
+    }
+
+    @Test
+    fun `turns are re-derived when the search query changes`() = runConversationStateTest(derivationTestMessages) {
+        val viewModel = loadedViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(groupMessagesIntoTurns(state.filteredMessages), state.turns)
+        assertEquals(2, state.turns.sumOf { it.messages.size })
     }
 }
 

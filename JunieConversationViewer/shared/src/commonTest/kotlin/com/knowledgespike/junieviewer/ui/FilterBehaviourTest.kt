@@ -30,8 +30,6 @@ import strikt.assertions.*
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class FilterBehaviourTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-
     /** Messages covering all filter groups for behaviour testing */
     private val filterTestMessages = listOf(
         RepresentativeFixtures.humanTextMessage,        // Text, Human sender → Human filter
@@ -55,43 +53,14 @@ class FilterBehaviourTest {
         RepresentativeFixtures.malformedContentMessage   // Unsupported → AlwaysShow
     )
 
-    private val fakeRepository = object : SessionRepository {
-        override fun getMessages(): List<Message> = filterTestMessages
-        override fun listSessions(homePath: String): List<SessionInfo> = listOf(
-            SessionInfo("test-session", "/path/test-session", 123L)
-        )
-        override fun setSession(sessionId: String, homePath: String) {}
-        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
-            SessionInfo(sessionId, "/path/$sessionId", 123L)
-    }
-
-    private lateinit var tempPrefsPath: okio.Path
-    private lateinit var prefsRepo: PreferencesRepository
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-        tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "filter-test-${System.currentTimeMillis()}.json"
-        prefsRepo = PreferencesRepository(path = tempPrefsPath, fileSystem = FileSystem.SYSTEM)
-        prefsRepo.save(AppPreferences(lastSessionId = "test-session"))
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        FileSystem.SYSTEM.delete(tempPrefsPath)
-    }
-
-    private fun createLoadedViewModel(): ConversationViewModel =
-        ConversationViewModel(fakeRepository, prefsRepo, testDispatcher, LiveSessionTracker())
-
     // -----------------------------------------------------------------------
     // Tools filter hides Tool, StructuredOutput, Mcp, and SubAgent
     // -----------------------------------------------------------------------
 
     @Test
-    fun `toggling off Tools hides Tool, StructuredOutput, Mcp, and SubAgent messages`() = runTest {
-        val vm = createLoadedViewModel()
+    fun `toggling off Tools hides Tool, StructuredOutput, Mcp, and SubAgent messages`() = runConversationStateTest(filterTestMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        val vm = createViewModel()
         advanceUntilIdle()
 
         vm.onAction(ConversationAction.OnToggleFilter(FilterKind.Tool))
@@ -107,8 +76,9 @@ class FilterBehaviourTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `toggling off Terminal hides Terminal and TestRun messages`() = runTest {
-        val vm = createLoadedViewModel()
+    fun `toggling off Terminal hides Terminal and TestRun messages`() = runConversationStateTest(filterTestMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        val vm = createViewModel()
         advanceUntilIdle()
 
         vm.onAction(ConversationAction.OnToggleFilter(FilterKind.Terminal))
@@ -123,8 +93,9 @@ class FilterBehaviourTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `toggling off Junie hides Junie text and markdown but keeps Human text`() = runTest {
-        val vm = createLoadedViewModel()
+    fun `toggling off Junie hides Junie text and markdown but keeps Human text`() = runConversationStateTest(filterTestMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        val vm = createViewModel()
         advanceUntilIdle()
 
         vm.onAction(ConversationAction.OnToggleFilter(FilterKind.Junie))
@@ -143,8 +114,9 @@ class FilterBehaviourTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `toggling off Human hides Human text but keeps Junie text`() = runTest {
-        val vm = createLoadedViewModel()
+    fun `toggling off Human hides Human text but keeps Junie text`() = runConversationStateTest(filterTestMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        val vm = createViewModel()
         advanceUntilIdle()
 
         vm.onAction(ConversationAction.OnToggleFilter(FilterKind.Human))
@@ -160,8 +132,9 @@ class FilterBehaviourTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `AlwaysShow messages remain visible when all filters are toggled off`() = runTest {
-        val vm = createLoadedViewModel()
+    fun `AlwaysShow messages remain visible when all filters are toggled off`() = runConversationStateTest(filterTestMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        val vm = createViewModel()
         advanceUntilIdle()
 
         // Toggle off every filter
@@ -186,18 +159,12 @@ class FilterBehaviourTest {
     // UI — Filter bar renders six chips with canonical labels
     // -----------------------------------------------------------------------
 
-    private fun uiPrefs(suffix: String): PreferencesRepository {
-        val path = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "filter-ui-$suffix-${System.currentTimeMillis()}.json"
-        val repo = PreferencesRepository(path = path, fileSystem = FileSystem.SYSTEM)
-        repo.save(AppPreferences(lastSessionId = "test-session"))
-        return repo
-    }
-
     @Test
-    fun `filter bar renders six filter chips with canonical labels`() = runComposeUiTest {
-        val prefs = uiPrefs("labels")
-        val vm = ConversationViewModel(fakeRepository, prefs, testDispatcher, LiveSessionTracker())
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `filter bar renders six filter chips with canonical labels`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = filterTestMessages
+        sessionRepository.sessionInfoProvider = { sessionId, _ -> SessionInfo(sessionId, "/path/$sessionId", 123L) }
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Verify all six filter tags exist
         onNodeWithTag("filter_human").assertExists()
@@ -217,10 +184,10 @@ class FilterBehaviourTest {
     }
 
     @Test
-    fun `no dedicated SubAgent filter chip exists`() = runComposeUiTest {
-        val prefs = uiPrefs("no-subagent")
-        val vm = ConversationViewModel(fakeRepository, prefs, testDispatcher, LiveSessionTracker())
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `no dedicated SubAgent filter chip exists`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = filterTestMessages
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("filter_subagent").assertDoesNotExist()
     }

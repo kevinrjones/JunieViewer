@@ -1,29 +1,98 @@
 package com.knowledgespike.junieviewer.ui
 
-import com.knowledgespike.junieviewer.data.LiveSessionTracker
-import com.knowledgespike.junieviewer.data.PreferencesRepository
-import com.knowledgespike.junieviewer.data.SessionLoadResult
-import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
-import kotlinx.coroutines.Dispatchers
+import com.knowledgespike.junieviewer.fixtures.RepresentativeFixtures
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.*
-import okio.FileSystem
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
+import strikt.api.expectThat
+import strikt.assertions.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Tests for Area 5 — Refresh and Auto-Refresh Control.
- * Covers manual refresh, auto-refresh toggle, live tracking wiring, and preference persistence.
+ * Tests for the live tracking behaviour area: live session tracking ViewModel
+ * integration (initial load, session switches, filter re-application), and
+ * manual refresh / auto-refresh control (toggling, preference persistence, and
+ * interaction with session selection).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class RefreshAndAutoRefreshTest {
+class LiveTrackingBehaviourTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    // =========================================================================
+    // Origin: LiveTrackingViewModelTest — live session tracking ViewModel integration
+    // Uses fake repositories and a no-op tracker (very long poll interval)
+    // to verify ViewModel behavior without real file watching.
+    // =========================================================================
+
+    @Test
+    fun `selecting a session loads initial messages and starts live tracking`() = runConversationStateTest {
+        sessionRepository.messagesToReturn = listOf(RepresentativeFixtures.humanTextMessage)
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(
+            SessionInfo("test-session", "/tmp/test", 0L)
+        ))
+
+        expectThat(viewModel.state.value.messages).hasSize(1)
+        expectThat(viewModel.state.value.isLoading).isFalse()
+
+        viewModel.stopLiveTracking()
+    }
+
+    @Test
+    fun `live tracking is cancelled when session changes`() = runConversationStateTest {
+        val messages1 = listOf(RepresentativeFixtures.humanTextMessage)
+        val messages2 = listOf(RepresentativeFixtures.humanTextMessage, RepresentativeFixtures.junieTextMessage)
+        
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        sessionRepository.messagesToReturn = messages1
+
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("session-1", "/tmp/s1", 0L)))
+        expectThat(viewModel.state.value.messages).hasSize(1)
+
+        // Switch session with different messages
+        sessionRepository.messagesToReturn = messages2
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("session-2", "/tmp/s2", 0L)))
+        expectThat(viewModel.state.value.selectedSessionId).isEqualTo("session-2")
+        expectThat(viewModel.state.value.messages).hasSize(2)
+
+        viewModel.stopLiveTracking()
+    }
+
+    @Test
+    fun `filters are re-applied after messages load`() = runConversationStateTest {
+        sessionRepository.messagesToReturn = listOf(
+            RepresentativeFixtures.humanTextMessage,
+            RepresentativeFixtures.junieTextMessage
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(
+            SessionInfo("test-session", "/tmp/test", 0L)
+        ))
+
+        expectThat(viewModel.state.value.filteredMessages).hasSize(2)
+
+        // Set search filter that won't match
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("Non-existent-query-xyz"))
+        expectThat(viewModel.state.value.filteredMessages).isEmpty()
+
+        // Clear filter
+        viewModel.onAction(ConversationAction.OnSearchQueryChange(""))
+        expectThat(viewModel.state.value.filteredMessages).hasSize(2)
+
+        viewModel.stopLiveTracking()
+    }
+
+    // =========================================================================
+    // Origin: RefreshAndAutoRefreshTest — Area 5 Refresh and Auto-Refresh Control
+    // Covers manual refresh, auto-refresh toggle, live tracking wiring, and
+    // preference persistence.
+    // =========================================================================
 
     private val testMessages = listOf(
         Message("1", Sender.Human, MessageContent.Text("Hello"), MessageKind.Text),
@@ -36,50 +105,7 @@ class RefreshAndAutoRefreshTest {
         Message("3", Sender.Human, MessageContent.Text("New message"), MessageKind.Text)
     )
 
-    /** Fake repository that tracks load calls and can return different message sets. */
-    private val fakeRepository = object : SessionRepository {
-        var loadCount = 0
-        var messagesToReturn: List<Message> = testMessages
-
-        override fun getMessages(): List<Message> = messagesToReturn
-        override fun loadSession(): SessionLoadResult {
-            loadCount++
-            // Return null eventsFilePath to avoid starting real FileWatcher polling in tests
-            return SessionLoadResult(messagesToReturn, null, 0L)
-        }
-        override fun listSessions(homePath: String): List<SessionInfo> = listOf(
-            SessionInfo("test-session", "/path/test-session", 123L)
-        )
-        override fun setSession(sessionId: String, homePath: String) {}
-        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
-            SessionInfo(sessionId, "/path/$sessionId", 123L)
-    }
-
-    private lateinit var tempPrefsPath: okio.Path
-    private lateinit var preferencesRepository: PreferencesRepository
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-        tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "area5-test-${System.currentTimeMillis()}.json"
-        preferencesRepository = PreferencesRepository(
-            path = tempPrefsPath,
-            fileSystem = FileSystem.SYSTEM
-        )
-        fakeRepository.loadCount = 0
-        fakeRepository.messagesToReturn = testMessages
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        try { FileSystem.SYSTEM.delete(tempPrefsPath) } catch (_: Exception) {}
-    }
-
-    private fun createViewModel(): ConversationViewModel =
-        ConversationViewModel(fakeRepository, preferencesRepository, testDispatcher, LiveSessionTracker())
-
-    private fun createViewModelWithSession(): ConversationViewModel {
+    private fun ConversationStateTestScope.createViewModelWithSession(): ConversationViewModel {
         val vm = createViewModel()
         vm.onAction(ConversationAction.OnSessionSelected(SessionInfo("test-session", "/path", 0L)))
         return vm
@@ -88,31 +114,31 @@ class RefreshAndAutoRefreshTest {
     // -- Manual Refresh --
 
     @Test
-    fun `manual refresh reloads the current Session`() = runTest {
+    fun `manual refresh reloads the current Session`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
-        val loadCountAfterSelect = fakeRepository.loadCount
+        val loadCountAfterSelect = sessionRepository.loadCount
 
         viewModel.onCommand(ConversationCommand.Refresh)
         advanceUntilIdle()
 
-        assertTrue(fakeRepository.loadCount > loadCountAfterSelect, "Refresh should trigger a reload")
+        assertTrue(sessionRepository.loadCount > loadCountAfterSelect, "Refresh should trigger a reload")
     }
 
     @Test
-    fun `manual refresh is a no-op when no Session is selected`() = runTest {
+    fun `manual refresh is a no-op when no Session is selected`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModel()
         advanceUntilIdle()
-        val loadCountBefore = fakeRepository.loadCount
+        val loadCountBefore = sessionRepository.loadCount
 
         viewModel.onCommand(ConversationCommand.Refresh)
         advanceUntilIdle()
 
-        assertEquals(loadCountBefore, fakeRepository.loadCount, "Refresh should not load when no Session selected")
+        assertEquals(loadCountBefore, sessionRepository.loadCount, "Refresh should not load when no Session selected")
     }
 
     @Test
-    fun `manual refresh preserves Search Query and Filters`() = runTest {
+    fun `manual refresh preserves Search Query and Filters`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -132,13 +158,13 @@ class RefreshAndAutoRefreshTest {
     }
 
     @Test
-    fun `manual refresh updates messages when file content changes`() = runTest {
+    fun `manual refresh updates messages when file content changes`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
         assertEquals(2, viewModel.state.value.messages.size)
 
         // Simulate file content change
-        fakeRepository.messagesToReturn = updatedMessages
+        sessionRepository.messagesToReturn = updatedMessages
         viewModel.onCommand(ConversationCommand.Refresh)
         advanceUntilIdle()
 
@@ -148,7 +174,7 @@ class RefreshAndAutoRefreshTest {
     // -- Auto-Refresh Toggle --
 
     @Test
-    fun `toggling auto-refresh off updates state`() = runTest {
+    fun `toggling auto-refresh off updates state`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
         assertTrue(viewModel.state.value.isAutoRefreshEnabled)
@@ -158,7 +184,7 @@ class RefreshAndAutoRefreshTest {
     }
 
     @Test
-    fun `toggling auto-refresh off keeps Messages visible`() = runTest {
+    fun `toggling auto-refresh off keeps Messages visible`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
         val messagesBefore = viewModel.state.value.messages
@@ -170,7 +196,7 @@ class RefreshAndAutoRefreshTest {
     }
 
     @Test
-    fun `toggling auto-refresh on restarts live tracking state`() = runTest {
+    fun `toggling auto-refresh on restarts live tracking state`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -185,7 +211,7 @@ class RefreshAndAutoRefreshTest {
     // -- Auto-Refresh Preference Persistence --
 
     @Test
-    fun `auto-refresh preference is saved when toggled`() = runTest {
+    fun `auto-refresh preference is saved when toggled`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -197,7 +223,7 @@ class RefreshAndAutoRefreshTest {
     }
 
     @Test
-    fun `auto-refresh preference is loaded from preferences on init`() = runTest {
+    fun `auto-refresh preference is loaded from preferences on init`() = runConversationStateTest(testMessages) {
         // Save a preference with auto-refresh disabled
         preferencesRepository.save(AppPreferences(isAutoRefreshEnabled = false))
 
@@ -208,7 +234,7 @@ class RefreshAndAutoRefreshTest {
     }
 
     @Test
-    fun `auto-refresh defaults to enabled for missing preference`() = runTest {
+    fun `auto-refresh defaults to enabled for missing preference`() = runConversationStateTest(testMessages) {
         // No preference file exists — defaults should apply
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -219,7 +245,7 @@ class RefreshAndAutoRefreshTest {
     // -- Session Selection and Auto-Refresh Interaction --
 
     @Test
-    fun `selecting a Session with auto-refresh disabled does not start live tracking`() = runTest {
+    fun `selecting a Session with auto-refresh disabled does not start live tracking`() = runConversationStateTest(testMessages) {
         // Save preference with auto-refresh disabled
         preferencesRepository.save(AppPreferences(isAutoRefreshEnabled = false))
 
@@ -248,7 +274,7 @@ class RefreshAndAutoRefreshTest {
     }
 
     @Test
-    fun `manual refresh preserves auto-refresh disabled state`() = runTest {
+    fun `manual refresh preserves auto-refresh disabled state`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 

@@ -24,100 +24,81 @@ import org.junit.Test
 @OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
 class RichContentRenderingTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-
-    private fun createViewModel(messages: List<Message>): Pair<ConversationViewModel, okio.Path> {
-        val tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "rich-content-test-${System.currentTimeMillis()}.json"
-        val fakePreferencesRepository = PreferencesRepository(
-            path = tempPrefsPath,
-            fileSystem = FileSystem.SYSTEM
-        )
-        fakePreferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
-
-        val fakeRepository = object : SessionRepository {
-            override fun getMessages(): List<Message> = messages
-            override fun listSessions(homePath: String): List<SessionInfo> = emptyList()
-            override fun setSession(sessionId: String, homePath: String) {}
-            override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
-        }
-
-        return ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker()) to tempPrefsPath
-    }
-
     @Test
-    fun `plain text message renders with text content`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(RepresentativeFixtures.humanTextMessage))
-        setContent { ConversationRoot(viewModel = viewModel) }
+    fun `plain text message renders with text content`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(RepresentativeFixtures.humanTextMessage)
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithText("Please refactor the authentication module to use JWT tokens.").assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `markdown message renders headings and formatted text`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `markdown message renders headings and formatted text`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("md-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieMarkdownMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Heading text should be visible
         onNodeWithText("Refactoring Plan").assertExists()
         // List items should be visible
         onNodeWithText("Next Steps", substring = true).assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `code block renders with copy button`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `code block renders with copy button`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieCodeMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Code block tag should exist
         onNodeWithTag("code_block").assertExists()
         // Copy button should exist
         onNodeWithTag("copy_button").assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `diff block renders expanded by default showing content`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `diff block renders expanded by default showing content`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieDiffMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("patch_block_header").assertExists()
         onNodeWithTag("patch_inline_view").assertExists()
         val tokenPairNodes = onAllNodesWithText("TokenPair", substring = true).fetchSemanticsNodes()
         assert(tokenPairNodes.isNotEmpty()) { "Expected at least one node with TokenPair" }
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `terminal output renders in monospace block`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `terminal output renders in monospace block`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieTerminalMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("terminal_block").assertExists()
         onNodeWithText("BUILD SUCCESSFUL", substring = true).assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `tool call renders expanded by default with collapsible header`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `tool call renders expanded by default with collapsible header`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieToolCallMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("tool_call_block").assertExists()
         onNodeWithTag("tool_call_header").assertExists()
@@ -127,17 +108,16 @@ class RichContentRenderingTest {
         onNodeWithTag("tool_call_header").performClick()
         waitForIdle()
         onNodeWithTag("tool_call_body").assertDoesNotExist()
-
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `thought renders expanded by default and can be collapsed`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `thought renders expanded by default and can be collapsed`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieThoughtMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("thought_block").assertExists()
         onNodeWithTag("thought_header").assertExists()
@@ -147,79 +127,76 @@ class RichContentRenderingTest {
         onNodeWithTag("thought_header").performClick()
         waitForIdle()
         onNodeWithTag("thought_body").assertDoesNotExist()
-
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `structured output renders in monospace block`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `structured output renders in monospace block`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieStructuredOutputMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("structured_output_block").assertExists()
         onNodeWithText("complete", substring = true).assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `error message renders with distinct error styling`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `error message renders with distinct error styling`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieErrorMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Error label and content should be visible
         onNodeWithText("Could not resolve dependency", substring = true).assertExists()
         // Error label exists (may appear in kind marker too)
         val errorNodes = onAllNodesWithText("Error", substring = true).fetchSemanticsNodes()
         assert(errorNodes.isNotEmpty()) { "Expected at least one Error label" }
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `warning message renders with distinct warning styling`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `warning message renders with distinct warning styling`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.junieWarningMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Warning label and content should be visible
         onNodeWithText("deprecated SessionStore", substring = true).assertExists()
         // Warning label exists (may appear in kind marker too)
         val warningNodes = onAllNodesWithText("Warning", substring = true).fetchSemanticsNodes()
         assert(warningNodes.isNotEmpty()) { "Expected at least one Warning label" }
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `malformed unsupported content renders fallback card`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(listOf(
+    fun `malformed unsupported content renders fallback card`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = listOf(
             Message("h-1", Sender.Human, MessageContent.Text("prompt"), MessageKind.Text),
             RepresentativeFixtures.malformedContentMessage
-        ))
-        setContent { ConversationRoot(viewModel = viewModel) }
+        )
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("unsupported_event_card").assertExists()
         onNodeWithText("Unsupported event: SomeNewEventKind", substring = true).assertExists()
-        FileSystem.SYSTEM.delete(path)
     }
 
     @Test
-    fun `all representative fixtures render without crashing`() = runComposeUiTest {
-        val (viewModel, path) = createViewModel(RepresentativeFixtures.allMessageKinds)
-        setContent { ConversationRoot(viewModel = viewModel) }
+    fun `all representative fixtures render without crashing`() = runConversationUiTest {
+        sessionRepository.messagesToReturn = RepresentativeFixtures.allMessageKinds
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Should have message items for all messages
         onNodeWithTag("message_list").assertExists()
         // At least one human and one junie message
         onAllNodesWithTag("message_item_human").fetchSemanticsNodes().isNotEmpty()
         onAllNodesWithTag("message_item_junie").fetchSemanticsNodes().isNotEmpty()
-
-        FileSystem.SYSTEM.delete(path)
     }
 }
