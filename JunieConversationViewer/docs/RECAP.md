@@ -219,3 +219,16 @@
 - **Testing**: `./gradlew :shared:compileKotlinJvm` and `./gradlew :shared:jvmTest` both BUILD SUCCESSFUL, all tests pass.
 - **Files Changed**: `ConversationScreen.kt`.
 - **No new commit yet** — changes pending commit.
+
+# 2026-07-20
+
+## 06:48
+### Sprint 5 Area 7 — Collapse All / Show All (Complete) + Text Blocks Made Collapsible
+- **Global Collapse/Show All**: Implemented hoisted expansion state in `ConversationViewModel` via `blockExpansionStates: Map<String, Boolean>` in `ConversationState`. Added `collapseAllBlocks()`, `showAllBlocks()`, `toggleBlockExpansion()` replacing Area 7 stubs. `OnToggleBlockExpansion(blockId)` action added to `ConversationAction`.
+- **Per-Block Override**: After Collapse All or Show All, individual blocks can still be manually toggled. Search `forceExpanded` takes priority over global collapse state — matching blocks auto-expand even after Collapse All.
+- **All 6 Block Types Updated**: `CollapsibleBlock`, `ThoughtBlock`, `ToolCallBlock`, `CodeBlockWithCopy`, `DiffBlock`, `TerminalOutputBlock`, `StructuredOutputBlock` all updated with `externalExpanded`/`onToggle` parameters. State threaded from `ConversationScreen` through `MessageCard` → `MessageBody` → `ContentRenderer` → individual blocks.
+- **Text Blocks Made Collapsible**: Wrapped `MessageContent.Text` rendering in `CollapsibleBlock` within `ContentRenderer`, with stable block ID `"{messageId}:text"`. Added text block IDs to `collectCollapsibleBlockIds()` so Collapse All / Show All includes text blocks.
+- **Testing**: Created `CollapseShowAllTest.kt` with 10 tests covering: collapse all, show all, per-block toggle after global commands, search force-expansion priority, clearing search restores explicit state, stability across sort/filter changes, default state, and toggle without prior global command. Fixed `SearchFilterNavigationTest` for off-screen scroll. All tests pass (`./gradlew :shared:jvmTest` BUILD SUCCESSFUL).
+- **Commit**: `9f98bf7` — Add `CollapseShowAllTest` suite and expandability logic. Update collapsible block components to support `externalExpanded` state and toggle handlers.
+- **Task Document Updated**: Tasks 7.1–7.5 marked complete, Progress Summary updated to 5/6. Task 7.6 (HITL collapse/show-all review) left unchecked — requires HITL approval.
+- **Files Changed**: `ConversationViewModel.kt`, `ConversationState.kt`, `ConversationAction.kt`, `CollapsibleBlock.kt`, `ThoughtBlock.kt`, `ToolCallBlock.kt`, `CodeBlockWithCopy.kt`, `DiffBlock.kt`, `TerminalOutputBlock.kt`, `StructuredOutputBlock.kt`, `MessageItems.kt`, `ConversationScreen.kt`, `CollapseShowAllTest.kt` (new), `SearchFilterNavigationTest.kt`, task document.

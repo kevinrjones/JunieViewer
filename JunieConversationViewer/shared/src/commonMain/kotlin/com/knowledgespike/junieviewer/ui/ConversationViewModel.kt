@@ -83,12 +83,10 @@ class ConversationViewModel(
                     toggleSortOrder()
                 }
                 ConversationCommand.CollapseAll -> {
-                    // TODO Area 7: emit global collapse event to all CollapsibleBlock instances
-                    logger.d { "CollapseAll command: stub (full implementation in Area 7)" }
+                    collapseAllBlocks()
                 }
                 ConversationCommand.ShowAll -> {
-                    // TODO Area 7: emit global expand event to all CollapsibleBlock instances
-                    logger.d { "ShowAll command: stub (full implementation in Area 7)" }
+                    showAllBlocks()
                 }
                 ConversationCommand.FocusSearch -> {
                     // Handled at the UI level via FocusRequester — emit event
@@ -186,6 +184,9 @@ class ConversationViewModel(
                     logger.i { "Theme mode changed: ${action.themeMode}" }
                     _state.update { it.copy(themeMode = action.themeMode) }
                     saveThemeMode(action.themeMode)
+                }
+                is ConversationAction.OnToggleBlockExpansion -> {
+                    toggleBlockExpansion(action.blockId)
                 }
             }
         } catch (t: Throwable) {
@@ -395,6 +396,68 @@ class ConversationViewModel(
         super.onCleared()
         stopLiveTracking()
         logger.d { "ConversationViewModel cleared" }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Collapse All / Show All / per-block toggle (Area 7)
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Builds the set of stable block IDs for all collapsible blocks in the current Messages.
+     * IDs follow the pattern "{messageId}:{blockType}".
+     */
+    private fun collectCollapsibleBlockIds(messages: List<com.knowledgespike.junieviewer.domain.Message>): Set<String> {
+        val ids = mutableSetOf<String>()
+        for (msg in messages) {
+            when (msg.kind) {
+                com.knowledgespike.junieviewer.domain.MessageKind.Thought -> ids.add("${msg.id}:thought")
+                com.knowledgespike.junieviewer.domain.MessageKind.Tool,
+                com.knowledgespike.junieviewer.domain.MessageKind.Mcp -> ids.add("${msg.id}:tool")
+                com.knowledgespike.junieviewer.domain.MessageKind.Markdown -> ids.add("${msg.id}:markdown")
+                com.knowledgespike.junieviewer.domain.MessageKind.SubAgent -> ids.add("${msg.id}:subagent")
+                else -> {
+                    // Content-level collapsible blocks (Text, Code, Diff, Terminal, Structured)
+                    when (msg.content) {
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Text -> ids.add("${msg.id}:text")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Code -> ids.add("${msg.id}:code")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Diff -> ids.add("${msg.id}:diff")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Terminal -> ids.add("${msg.id}:terminal")
+                        is com.knowledgespike.junieviewer.domain.MessageContent.Structured -> ids.add("${msg.id}:structured")
+                        else -> { /* not collapsible */ }
+                    }
+                }
+            }
+        }
+        return ids
+    }
+
+    /** Collapses all collapsible blocks by setting every known block ID to false. */
+    private fun collapseAllBlocks() {
+        val allIds = collectCollapsibleBlockIds(_state.value.messages)
+        val collapsed = allIds.associateWith { false }
+        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + collapsed) }
+        logger.i { "Collapse All: ${allIds.size} blocks collapsed" }
+    }
+
+    /** Expands all collapsible blocks by setting every known block ID to true. */
+    private fun showAllBlocks() {
+        val allIds = collectCollapsibleBlockIds(_state.value.messages)
+        val expanded = allIds.associateWith { true }
+        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + expanded) }
+        logger.i { "Show All: ${allIds.size} blocks expanded" }
+    }
+
+    /** Toggles the expansion state of a single block identified by its stable block ID. */
+    private fun toggleBlockExpansion(blockId: String) {
+        _state.update { currentState ->
+            val currentExpanded = currentState.blockExpansionStates[blockId]
+            // If no explicit state exists, the block is at its default — toggle from default
+            val newExpanded = !(currentExpanded ?: true)
+            currentState.copy(
+                blockExpansionStates = currentState.blockExpansionStates + (blockId to newExpanded)
+            )
+        }
+        logger.d { "Block toggled: $blockId" }
     }
 
     private fun filterMessages(query: String) {

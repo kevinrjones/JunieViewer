@@ -18,7 +18,9 @@ fun CodeBlockWithCopy(
     code: String,
     language: SyntaxLanguage = SyntaxLanguage.KOTLIN,
     modifier: Modifier = Modifier,
-    forceExpanded: Boolean = false
+    forceExpanded: Boolean = false,
+    externalExpanded: Boolean? = null,
+    onToggle: (() -> Unit)? = null
 ) {
     val colors = JunieViewerTheme.conversationColors
 
@@ -29,6 +31,8 @@ fun CodeBlockWithCopy(
         headerTestTag = "code_block_header",
         bodyTestTag = "code_block_body",
         forceExpanded = forceExpanded,
+        externalExpanded = externalExpanded,
+        onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = code)

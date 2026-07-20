@@ -56,7 +56,13 @@ private val ACCENT_RAIL_WIDTH = 4.dp
  * Compact, right-inset Human message card with accent rail.
  */
 @Composable
-fun HumanMessageItem(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
+fun HumanMessageItem(
+    message: Message,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false,
+    blockExpansionStates: Map<String, Boolean> = emptyMap(),
+    onToggleBlock: (String) -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
@@ -69,7 +75,9 @@ fun HumanMessageItem(message: Message, searchQuery: String = "", isCurrentMatch:
             widthFraction = HUMAN_WIDTH_FRACTION,
             testTagSuffix = "human",
             searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
+            isCurrentMatch = isCurrentMatch,
+            blockExpansionStates = blockExpansionStates,
+            onToggleBlock = onToggleBlock
         )
     }
 }
@@ -78,7 +86,13 @@ fun HumanMessageItem(message: Message, searchQuery: String = "", isCurrentMatch:
  * Full-width, left-aligned Junie message card optimised for long-form reading.
  */
 @Composable
-fun JunieMessageItem(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
+fun JunieMessageItem(
+    message: Message,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false,
+    blockExpansionStates: Map<String, Boolean> = emptyMap(),
+    onToggleBlock: (String) -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
@@ -91,7 +105,9 @@ fun JunieMessageItem(message: Message, searchQuery: String = "", isCurrentMatch:
             widthFraction = JUNIE_WIDTH_FRACTION,
             testTagSuffix = "junie",
             searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch
+            isCurrentMatch = isCurrentMatch,
+            blockExpansionStates = blockExpansionStates,
+            onToggleBlock = onToggleBlock
         )
     }
 }
@@ -109,7 +125,9 @@ private fun MessageCard(
     widthFraction: Float,
     testTagSuffix: String,
     searchQuery: String = "",
-    isCurrentMatch: Boolean = false
+    isCurrentMatch: Boolean = false,
+    blockExpansionStates: Map<String, Boolean> = emptyMap(),
+    onToggleBlock: (String) -> Unit = {}
 ) {
     val spacing = JunieViewerTheme.spacing
     val isHuman = message.sender == Sender.Human
@@ -184,12 +202,24 @@ private fun MessageCard(
                     ) {
                         Column {
                             Spacer(modifier = Modifier.height(spacing.md))
-                            MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+                            MessageBody(
+                                message = message,
+                                searchQuery = searchQuery,
+                                isCurrentMatch = isCurrentMatch,
+                                blockExpansionStates = blockExpansionStates,
+                                onToggleBlock = onToggleBlock
+                            )
                         }
                     }
                 } else {
                     Spacer(modifier = Modifier.height(spacing.md))
-                    MessageBody(message = message, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+                    MessageBody(
+                        message = message,
+                        searchQuery = searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        blockExpansionStates = blockExpansionStates,
+                        onToggleBlock = onToggleBlock
+                    )
                 }
             }
         }
@@ -320,16 +350,25 @@ fun TurnHeader() {
  * Each kind is handled in a single flat dispatch — no nested when or post-when escape hatches.
  */
 @Composable
-fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Boolean = false) {
+fun MessageBody(
+    message: Message,
+    searchQuery: String = "",
+    isCurrentMatch: Boolean = false,
+    blockExpansionStates: Map<String, Boolean> = emptyMap(),
+    onToggleBlock: (String) -> Unit = {}
+) {
     when (message.kind) {
         MessageKind.Thought -> {
             val thoughtText = (message.content as? MessageContent.Text)?.text ?: ""
+            val blockId = "${message.id}:thought"
             ThoughtBlock(
                 text = thoughtText,
                 modifier = Modifier.testTag("thought_block"),
                 searchQuery = searchQuery,
                 isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(thoughtText, searchQuery)
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(thoughtText, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) }
             )
         }
         MessageKind.Error, MessageKind.Warning -> {
@@ -352,17 +391,21 @@ fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Bool
                 is MessageContent.Text -> c.text
                 else -> ""
             }
+            val blockId = "${message.id}:tool"
             ToolCallBlock(
                 content = toolText,
                 modifier = Modifier.testTag("tool_call_block"),
                 searchQuery = searchQuery,
                 isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(toolText, searchQuery)
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(toolText, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) }
             )
         }
         MessageKind.Markdown -> {
             val mdText = (message.content as? MessageContent.Text)?.text ?: ""
             val colors = JunieViewerTheme.conversationColors
+            val blockId = "${message.id}:markdown"
             CollapsibleBlock(
                 label = "Markdown",
                 backgroundColor = colors.codeBackground,
@@ -370,6 +413,8 @@ fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Bool
                 headerTestTag = "markdown_block_header",
                 bodyTestTag = "markdown_block_body",
                 forceExpanded = isCurrentMatch && blockContainsSearchHit(mdText, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) },
                 body = {
                     SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
                         MarkdownContent(
@@ -386,6 +431,7 @@ fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Bool
         MessageKind.SubAgent -> {
             val subAgentText = (message.content as? MessageContent.Text)?.text ?: ""
             val colors = JunieViewerTheme.conversationColors
+            val blockId = "${message.id}:subagent"
             CollapsibleBlock(
                 label = "Sub-Agent",
                 backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -393,6 +439,8 @@ fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Bool
                 headerTestTag = "sub_agent_block_header",
                 bodyTestTag = "sub_agent_block_body",
                 forceExpanded = isCurrentMatch && blockContainsSearchHit(subAgentText, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) },
                 body = {
                     SelectionContainer(modifier = Modifier.testTag("selectable_sub_agent_content")) {
                         Text(
@@ -413,7 +461,15 @@ fun MessageBody(message: Message, searchQuery: String = "", isCurrentMatch: Bool
             )
         }
         MessageKind.Unsupported -> UnsupportedEventCard(message)
-        else -> ContentRenderer(message.content, isMarkdownKind = false, searchQuery = searchQuery, isCurrentMatch = isCurrentMatch)
+        else -> ContentRenderer(
+                content = message.content,
+                messageId = message.id,
+                isMarkdownKind = false,
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                blockExpansionStates = blockExpansionStates,
+                onToggleBlock = onToggleBlock
+            )
     }
 }
 
@@ -447,67 +503,104 @@ private fun UnsupportedEventCard(message: Message) {
 @Composable
 private fun ContentRenderer(
     content: MessageContent,
+    messageId: String,
     isMarkdownKind: Boolean,
     searchQuery: String = "",
-    isCurrentMatch: Boolean = false
+    isCurrentMatch: Boolean = false,
+    blockExpansionStates: Map<String, Boolean> = emptyMap(),
+    onToggleBlock: (String) -> Unit = {}
 ) {
     val colors = JunieViewerTheme.conversationColors
     when (content) {
         is MessageContent.Text -> {
-            if (isMarkdownKind || looksLikeMarkdown(content.text)) {
-                SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
-                    MarkdownContent(
-                        markdown = content.text,
-                        modifier = Modifier.testTag("markdown_content"),
-                        searchQuery = searchQuery,
-                        isCurrentMatch = isCurrentMatch
-                    )
-                }
-            } else {
-                SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
-                    Text(
-                        text = themedHighlightSearchMatches(
-                        text = content.text,
-                        query = searchQuery,
-                        isCurrentMatch = isCurrentMatch
-                    ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.testTag("plain_text_content")
-                    )
-                }
-            }
+            val blockId = "$messageId:text"
+            CollapsibleBlock(
+                label = "Text",
+                backgroundColor = colors.codeBackground,
+                borderColor = colors.codeBorder,
+                headerTestTag = "text_block_header",
+                bodyTestTag = "text_block_body",
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.text, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) },
+                body = {
+                    if (isMarkdownKind || looksLikeMarkdown(content.text)) {
+                        SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                            MarkdownContent(
+                                markdown = content.text,
+                                modifier = Modifier.testTag("markdown_content"),
+                                searchQuery = searchQuery,
+                                isCurrentMatch = isCurrentMatch
+                            )
+                        }
+                    } else {
+                        SelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
+                            Text(
+                                text = themedHighlightSearchMatches(
+                                    text = content.text,
+                                    query = searchQuery,
+                                    isCurrentMatch = isCurrentMatch
+                                ),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.testTag("plain_text_content")
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.testTag("text_collapsible_block")
+            )
         }
-        is MessageContent.Code -> CodeBlockWithCopy(
-            code = content.code,
-            language = when (content.language.lowercase()) {
-                "json" -> SyntaxLanguage.JAVASCRIPT
-                "bash", "sh" -> SyntaxLanguage.SHELL
-                else -> SyntaxLanguage.KOTLIN
-            },
-            modifier = Modifier.testTag("code_block"),
-            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.code, searchQuery)
-        )
-        is MessageContent.Diff -> DiffBlock(
-            diff = content.diff,
-            modifier = Modifier.testTag("diff_block"),
-            searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch,
-            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.diff, searchQuery)
-        )
-        is MessageContent.Terminal -> TerminalOutputBlock(
-            output = content.output,
-            modifier = Modifier.testTag("terminal_block"),
-            searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch,
-            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.output, searchQuery)
-        )
-        is MessageContent.Structured -> StructuredOutputBlock(
-            data = content.data,
-            modifier = Modifier.testTag("structured_output_block"),
-            searchQuery = searchQuery,
-            isCurrentMatch = isCurrentMatch,
-            forceExpanded = isCurrentMatch && blockContainsSearchHit(content.data, searchQuery)
-        )
+        is MessageContent.Code -> {
+            val blockId = "$messageId:code"
+            CodeBlockWithCopy(
+                code = content.code,
+                language = when (content.language.lowercase()) {
+                    "json" -> SyntaxLanguage.JAVASCRIPT
+                    "bash", "sh" -> SyntaxLanguage.SHELL
+                    else -> SyntaxLanguage.KOTLIN
+                },
+                modifier = Modifier.testTag("code_block"),
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.code, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) }
+            )
+        }
+        is MessageContent.Diff -> {
+            val blockId = "$messageId:diff"
+            DiffBlock(
+                diff = content.diff,
+                modifier = Modifier.testTag("diff_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.diff, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) }
+            )
+        }
+        is MessageContent.Terminal -> {
+            val blockId = "$messageId:terminal"
+            TerminalOutputBlock(
+                output = content.output,
+                modifier = Modifier.testTag("terminal_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.output, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) }
+            )
+        }
+        is MessageContent.Structured -> {
+            val blockId = "$messageId:structured"
+            StructuredOutputBlock(
+                data = content.data,
+                modifier = Modifier.testTag("structured_output_block"),
+                searchQuery = searchQuery,
+                isCurrentMatch = isCurrentMatch,
+                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.data, searchQuery),
+                externalExpanded = blockExpansionStates[blockId],
+                onToggle = { onToggleBlock(blockId) }
+            )
+        }
     }
 }
 

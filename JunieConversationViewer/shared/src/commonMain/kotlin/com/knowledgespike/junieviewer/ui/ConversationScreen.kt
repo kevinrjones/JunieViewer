@@ -144,7 +144,7 @@ fun ConversationScreen(
                 state.selectedSessionId == null -> NoSessionState()
                 state.messages.isEmpty() -> EmptyConversationState()
                 state.filteredMessages.isEmpty() -> NoResultsState()
-                else -> ConversationList(state)
+                else -> ConversationList(state, onAction)
             }
         }
 
@@ -296,7 +296,7 @@ private fun NoResultsState() = CenteredStateMessage(
 )
 
 @Composable
-private fun BoxScope.ConversationList(state: ConversationState) {
+private fun BoxScope.ConversationList(state: ConversationState, onAction: (ConversationAction) -> Unit) {
     val turns = groupMessagesIntoTurns(state.filteredMessages)
     val listState = rememberLazyListState()
 
@@ -346,7 +346,13 @@ private fun BoxScope.ConversationList(state: ConversationState) {
                 items(items = turn.messages, key = { it.id }) { message ->
                     val msgIndex = state.filteredMessages.indexOf(message)
                     val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
-                    HumanMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
+                    HumanMessageItem(
+                        message = message,
+                        searchQuery = state.searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        blockExpansionStates = state.blockExpansionStates,
+                        onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
+                    )
                 }
             } else {
                 item(key = "turn-header-${turn.messages.first().id}") {
@@ -356,7 +362,13 @@ private fun BoxScope.ConversationList(state: ConversationState) {
                 items(items = turn.messages, key = { it.id }) { message ->
                     val msgIndex = state.filteredMessages.indexOf(message)
                     val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
-                    JunieMessageItem(message = message, searchQuery = state.searchQuery, isCurrentMatch = isCurrentMatch)
+                    JunieMessageItem(
+                        message = message,
+                        searchQuery = state.searchQuery,
+                        isCurrentMatch = isCurrentMatch,
+                        blockExpansionStates = state.blockExpansionStates,
+                        onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
+                    )
                 }
             }
         }

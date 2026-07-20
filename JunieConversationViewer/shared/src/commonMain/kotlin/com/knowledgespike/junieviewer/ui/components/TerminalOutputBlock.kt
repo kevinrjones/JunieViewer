@@ -29,7 +29,9 @@ fun TerminalOutputBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false
+    forceExpanded: Boolean = false,
+    externalExpanded: Boolean? = null,
+    onToggle: (() -> Unit)? = null
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -41,6 +43,8 @@ fun TerminalOutputBlock(
         headerTestTag = "terminal_block_header",
         bodyTestTag = "terminal_block_body",
         forceExpanded = forceExpanded,
+        externalExpanded = externalExpanded,
+        onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.weight(1f))
             CopyButton(text = output)
