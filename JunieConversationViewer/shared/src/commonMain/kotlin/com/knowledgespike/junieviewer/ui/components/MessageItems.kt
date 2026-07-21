@@ -1,35 +1,24 @@
 package com.knowledgespike.junieviewer.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Message
-import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
-import com.knowledgespike.junieviewer.ui.looksLikeMarkdown
+import com.knowledgespike.junieviewer.ui.components.renderers.MessageRendererRegistry
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
-import dev.snipme.highlights.model.SyntaxLanguage
 
 // ---------------------------------------------------------------------------
 // Layout constants for message card readability
@@ -225,69 +214,8 @@ private fun MessageCard(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Themed Message Kind marker — coloured dot + clean text label
-// ---------------------------------------------------------------------------
-
-/**
- * Renders a small coloured dot indicator paired with a clean text label for the given [MessageKind].
- * Replaces raw emoji-prefixed labels with a themed visual indicator.
- */
-@Composable
-private fun MessageKindMarker(kind: MessageKind, modifier: Modifier = Modifier) {
-    val dotColor = kindIndicatorColor(kind)
-    Row(
-        modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = kind.label
-        },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JunieViewerTheme.spacing.sm)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(dotColor)
-        )
-        Text(
-            text = kind.label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-/** Returns a semantic colour for the kind indicator dot. */
-@Composable
-private fun kindIndicatorColor(kind: MessageKind): Color {
-    val cc = JunieViewerTheme.conversationColors
-    return when (kind) {
-        MessageKind.Text, MessageKind.Markdown -> MaterialTheme.colorScheme.primary
-        MessageKind.Thought -> cc.thoughtBorder
-        MessageKind.Tool, MessageKind.Mcp -> cc.toolCallBorder
-        MessageKind.Patch -> cc.diffAddedText
-        MessageKind.Terminal -> cc.terminalText
-        MessageKind.StructuredOutput -> MaterialTheme.colorScheme.tertiary
-        MessageKind.Error -> MaterialTheme.colorScheme.error
-        MessageKind.Warning -> cc.warningBackground
-        MessageKind.Unsupported -> MaterialTheme.colorScheme.error
-        MessageKind.TestRun -> MaterialTheme.colorScheme.secondary
-        MessageKind.SubAgent -> MaterialTheme.colorScheme.tertiary
-        MessageKind.Question -> MaterialTheme.colorScheme.primary
-        MessageKind.Choice -> MaterialTheme.colorScheme.secondary
-        MessageKind.SystemMessage -> MaterialTheme.colorScheme.onSurfaceVariant
-        MessageKind.Cancelled -> MaterialTheme.colorScheme.error
-        MessageKind.Status -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Sub-Agent badge — small textual label for sub-agent messages
-// ---------------------------------------------------------------------------
-
 /**
  * Renders a small "Sub-Agent" badge/label for sub-agent messages.
- * Uses text and a border to be visible without relying on colour alone.
  */
 @Composable
 private fun SubAgentBadge(modifier: Modifier = Modifier) {
@@ -307,46 +235,8 @@ private fun SubAgentBadge(modifier: Modifier = Modifier) {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Visual header marking the start of a Junie Turn
-// ---------------------------------------------------------------------------
-
-/** Themed divider header marking the start of a Junie Turn in the conversation. */
-@Composable
-fun TurnHeader() {
-    val spacing = JunieViewerTheme.spacing
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = spacing.sm)
-            .testTag("turn_header")
-            .semantics { heading() },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = JunieViewerTheme.conversationColors.junieAccent.copy(alpha = 0.4f)
-        )
-        Text(
-            text = "Junie Turn",
-            style = MaterialTheme.typography.titleMedium,
-            color = JunieViewerTheme.conversationColors.junieAccent,
-            modifier = Modifier.padding(horizontal = spacing.lg)
-        )
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = JunieViewerTheme.conversationColors.junieAccent.copy(alpha = 0.4f)
-        )
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Message body — content-type dispatch (Finding 5: no nested when-in-when)
-// ---------------------------------------------------------------------------
-
 /**
- * Renders the body content of a Message based on its MessageKind and MessageContent type.
- * Each kind is handled in a single flat dispatch — no nested when or post-when escape hatches.
+ * Renders the body content of a Message using the [MessageRendererRegistry].
  */
 @Composable
 fun MessageBody(
@@ -356,297 +246,11 @@ fun MessageBody(
     blockExpansionStates: Map<String, Boolean> = emptyMap(),
     onToggleBlock: (String) -> Unit = {}
 ) {
-    when (message.kind) {
-        MessageKind.Thought -> {
-            val thoughtText = (message.content as? MessageContent.Text)?.text ?: ""
-            val blockId = "${message.id}:thought"
-            ThoughtBlock(
-                text = thoughtText,
-                modifier = Modifier.testTag("thought_block"),
-                searchQuery = searchQuery,
-                isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(thoughtText, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) }
-            )
-        }
-        MessageKind.Error, MessageKind.Warning -> {
-            val errText = when (val c = message.content) {
-                is MessageContent.Text -> c.text
-                else -> "Unknown error"
-            }
-            ErrorWarningBlock(
-                text = errText,
-                isWarning = message.kind == MessageKind.Warning,
-                modifier = Modifier.testTag("error_warning_block"),
-                searchQuery = searchQuery,
-                isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(errText, searchQuery)
-            )
-        }
-        MessageKind.Tool, MessageKind.Mcp -> {
-            val toolText = when (val c = message.content) {
-                is MessageContent.Code -> c.code
-                is MessageContent.Text -> c.text
-                else -> ""
-            }
-            val blockId = "${message.id}:tool"
-            ToolCallBlock(
-                content = toolText,
-                modifier = Modifier.testTag("tool_call_block"),
-                searchQuery = searchQuery,
-                isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(toolText, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) }
-            )
-        }
-        MessageKind.Markdown -> {
-            val mdText = (message.content as? MessageContent.Text)?.text ?: ""
-            val colors = JunieViewerTheme.conversationColors
-            val blockId = "${message.id}:markdown"
-            CollapsibleBlock(
-                label = "Markdown",
-                backgroundColor = colors.codeBackground,
-                borderColor = colors.codeBorder,
-                headerTestTag = "markdown_block_header",
-                bodyTestTag = "markdown_block_body",
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(mdText, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) },
-                body = {
-                    TrackedSelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
-                        MarkdownContent(
-                            markdown = mdText,
-                            modifier = Modifier.testTag("markdown_content"),
-                            searchQuery = searchQuery,
-                            isCurrentMatch = isCurrentMatch
-                        )
-                    }
-                },
-                modifier = Modifier.testTag("markdown_collapsible_block")
-            )
-        }
-        MessageKind.SubAgent -> {
-            val subAgentText = (message.content as? MessageContent.Text)?.text ?: ""
-            val colors = JunieViewerTheme.conversationColors
-            val blockId = "${message.id}:subagent"
-            CollapsibleBlock(
-                label = "Sub-Agent",
-                backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                borderColor = MaterialTheme.colorScheme.tertiary,
-                headerTestTag = "sub_agent_block_header",
-                bodyTestTag = "sub_agent_block_body",
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(subAgentText, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) },
-                body = {
-                    TrackedSelectionContainer(modifier = Modifier.testTag("selectable_sub_agent_content")) {
-                        Text(
-                            text = themedHighlightSearchMatches(
-                                text = subAgentText,
-                                query = searchQuery,
-                                isCurrentMatch = isCurrentMatch
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(JunieViewerTheme.spacing.lg)
-                                .testTag("sub_agent_body")
-                        )
-                    }
-                },
-                modifier = Modifier.testTag("sub_agent_collapsible_block")
-            )
-        }
-        MessageKind.Unsupported -> UnsupportedEventCard(message)
-        else -> ContentRenderer(
-                content = message.content,
-                messageId = message.id,
-                isMarkdownKind = false,
-                searchQuery = searchQuery,
-                isCurrentMatch = isCurrentMatch,
-                blockExpansionStates = blockExpansionStates,
-                onToggleBlock = onToggleBlock
-            )
-    }
-}
-
-/**
- * Renders the unsupported event indicator as a visually distinct warning card.
- */
-@Composable
-private fun UnsupportedEventCard(message: Message) {
-    val spacing = JunieViewerTheme.spacing
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = spacing.sm)
-            .testTag("unsupported_event_card"),
-        color = MaterialTheme.colorScheme.errorContainer,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = (message.content as? MessageContent.Text)?.text ?: "Unsupported event",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(spacing.md)
-        )
-    }
-}
-
-/**
- * Renders message content by type — Text, Code, Diff, Terminal, Structured.
- * Separated from MessageBody to keep the kind dispatch flat.
- */
-@Composable
-private fun ContentRenderer(
-    content: MessageContent,
-    messageId: String,
-    isMarkdownKind: Boolean,
-    searchQuery: String = "",
-    isCurrentMatch: Boolean = false,
-    blockExpansionStates: Map<String, Boolean> = emptyMap(),
-    onToggleBlock: (String) -> Unit = {}
-) {
-    val colors = JunieViewerTheme.conversationColors
-    when (content) {
-        is MessageContent.Text -> {
-            val blockId = "$messageId:text"
-            CollapsibleBlock(
-                label = "Text",
-                backgroundColor = colors.codeBackground,
-                borderColor = colors.codeBorder,
-                headerTestTag = "text_block_header",
-                bodyTestTag = "text_block_body",
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.text, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) },
-                body = {
-                    if (isMarkdownKind || looksLikeMarkdown(content.text)) {
-                        TrackedSelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
-                            MarkdownContent(
-                                markdown = content.text,
-                                modifier = Modifier.testTag("markdown_content"),
-                                searchQuery = searchQuery,
-                                isCurrentMatch = isCurrentMatch
-                            )
-                        }
-                    } else {
-                        TrackedSelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {
-                            Text(
-                                text = themedHighlightSearchMatches(
-                                    text = content.text,
-                                    query = searchQuery,
-                                    isCurrentMatch = isCurrentMatch
-                                ),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.testTag("plain_text_content")
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier.testTag("text_collapsible_block")
-            )
-        }
-        is MessageContent.Code -> {
-            val blockId = "$messageId:code"
-            CodeBlockWithCopy(
-                code = content.code,
-                language = when (content.language.lowercase()) {
-                    "json" -> SyntaxLanguage.JAVASCRIPT
-                    "bash", "sh" -> SyntaxLanguage.SHELL
-                    else -> SyntaxLanguage.KOTLIN
-                },
-                modifier = Modifier.testTag("code_block"),
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.code, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) }
-            )
-        }
-        is MessageContent.Diff -> {
-            val blockId = "$messageId:diff"
-            DiffBlock(
-                diff = content.diff,
-                modifier = Modifier.testTag("diff_block"),
-                searchQuery = searchQuery,
-                isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.diff, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) }
-            )
-        }
-        is MessageContent.Terminal -> {
-            val blockId = "$messageId:terminal"
-            TerminalOutputBlock(
-                output = content.output,
-                modifier = Modifier.testTag("terminal_block"),
-                searchQuery = searchQuery,
-                isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.output, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) }
-            )
-        }
-        is MessageContent.Structured -> {
-            val blockId = "$messageId:structured"
-            StructuredOutputBlock(
-                data = content.data,
-                modifier = Modifier.testTag("structured_output_block"),
-                searchQuery = searchQuery,
-                isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.data, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
-                onToggle = { onToggleBlock(blockId) }
-            )
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Expansion state helper — encapsulates auto-expand-on-search + manual collapse
-// ---------------------------------------------------------------------------
-
-/** Holds the expansion state for a collapsible message card. */
-class MessageExpansionState(
-    expanded: Boolean,
-    private val forceExpanded: Boolean
-) {
-    var expanded by mutableStateOf(expanded)
-        private set
-    var userDismissedForce by mutableStateOf(false)
-        internal set
-
-    /** Whether the content should be visually expanded. */
-    val isVisible: Boolean
-        get() = expanded || (forceExpanded && !userDismissedForce)
-
-    /** Toggles the expanded state, tracking user dismissal of force-expand. */
-    fun toggle() {
-        expanded = !expanded
-        if (!expanded && forceExpanded) {
-            userDismissedForce = true
-        }
-    }
-}
-
-/**
- * Remembers a [MessageExpansionState] that auto-expands when the message is the
- * current search match and resets the user-dismissed flag when force-expand ends.
- */
-@Composable
-fun rememberMessageExpansionState(
-    isCurrentMatch: Boolean,
-    isHuman: Boolean,
-    searchQuery: String
-): MessageExpansionState {
-    val state = remember { MessageExpansionState(expanded = true, forceExpanded = false) }
-    val forceExpanded = isCurrentMatch && isHuman && searchQuery.isNotBlank()
-    val result = remember(forceExpanded) {
-        MessageExpansionState(expanded = state.expanded, forceExpanded = forceExpanded)
-    }
-    if (!forceExpanded) {
-        result.userDismissedForce = false
-    }
-    return result
+    MessageRendererRegistry.Render(
+        message = message,
+        searchQuery = searchQuery,
+        isCurrentMatch = isCurrentMatch,
+        blockExpansionStates = blockExpansionStates,
+        onToggleBlock = onToggleBlock
+    )
 }

@@ -41,9 +41,9 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 |---|-----------|--------|------------|
 | 1 | Discovery, Characterization, and Quick Wins (F7, F8, F10, F12) | Complete | 9 |
 | 2 | Test Infrastructure (F11) | Complete | 6 |
-| 3 | Typed Domain Events (F2) | Not started | 7 |
-| 4 | Self-Mapping Events and Stable IDs (F3, F9) | Not started | 7 |
-| 5 | Message Content Registry (F1) | Not started | 7 |
+| 3 | Typed Domain Events (F2) | Complete | 7 |
+| 4 | Self-Mapping Events and Stable IDs (F3, F9) | Complete | 7 |
+| 5 | Message Content Registry (F1) | Complete | 7 |
 | 6 | Centralized Expansion State (F4) | Not started | 5 |
 | 7 | Markdown Parser Extraction (F5) | Not started | 6 |
 | 8 | Entry Point Decomposition (F6) | Not started | 7 |
@@ -469,7 +469,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 4.1 Choose Strategy vs Visitor with HITL (Q1) — `HITL Review`
 
-- [ ] Choose Strategy vs Visitor with HITL
+- [x] Choose Strategy vs Visitor with HITL
 
 **Description:** Confirm the self-mapping mechanism per Q1 (recommendation: Strategy — `toMessage()` on each event with a shared context parameter).
 
@@ -486,7 +486,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 4.2 Implement self-mapping on AgentEvent — `Test Required`, `Depends on 4.1`
 
-- [ ] Implement self-mapping on AgentEvent
+- [x] Implement self-mapping on AgentEvent
 
 **Description:** Add the polymorphic mapping operation to `AgentEvent` so each event produces its own Message (or explicitly no Message), using its typed payload from Area 3.
 
@@ -503,7 +503,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 4.3 Collapse EventToMessageMapper to orchestration
 
-- [ ] Collapse EventToMessageMapper to orchestration
+- [x] Collapse EventToMessageMapper to orchestration
 
 **Description:** Delete the ~220-line `when` block; the mapper retains only orchestration (ordering, ID assignment, filtering of no-message events).
 
@@ -520,7 +520,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 4.4 Derive stable Message IDs (F9) — `Test Required`
 
-- [ ] Derive stable Message IDs
+- [x] Derive stable Message IDs
 
 **Description:** Replace the `content.hashCode()` fallback with a stable ID source per Q3 decision (recommendation: session path + file line offset), assigned during mapping.
 
@@ -537,7 +537,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 4.5 Remove -live- prefix patching from LiveSessionTracker
 
-- [ ] Remove -live- prefix patching from LiveSessionTracker
+- [x] Remove -live- prefix patching from LiveSessionTracker
 
 **Description:** Delete the `-live-` prefix collision workaround (~L79–82); stable IDs make it unnecessary.
 
@@ -554,7 +554,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 4.6 Verify expansion/search state survives reloads — `Test Required`
 
-- [ ] Verify expansion/search state survives reloads
+- [x] Verify expansion/search state survives reloads
 
 **Description:** Add tests confirming that block expansion state and search match positions keyed by Message ID remain valid after a manual refresh during live tracking.
 
@@ -571,7 +571,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 4.7 Verify green build after mapping rework
 
-- [ ] Verify green build after mapping rework
+- [x] Verify green build after mapping rework
 
 **Description:** Run `./gradlew :shared:jvmTest` and `./gradlew test`.
 
@@ -594,7 +594,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 5.1 Confirm registry shape with HITL (Q2) — `HITL Review`
 
-- [ ] Confirm registry shape with HITL
+- [x] Confirm registry shape with HITL
 
 **Description:** Decide per Q2 whether renderer composables live in the shared registry or in a UI-layer map keyed by kind (recommendation: collapsibility + searchable text shared; renderers UI-side).
 
@@ -611,7 +611,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 5.2 Implement MessageContentRegistry — `Test Required`, `Depends on 5.1`
 
-- [ ] Implement MessageContentRegistry
+- [x] Implement MessageContentRegistry
 
 **Description:** Create the registry (plain map of descriptors — no reflection, no DI framework) providing per `MessageKind`: default collapsibility, searchable-text extractor, and renderer lookup per the Q2 decision.
 
@@ -628,7 +628,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 5.3 Delete the ViewModel MessageKind when chain
 
-- [ ] Delete the ViewModel MessageKind when chain
+- [x] Delete the ViewModel MessageKind when chain
 
 **Description:** Replace the `when` in `ConversationViewModel.kt` (~L413–436) with registry lookups for searchable text and collapsibility.
 
@@ -645,7 +645,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 5.4 Delete the two MessageItems when chains
 
-- [ ] Delete the two MessageItems when chains
+- [x] Delete the two MessageItems when chains
 
 **Description:** Replace the two exhaustive `when` chains in `MessageItems.kt` (~L359–472, ~L513–603) with registry-driven rendering.
 
@@ -662,7 +662,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 5.5 Decompose MessageItems.kt into focused files
 
-- [ ] Decompose MessageItems.kt into focused files
+- [x] Decompose MessageItems.kt into focused files
 
 **Description:** Split the 653-line file into `MessageKindMarker.kt`, `TurnHeader.kt`, `ExpansionState.kt`, and a `renderers/` directory of per-kind composables.
 
@@ -679,7 +679,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 5.6 Write ADR for registry and self-mapping decisions
 
-- [ ] Write ADR for registry and self-mapping decisions
+- [x] Write ADR for registry and self-mapping decisions
 
 **Description:** Record ADRs for the `MessageContentRegistry` and event self-mapping (per Q6 decision), including the named reason for each pattern per project guidelines.
 
@@ -696,7 +696,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 5.7 Verify green build after registry — `Manual Review Required`
 
-- [ ] Verify green build after registry
+- [x] Verify green build after registry
 
 **Description:** Run `./gradlew :shared:jvmTest` and `./gradlew test`; manually verify all Message Kinds render identically in both themes.
 

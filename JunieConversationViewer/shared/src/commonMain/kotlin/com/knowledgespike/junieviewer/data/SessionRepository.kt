@@ -14,13 +14,15 @@ import okio.buffer
 data class SessionLoadResult(
     val messages: List<Message>,
     val eventsFilePath: Path?,
-    val fileSizeAfterLoad: Long
+    val fileSizeAfterLoad: Long,
+    /** Total number of lines read from the events.jsonl file (for stable ID continuity in live tracking). */
+    val totalLineCount: Int = 0
 )
 
 interface SessionRepository {
     fun getMessages(): List<Message>
     /** Loads messages and returns metadata needed for live tracking. */
-    fun loadSession(): SessionLoadResult = SessionLoadResult(getMessages(), null, 0L)
+    fun loadSession(): SessionLoadResult = SessionLoadResult(getMessages(), null, 0L, 0)
     fun listSessions(homePath: String): List<SessionInfo>
     fun setSession(sessionId: String, homePath: String)
     /** Returns the [SessionInfo] for the currently set session, or null if unavailable. */
@@ -91,12 +93,12 @@ class SessionRepositoryImpl(
         logger.d { "Loading messages from: $path" }
         val events = mutableListOf<JunieEvent>()
         var parseErrors = 0
+        var totalLineCount = 0
         fileSystem.source(path).buffer().use { source ->
-            var lineCount = 0
             while (true) {
                 val line = source.readUtf8Line() ?: break
+                totalLineCount++
                 if (line.isBlank()) continue
-                lineCount++
                 JsonlParser.parseLine(line)
                     .onRight { events.add(it) }
                     .onLeft { parseErrors++ }
@@ -104,7 +106,7 @@ class SessionRepositoryImpl(
             val knownCount = events.count { it !is UnknownJunieEvent && (it !is SessionA2uxEvent || it.event.agentEvent !is UnknownAgentEvent) }
             val unknownTopLevel = events.count { it is UnknownJunieEvent }
             val unknownNested = events.count { it is SessionA2uxEvent && it.event.agentEvent is UnknownAgentEvent }
-            logger.i { "Session loaded: $lineCount lines, ${events.size} events (known=$knownCount, unknownTopLevel=$unknownTopLevel, unknownNested=$unknownNested, parseErrors=$parseErrors)" }
+            logger.i { "Session loaded: $totalLineCount lines, ${events.size} events (known=$knownCount, unknownTopLevel=$unknownTopLevel, unknownNested=$unknownNested, parseErrors=$parseErrors)" }
             if (unknownTopLevel + unknownNested > 0) {
                 logger.w { "Unknown event kinds found — these will appear as unsupported event indicators in the UI" }
             }
@@ -112,7 +114,7 @@ class SessionRepositoryImpl(
 
         val messages = EventToMessageMapper.mapEventsToMessages(events)
         val fileSize = try { fileSystem.metadata(path).size ?: 0L } catch (_: Exception) { 0L }
-        return SessionLoadResult(messages, path, fileSize)
+        return SessionLoadResult(messages, path, fileSize, totalLineCount)
     }
 
     override fun listSessions(homePath: String): List<SessionInfo> {

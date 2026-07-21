@@ -50,7 +50,7 @@ class ConversationViewModel(
     /** Cached metadata from the last successful load, used to restart live tracking. */
     private var lastLoadedEventsFilePath: okio.Path? = null
     private var lastLoadedFileSize: Long = 0L
-    private var lastLoadedMessageCount: Int = 0
+    private var lastLoadedLineCount: Int = 0
 
     init {
         logger.d { "ConversationViewModel initialized" }
@@ -345,11 +345,11 @@ class ConversationViewModel(
                 // Cache load metadata for potential live tracking restart
                 lastLoadedEventsFilePath = loadResult.eventsFilePath
                 lastLoadedFileSize = loadResult.fileSizeAfterLoad
-                lastLoadedMessageCount = loadResult.messages.size
+                lastLoadedLineCount = loadResult.totalLineCount
 
                 // Start live tracking only when auto-refresh is enabled
                 if (_state.value.isAutoRefreshEnabled) {
-                    startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.messages.size)
+                    startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.totalLineCount + 1)
                 } else {
                     logger.i { "Auto-refresh disabled — skipping live tracking after load" }
                 }
@@ -364,15 +364,15 @@ class ConversationViewModel(
     }
 
     /** Starts live tracking for the given events.jsonl file. */
-    private fun startLiveTracking(eventsFilePath: okio.Path?, initialOffset: Long, existingMessageCount: Int) {
+    private fun startLiveTracking(eventsFilePath: okio.Path?, initialOffset: Long, nextLineNumber: Int) {
         if (eventsFilePath == null) {
             logger.w { "Cannot start live tracking: no events file path" }
             return
         }
 
-        logger.i { "Starting live tracking: path=$eventsFilePath, offset=$initialOffset" }
+        logger.i { "Starting live tracking: path=$eventsFilePath, offset=$initialOffset, nextLine=$nextLineNumber" }
         liveTrackingJob = viewModelScope.launch(ioDispatcher + exceptionHandler) {
-            liveSessionTracker.track(eventsFilePath, initialOffset, existingMessageCount)
+            liveSessionTracker.track(eventsFilePath, initialOffset, nextLineNumber)
                 .collect { event ->
                     when (event) {
                         is LiveTrackingEvent.NewMessages -> {
@@ -415,38 +415,9 @@ class ConversationViewModel(
     // Collapse All / Show All / per-block toggle (Area 7)
     // ---------------------------------------------------------------------------
 
-    /**
-     * Builds the set of stable block IDs for all collapsible blocks in the current Messages.
-     * IDs follow the pattern "{messageId}:{blockType}".
-     */
-    private fun collectCollapsibleBlockIds(messages: List<com.knowledgespike.junieviewer.domain.Message>): Set<String> {
-        val ids = mutableSetOf<String>()
-        for (msg in messages) {
-            when (msg.kind) {
-                com.knowledgespike.junieviewer.domain.MessageKind.Thought -> ids.add("${msg.id}:thought")
-                com.knowledgespike.junieviewer.domain.MessageKind.Tool,
-                com.knowledgespike.junieviewer.domain.MessageKind.Mcp -> ids.add("${msg.id}:tool")
-                com.knowledgespike.junieviewer.domain.MessageKind.Markdown -> ids.add("${msg.id}:markdown")
-                com.knowledgespike.junieviewer.domain.MessageKind.SubAgent -> ids.add("${msg.id}:subagent")
-                else -> {
-                    // Content-level collapsible blocks (Text, Code, Diff, Terminal, Structured)
-                    when (msg.content) {
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Text -> ids.add("${msg.id}:text")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Code -> ids.add("${msg.id}:code")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Diff -> ids.add("${msg.id}:diff")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Terminal -> ids.add("${msg.id}:terminal")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Structured -> ids.add("${msg.id}:structured")
-                        else -> { /* not collapsible */ }
-                    }
-                }
-            }
-        }
-        return ids
-    }
-
     /** Collapses all collapsible blocks by setting every known block ID to false. */
     private fun collapseAllBlocks() {
-        val allIds = collectCollapsibleBlockIds(_state.value.messages)
+        val allIds = MessageContentRegistry.collectCollapsibleBlockIds(_state.value.messages)
         val collapsed = allIds.associateWith { false }
         _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + collapsed) }
         logger.i { "Collapse All: ${allIds.size} blocks collapsed" }
@@ -454,7 +425,7 @@ class ConversationViewModel(
 
     /** Expands all collapsible blocks by setting every known block ID to true. */
     private fun showAllBlocks() {
-        val allIds = collectCollapsibleBlockIds(_state.value.messages)
+        val allIds = MessageContentRegistry.collectCollapsibleBlockIds(_state.value.messages)
         val expanded = allIds.associateWith { true }
         _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + expanded) }
         logger.i { "Show All: ${allIds.size} blocks expanded" }
@@ -516,7 +487,7 @@ class ConversationViewModel(
 
                 if (query.isBlank()) return@filter true
 
-                messageContentText(message.content).contains(query, ignoreCase = true)
+                MessageContentRegistry.searchableText(message).contains(query, ignoreCase = true)
             }
             // Apply sort order: canonical messages list is always chronological;
             // reverse for NewestFirst display order
@@ -556,14 +527,5 @@ class ConversationViewModel(
         _state.update { filterMessages(it.copy(sortOrder = newOrder), it.searchQuery) }
         logger.i { "Sort order toggled: $newOrder" }
         saveSortOrder(newOrder)
-    }
-
-    /** Extracts searchable plain text from any MessageContent variant. */
-    private fun messageContentText(content: MessageContent): String = when (content) {
-        is MessageContent.Text -> content.text
-        is MessageContent.Code -> content.code
-        is MessageContent.Diff -> content.diff
-        is MessageContent.Terminal -> content.output
-        is MessageContent.Structured -> content.data
     }
 }

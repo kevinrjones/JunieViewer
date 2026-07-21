@@ -46,7 +46,7 @@ class EventToMessageMapperCharacterizationTest {
             get { kind }.isEqualTo(MessageKind.Text)
             get { sender }.isEqualTo(Sender.Human)
             get { content }.isA<MessageContent.Text>().get { text }.isEqualTo("Fix the bug")
-            get { id }.isEqualTo("0-req-1") // id uses index + requestId
+            get { id }.isEqualTo("line-1") // id uses index + requestId
         }
     }
 
@@ -55,8 +55,8 @@ class EventToMessageMapperCharacterizationTest {
         val event = UserPromptEvent(prompt = "Hello")
         val message = mapSingle(event)
 
-        // Characterization: fallback tag is "prompt-<hashCode>" of the event.
-        expectThat(message.id).isEqualTo("0-prompt-${event.hashCode()}")
+        // Characterization: fallback tag is "line-<lineNumber>" of the event.
+        expectThat(message.id).isEqualTo("line-1")
     }
 
     @Test
@@ -69,7 +69,7 @@ class EventToMessageMapperCharacterizationTest {
             get { kind }.isEqualTo(MessageKind.Unsupported)
             get { sender }.isEqualTo(Sender.Junie)
             get { content }.isA<MessageContent.Text>().get { text }.isEqualTo("Unsupported event: BrandNewEvent")
-            get { id }.isEqualTo("0-unknown-777") // id uses timestampMs when present
+            get { id }.isEqualTo("line-1") // id uses timestampMs when present
         }
     }
 
@@ -99,7 +99,7 @@ class EventToMessageMapperCharacterizationTest {
             get { kind }.isEqualTo(MessageKind.Cancelled)
             get { sender }.isEqualTo(Sender.Human)
             get { content }.isA<MessageContent.Text>().get { text }.isEqualTo("⛔ Agent cancelled")
-            get { id }.isEqualTo("0-cancel")
+            get { id }.isEqualTo("line-1")
         }
     }
 
@@ -111,7 +111,7 @@ class EventToMessageMapperCharacterizationTest {
             get { kind }.isEqualTo(MessageKind.Status)
             get { sender }.isEqualTo(Sender.Junie)
             get { content }.isA<MessageContent.Text>().get { text }.isEqualTo("Continue stopped")
-            get { id }.isEqualTo("0-continue-stopped")
+            get { id }.isEqualTo("line-1")
         }
     }
 
@@ -123,7 +123,7 @@ class EventToMessageMapperCharacterizationTest {
             get { kind }.isEqualTo(MessageKind.Text)
             get { sender }.isEqualTo(Sender.Human)
             get { content }.isA<MessageContent.Text>().get { text }.isEqualTo("Yes, proceed")
-            get { id }.isEqualTo("0-response")
+            get { id }.isEqualTo("line-1")
         }
     }
 
@@ -158,7 +158,7 @@ class EventToMessageMapperCharacterizationTest {
             get { kind }.isEqualTo(MessageKind.Text)
             get { sender }.isEqualTo(Sender.Junie)
             get { content }.isA<MessageContent.Text>().get { text }.isEqualTo("All done")
-            get { id }.isEqualTo("0-100") // agent ids use timestampMs when available
+            get { id }.isEqualTo("line-1")
         }
     }
 
@@ -453,7 +453,7 @@ class EventToMessageMapperCharacterizationTest {
         val message = mapSingle(a2ux(AgentThoughtBlockUpdatedEvent(text = "no ts"), timestampMs = null))
 
         // Characterization: id falls back to "<index>-<tag>-<content.hashCode()>".
-        expectThat(message.id).isEqualTo("0-thought-${MessageContent.Text("no ts").hashCode()}")
+        expectThat(message.id).isEqualTo("line-1")
     }
 
     @Test
@@ -467,7 +467,7 @@ class EventToMessageMapperCharacterizationTest {
         )
 
         expectThat(messages).hasSize(2)
-        expectThat(messages[0].id).isEqualTo("1-r1")
-        expectThat(messages[1].id).isEqualTo("2-cancel")
+        expectThat(messages[0].id).isEqualTo("line-2")
+        expectThat(messages[1].id).isEqualTo("line-3")
     }
 }
