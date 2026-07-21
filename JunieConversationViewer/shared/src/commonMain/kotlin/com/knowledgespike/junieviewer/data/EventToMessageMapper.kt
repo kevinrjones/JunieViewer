@@ -1,10 +1,6 @@
 package com.knowledgespike.junieviewer.data
 
-import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Pure transformation from parsed [JunieEvent] instances to UI [Message] objects.
@@ -14,8 +10,6 @@ import kotlinx.serialization.json.jsonPrimitive
  * Extracted from SessionRepository to separate concerns and enable independent testing.
  */
 object EventToMessageMapper {
-
-    private val logger = Logger.withTag("EventToMessageMapper")
 
     /** Maps a list of parsed events to UI messages, filtering out metadata-only events. */
     fun mapEventsToMessages(events: List<JunieEvent>): List<Message> =
@@ -133,14 +127,11 @@ object EventToMessageMapper {
             is AskRequestUpdatedEvent -> {
                 val questionText = buildString {
                     if (!agentEvent.title.isNullOrBlank()) append("${agentEvent.title}\n")
-                    val askObj = agentEvent.askRequest
-                    if (askObj != null) {
-                        try {
-                            val q = askObj.jsonObject["question"]?.jsonPrimitive?.content
-                            if (!q.isNullOrBlank()) append(q)
-                        } catch (e: Exception) {
-                            logger.w(e) { "Failed to parse askRequest JSON" }
-                            append(askObj.toString())
+                    val ask = agentEvent.askRequest
+                    if (ask != null) {
+                        when {
+                            ask.unstructuredText != null -> append(ask.unstructuredText)
+                            !ask.question.isNullOrBlank() -> append(ask.question)
                         }
                     }
                 }
@@ -151,18 +142,14 @@ object EventToMessageMapper {
             is ChoiceRequestUpdatedEvent -> {
                 val choiceText = buildString {
                     if (!agentEvent.title.isNullOrBlank()) append("${agentEvent.title}\n")
-                    val choiceObj = agentEvent.choiceRequest
-                    if (choiceObj != null) {
-                        try {
-                            val options = choiceObj.jsonObject["options"]?.jsonArray
-                            options?.forEach { opt ->
-                                val desc = opt.jsonObject["description"]?.jsonPrimitive?.content
-                                val id = opt.jsonObject["id"]?.jsonPrimitive?.content
-                                append("• ${desc ?: id ?: "option"}\n")
+                    val choice = agentEvent.choiceRequest
+                    if (choice != null) {
+                        if (choice.unstructuredText != null) {
+                            append(choice.unstructuredText)
+                        } else {
+                            choice.options?.forEach { opt ->
+                                append("• ${opt.description ?: opt.id ?: "option"}\n")
                             }
-                        } catch (e: Exception) {
-                            logger.w(e) { "Failed to parse choiceRequest JSON" }
-                            append(choiceObj.toString())
                         }
                     }
                 }

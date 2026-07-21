@@ -2,9 +2,7 @@ package com.knowledgespike.junieviewer.domain
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNames
-import kotlinx.serialization.json.JsonObject
 
 // ---------------------------------------------------------------------------
 // AgentEventWrapper — bridges SessionA2uxEvent to nested AgentEvent
@@ -52,7 +50,7 @@ data class ResultBlockUpdatedEvent(
     val result: String? = null,
     val stepId: String? = null,
     val cancelled: Boolean? = null,
-    val changes: JsonElement? = null,
+    val changes: List<FileChange>? = null,
     val errorCode: String? = null
 ) : AgentEvent
 
@@ -87,14 +85,14 @@ data class AgentTaskNameUpdatedEvent(val name: String? = null) : AgentEvent
 @Serializable
 data class AgentPlanUpdatedEvent(
     val plan: String? = null,
-    val items: JsonElement? = null
+    val items: List<PlanItem>? = null
 ) : AgentEvent
 
 /** Available pull requests metadata event. */
 @Serializable
 data class AvailablePullRequestsEvent(
-    val pullRequests: JsonElement? = null,
-    val agent: JsonElement? = null
+    val pullRequests: PayloadValue? = null,
+    val agent: AgentIdentity? = null
 ) : AgentEvent
 
 /** LLM response metadata (token counts, model info). */
@@ -103,7 +101,7 @@ data class LlmResponseMetadataEvent(
     val model: String? = null,
     val inputTokens: Int? = null,
     val outputTokens: Int? = null,
-    val modelUsage: JsonElement? = null
+    val modelUsage: List<ModelUsage>? = null
 ) : AgentEvent
 
 /** Current working directory update (metadata-only). */
@@ -118,13 +116,13 @@ data class CurrentDirectoryUpdatedEvent(
 /** Environment variables update (metadata-only). */
 @Serializable
 data class EnvironmentVariablesUpdatedEvent(
-    val variables: JsonElement? = null
+    val variables: PayloadValue? = null
 ) : AgentEvent
 
 /** View files block update — files Junie is examining. */
 @Serializable
 data class ViewFilesBlockUpdatedEvent(
-    val files: JsonElement? = null,
+    val files: List<ViewedFile>? = null,
     val stepId: String? = null,
     val status: String? = null
 ) : AgentEvent
@@ -134,13 +132,13 @@ data class ViewFilesBlockUpdatedEvent(
 data class ContextWindowReportEvent(
     val usedTokens: Int? = null,
     val maxTokens: Int? = null,
-    val percentage: JsonElement? = null
+    val percentage: Double? = null
 ) : AgentEvent
 
 /** File changes block update — files Junie has modified. */
 @Serializable
 data class FileChangesBlockUpdatedEvent(
-    val changes: JsonElement? = null,
+    val changes: List<FileChange>? = null,
     val stepId: String? = null,
     val status: String? = null
 ) : AgentEvent
@@ -156,14 +154,14 @@ data class TipSuggestionCreatedEvent(
 /** Plan progress indicator. */
 @Serializable
 data class ShowPlanProgressEvent(
-    val progress: JsonElement? = null,
-    val items: JsonElement? = null
+    val progress: PayloadValue? = null,
+    val items: List<PlanItem>? = null
 ) : AgentEvent
 
 /** Next prompt suggestion for the user. */
 @Serializable
 data class NextPromptSuggestionEvent(
-    val suggestion: JsonElement? = null
+    val suggestion: List<PromptSuggestion>? = null
 ) : AgentEvent
 
 /** Async request update (e.g. HITL approval request). */
@@ -173,7 +171,7 @@ data class AskAsyncRequestUpdatedEvent(
     val question: String? = null,
     val stepId: String? = null,
     val title: String? = null,
-    val request: JsonElement? = null,
+    val request: AsyncRequest? = null,
     val status: String? = null
 ) : AgentEvent
 
@@ -181,7 +179,7 @@ data class AskAsyncRequestUpdatedEvent(
 @Serializable
 data class AuthorizationAvailabilityEvent(
     val available: Boolean? = null,
-    val agent: JsonElement? = null,
+    val agent: AgentIdentity? = null,
     val authorized: Boolean? = null
 ) : AgentEvent
 
@@ -189,7 +187,7 @@ data class AuthorizationAvailabilityEvent(
 @Serializable
 data class AgentStartedEvent(
     val agentId: String? = null,
-    val agent: JsonElement? = null,
+    val agent: AgentIdentity? = null,
     val stepId: String? = null,
     val agentType: String? = null
 ) : AgentEvent
@@ -197,9 +195,9 @@ data class AgentStartedEvent(
 /** Plan suggestion from the agent. */
 @Serializable
 data class SuggestPlanEvent(
-    val plan: JsonElement? = null,
-    val sections: JsonElement? = null,
-    val deliveryPlan: JsonElement? = null,
+    val plan: PayloadValue? = null,
+    val sections: List<PlanSection>? = null,
+    val deliveryPlan: List<PlanItem>? = null,
     val readyForReview: Boolean? = null
 ) : AgentEvent
 
@@ -246,7 +244,7 @@ data class AgentStateUpdatedEvent(
 data class AskRequestUpdatedEvent(
     val stepId: String? = null,
     val title: String? = null,
-    val askRequest: JsonElement? = null,
+    val askRequest: AskRequest? = null,
     val status: String? = null
 ) : AgentEvent
 
@@ -255,7 +253,7 @@ data class AskRequestUpdatedEvent(
 data class ChoiceRequestUpdatedEvent(
     val stepId: String? = null,
     val title: String? = null,
-    val choiceRequest: JsonElement? = null,
+    val choiceRequest: ChoiceRequest? = null,
     val status: String? = null
 ) : AgentEvent
 
@@ -272,7 +270,7 @@ data class SubagentSpawnedEvent(
     val name: String? = null,
     val task: String? = null,
     val stepId: String? = null,
-    val agent: JsonElement? = null
+    val agent: AgentIdentity? = null
 ) : AgentEvent
 
 /** Task-level failure event — tolerant nullable model since no real payload examples exist. */
@@ -282,7 +280,7 @@ data class AgentTaskFailedEvent(
     val errorCode: String? = null,
     val taskId: String? = null,
     val stepId: String? = null,
-    val details: JsonElement? = null
+    val details: PayloadValue? = null
 ) : AgentEvent
 
 /**
@@ -291,5 +289,5 @@ data class AgentTaskFailedEvent(
  */
 data class UnknownAgentEvent(
     override val kind: String,
-    val raw: JsonObject
+    val raw: PayloadValue.ObjectValue
 ) : AgentEvent

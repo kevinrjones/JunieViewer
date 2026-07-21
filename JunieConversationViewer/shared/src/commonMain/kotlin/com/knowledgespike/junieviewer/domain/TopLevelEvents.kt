@@ -1,8 +1,6 @@
 package com.knowledgespike.junieviewer.domain
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 
 // ---------------------------------------------------------------------------
 // Top-level events in events.jsonl
@@ -14,7 +12,7 @@ data class UserPromptEvent(
     val prompt: String,
     val requestId: String? = null,
     val presentablePrompt: String? = null,
-    val customAttachments: JsonElement? = null
+    val customAttachments: PayloadValue? = null
 ) : JunieEvent
 
 /** Wrapper for nested agent events within a session. */
@@ -52,7 +50,7 @@ data class UserMessagesCommittedToHistory(
 data class UserAsyncResponseEvent(
     val requestId: String? = null,
     val response: String? = null,
-    val entries: JsonElement? = null,
+    val entries: List<ResponseEntry>? = null,
     val timestampMs: Long? = null
 ) : JunieEvent
 
@@ -102,5 +100,5 @@ data class UserResponseEvent(
 data class UnknownJunieEvent(
     override val kind: String,
     val timestampMs: Long? = null,
-    val raw: JsonObject
+    val raw: PayloadValue.ObjectValue
 ) : JunieEvent

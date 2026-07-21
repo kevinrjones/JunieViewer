@@ -1,9 +1,6 @@
 package com.knowledgespike.junieviewer.data
 
 import com.knowledgespike.junieviewer.domain.*
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import org.junit.Test
 import strikt.api.expectThat
 import strikt.assertions.*
@@ -39,7 +36,7 @@ class EventToMessageMapperTest {
         errorCode: String? = null,
         taskId: String? = null,
         stepId: String? = null,
-        details: JsonElement? = null,
+        details: PayloadValue? = null,
         timestampMs: Long? = 1234L
     ): SessionA2uxEvent = SessionA2uxEvent(
         event = AgentEventWrapper(
@@ -68,7 +65,7 @@ class EventToMessageMapperTest {
 
     @Test
     fun `given an AgentTaskFailedEvent with all fields when mapped then content contains all details`() {
-        val details = buildJsonObject { put("foo", "bar") }
+        val details = PayloadValue.ObjectValue(mapOf("foo" to PayloadValue.Text("bar")))
         val events = listOf(
             taskFailedEvent(
                 message = "error message",
@@ -104,7 +101,7 @@ class EventToMessageMapperTest {
         val events = listOf(
             SessionA2uxEvent(
                 event = AgentEventWrapper(
-                    agentEvent = UnknownAgentEvent(kind = "NewUnknownEvent", raw = buildJsonObject { })
+                    agentEvent = UnknownAgentEvent(kind = "NewUnknownEvent", raw = PayloadValue.ObjectValue(emptyMap()))
                 ),
                 timestampMs = 555L
             )
@@ -186,7 +183,7 @@ class EventToMessageMapperTest {
         name: String? = null,
         task: String? = null,
         stepId: String? = null,
-        agent: JsonElement? = null,
+        agent: AgentIdentity? = null,
         timestampMs: Long? = 1234L
     ): SessionA2uxEvent = SessionA2uxEvent(
         event = AgentEventWrapper(

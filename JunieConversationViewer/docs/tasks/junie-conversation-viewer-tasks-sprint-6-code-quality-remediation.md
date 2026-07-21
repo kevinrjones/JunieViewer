@@ -343,7 +343,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 3.1 Inventory JsonElement usage in the domain
 
-- [ ] Inventory JsonElement usage in the domain
+- [x] Inventory JsonElement usage in the domain
 
 **Description:** List every `JsonElement`/`JsonObject` field across the 20+ event types in `AgentEvents.kt` and the payload shapes actually observed in real `events.jsonl` files/fixtures.
 
@@ -360,7 +360,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 3.2 Design typed payload models
 
-- [ ] Design typed payload models
+- [x] Design typed payload models
 
 **Description:** Define concrete data classes / sealed hierarchies for each payload (e.g., `AskRequest` with question and options, `ChoiceRequest`, result-block payloads). Model genuinely open-ended payloads explicitly (typed key/value), never as serialization-library types. Prefer sealed interfaces and tiny types per project guidelines.
 
@@ -377,7 +377,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 3.3 Implement typed payloads and boundary parsing — `Test Required`
 
-- [ ] Implement typed payloads and boundary parsing
+- [x] Implement typed payloads and boundary parsing
 
 **Description:** Replace `JsonElement` fields with the typed models and parse them fully at the deserialization boundary via the `EventSerializers.kt` registry.
 
@@ -394,7 +394,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 3.4 Move ask/choice extraction out of the mapper — `Test Required`
 
-- [ ] Move ask/choice extraction out of the mapper
+- [x] Move ask/choice extraction out of the mapper
 
 **Description:** Delete the manual question/option extraction logic in `EventToMessageMapper.kt` (~L133–172); the typed `AskRequest`/`ChoiceRequest` models expose this data directly.
 
@@ -411,7 +411,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 3.5 Update repository consumers of typed events
 
-- [ ] Update repository consumers of typed events
+- [x] Update repository consumers of typed events
 
 **Description:** Update `SessionRepository` (and any other consumer) to read typed payload properties instead of navigating JSON.
 
@@ -428,7 +428,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 3.6 Handle unknown/malformed payloads deliberately — `Test Required`
 
-- [ ] Handle unknown/malformed payloads deliberately
+- [x] Handle unknown/malformed payloads deliberately
 
 **Description:** Define and test explicit behaviour for unparseable or unknown payload shapes (preserve current lenient behaviour; log at appropriate levels; no silent swallowing).
 
@@ -445,7 +445,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 3.7 Verify green build after typed events
 
-- [ ] Verify green build after typed events
+- [x] Verify green build after typed events
 
 **Description:** Run `./gradlew :shared:jvmTest` and `./gradlew test`.
 

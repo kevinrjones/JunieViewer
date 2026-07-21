@@ -3,10 +3,6 @@ package com.knowledgespike.junieviewer.data
 import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
 import com.knowledgespike.junieviewer.getPlatform
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -200,29 +196,11 @@ class SessionRepositoryImpl(
         val agentEvent = (event as? SessionA2uxEvent)?.event?.agentEvent ?: return null
         return when (agentEvent) {
             is CurrentDirectoryUpdatedEvent -> agentEvent.directory?.takeIf { it.isNotBlank() }
-            is AgentStateUpdatedEvent -> agentEvent.blob?.let { workingDirectoryFromBlob(it) }
-            is UnknownAgentEvent -> workingDirectoryFromRaw(agentEvent.raw)
+            is AgentStateUpdatedEvent -> agentEvent.blob?.let { JsonlParser.workingDirectoryFromAgentStateBlob(it) }
+            is UnknownAgentEvent -> agentEvent.raw.textOrNull("currentDirectory")?.takeIf { it.isNotBlank() }
+                ?: agentEvent.raw.textOrNull("blob")?.let { JsonlParser.workingDirectoryFromAgentStateBlob(it) }
             else -> null
         }
-    }
-
-    /** Parses the serialized agent-state blob and returns its `currentDirectory`, or null. */
-    private fun workingDirectoryFromBlob(blob: String): String? = try {
-        Json.parseToJsonElement(blob).jsonObject["currentDirectory"]
-            ?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
-    } catch (e: Exception) {
-        logger.d { "Skipping malformed agent-state blob: ${e.message}" }
-        null
-    }
-
-    /** Reads a working directory from an unknown agent event's raw JSON payload. */
-    private fun workingDirectoryFromRaw(raw: JsonObject): String? = try {
-        val direct = raw["currentDirectory"]?.jsonPrimitive?.content
-        if (!direct.isNullOrBlank()) direct
-        else raw["blob"]?.jsonPrimitive?.content?.let { workingDirectoryFromBlob(it) }
-    } catch (e: Exception) {
-        logger.d { "Skipping malformed unknown agent event payload: ${e.message}" }
-        null
     }
 
     private fun expandPath(path: String): String {

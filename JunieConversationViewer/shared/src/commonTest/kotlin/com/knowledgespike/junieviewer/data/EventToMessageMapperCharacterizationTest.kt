@@ -1,12 +1,6 @@
 package com.knowledgespike.junieviewer.data
 
 import com.knowledgespike.junieviewer.domain.*
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
 import strikt.api.expectThat
 import strikt.assertions.*
@@ -68,7 +62,7 @@ class EventToMessageMapperCharacterizationTest {
     @Test
     fun `given an UnknownJunieEvent when mapped then kind is Unsupported with kind name in content`() {
         val message = mapSingle(
-            UnknownJunieEvent(kind = "BrandNewEvent", timestampMs = 777L, raw = buildJsonObject { })
+            UnknownJunieEvent(kind = "BrandNewEvent", timestampMs = 777L, raw = PayloadValue.ObjectValue(emptyMap()))
         )
 
         expectThat(message) {
@@ -330,12 +324,12 @@ class EventToMessageMapperCharacterizationTest {
     }
 
     // -----------------------------------------------------------------------
-    // AskRequestUpdatedEvent — JsonElement question extraction (~L133–150)
+    // AskRequestUpdatedEvent — typed AskRequest question extraction
     // -----------------------------------------------------------------------
 
     @Test
     fun `given an AskRequestUpdatedEvent with title and question when mapped then both appear in content`() {
-        val ask = buildJsonObject { put("question", "Proceed with refactor?") }
+        val ask = AskRequest(question = "Proceed with refactor?")
         val message = mapSingle(a2ux(AskRequestUpdatedEvent(title = "Confirm", askRequest = ask)))
 
         expectThat(message) {
@@ -347,7 +341,7 @@ class EventToMessageMapperCharacterizationTest {
 
     @Test
     fun `given an AskRequestUpdatedEvent with question only when mapped then content is the question`() {
-        val ask = buildJsonObject { put("question", "Which module?") }
+        val ask = AskRequest(question = "Which module?")
         val message = mapSingle(a2ux(AskRequestUpdatedEvent(askRequest = ask)))
 
         expectThat(message.content).isA<MessageContent.Text>().get { text }.isEqualTo("Which module?")
@@ -355,8 +349,12 @@ class EventToMessageMapperCharacterizationTest {
 
     @Test
     fun `given an AskRequestUpdatedEvent whose askRequest is not an object when mapped then content is raw toString`() {
-        // Characterization: non-object payloads trigger the catch branch which appends toString().
-        val message = mapSingle(a2ux(AskRequestUpdatedEvent(askRequest = JsonPrimitive("just a string"))))
+        // Characterization: non-object payloads are decoded by AskRequestSerializer as an
+        // unstructured fallback, which the mapper renders via toString(). Fed through JsonlParser
+        // so the boundary genuinely produces the fallback (true characterization).
+        val line = """{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AskRequestUpdatedEvent","askRequest":"just a string"}}}"""
+        val event = JsonlParser.parseLine(line).getOrNull()!!
+        val message = mapSingle(event)
 
         expectThat(message) {
             get { kind }.isEqualTo(MessageKind.Question)
@@ -367,22 +365,22 @@ class EventToMessageMapperCharacterizationTest {
     @Test
     fun `given an AskRequestUpdatedEvent with no title and no question when mapped then no message`() {
         expectThat(map(a2ux(AskRequestUpdatedEvent()))).isEmpty()
-        expectThat(map(a2ux(AskRequestUpdatedEvent(askRequest = buildJsonObject { })))).isEmpty()
+        expectThat(map(a2ux(AskRequestUpdatedEvent(askRequest = AskRequest())))).isEmpty()
     }
 
     // -----------------------------------------------------------------------
-    // ChoiceRequestUpdatedEvent — JsonElement options extraction (~L151–172)
+    // ChoiceRequestUpdatedEvent — typed ChoiceRequest options extraction
     // -----------------------------------------------------------------------
 
     @Test
     fun `given a ChoiceRequestUpdatedEvent with options when mapped then options are bulleted`() {
-        val choice = buildJsonObject {
-            putJsonArray("options") {
-                add(buildJsonObject { put("id", "a"); put("description", "Refactor now") })
-                add(buildJsonObject { put("id", "b") }) // no description — falls back to id
-                add(buildJsonObject { }) // neither — falls back to literal "option"
-            }
-        }
+        val choice = ChoiceRequest(
+            options = listOf(
+                ChoiceOption(id = "a", description = "Refactor now"),
+                ChoiceOption(id = "b"), // no description — falls back to id
+                ChoiceOption() // neither — falls back to literal "option"
+            )
+        )
         val message = mapSingle(a2ux(ChoiceRequestUpdatedEvent(title = "Pick one", choiceRequest = choice)))
 
         expectThat(message) {
@@ -396,9 +394,12 @@ class EventToMessageMapperCharacterizationTest {
 
     @Test
     fun `given a ChoiceRequestUpdatedEvent whose choiceRequest is not an object when mapped then content is raw toString`() {
-        // Characterization: non-object payloads trigger the catch branch which appends toString().
-        val badPayload = buildJsonArray { add("oops") }
-        val message = mapSingle(a2ux(ChoiceRequestUpdatedEvent(choiceRequest = badPayload)))
+        // Characterization: non-object payloads are decoded by ChoiceRequestSerializer as an
+        // unstructured fallback, which the mapper renders via toString(). Fed through JsonlParser
+        // so the boundary genuinely produces the fallback (true characterization).
+        val line = """{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ChoiceRequestUpdatedEvent","choiceRequest":["oops"]}}}"""
+        val event = JsonlParser.parseLine(line).getOrNull()!!
+        val message = mapSingle(event)
 
         expectThat(message) {
             get { kind }.isEqualTo(MessageKind.Choice)
@@ -409,7 +410,7 @@ class EventToMessageMapperCharacterizationTest {
     @Test
     fun `given a ChoiceRequestUpdatedEvent with no title and no options when mapped then no message`() {
         expectThat(map(a2ux(ChoiceRequestUpdatedEvent()))).isEmpty()
-        expectThat(map(a2ux(ChoiceRequestUpdatedEvent(choiceRequest = buildJsonObject { })))).isEmpty()
+        expectThat(map(a2ux(ChoiceRequestUpdatedEvent(choiceRequest = ChoiceRequest())))).isEmpty()
     }
 
     // -----------------------------------------------------------------------
