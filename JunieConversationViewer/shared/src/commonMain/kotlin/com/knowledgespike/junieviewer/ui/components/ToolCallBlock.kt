@@ -33,9 +33,8 @@ fun ToolCallBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false,
-    externalExpanded: Boolean? = null,
-    onToggle: (() -> Unit)? = null
+    expanded: Boolean = true,
+    onToggle: () -> Unit = {}
 ) {
     val toolName = extractToolName(content)
     val colors = JunieViewerTheme.conversationColors
@@ -48,8 +47,7 @@ fun ToolCallBlock(
         headerShape = TOOL_CALL_HEADER_SHAPE,
         headerTestTag = "tool_call_header",
         bodyTestTag = "tool_call_block_body",
-        forceExpanded = forceExpanded,
-        externalExpanded = externalExpanded,
+        expanded = expanded,
         onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.weight(1f))

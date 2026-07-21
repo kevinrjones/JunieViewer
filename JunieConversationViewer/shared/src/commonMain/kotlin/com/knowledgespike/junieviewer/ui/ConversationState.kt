@@ -57,6 +57,16 @@ data class ConversationState(
      */
     val blockExpansionStates: Map<String, Boolean> = emptyMap(),
     /**
+     * Block IDs where the user has dismissed Search Query force-expansion.
+     * Cleared when the Search Query changes or is cleared.
+     */
+    val dismissedForceExpandedBlockIds: Set<String> = emptySet(),
+    /**
+     * Ready-to-render per-block expansion state derived from manual state, Search Query
+     * force-expansion, and dismissals. UI components consume this directly.
+     */
+    val derivedBlockExpansionStates: Map<String, Boolean> = emptyMap(),
+    /**
      * True while text is selected in any tracked selection container.
      * Drives the enabled state of the global Copy command (Edit menu and toolbar).
      */

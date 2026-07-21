@@ -3,15 +3,12 @@ package com.knowledgespike.junieviewer.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import com.knowledgespike.junieviewer.data.FileWatcher
 import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.LiveTrackingEvent
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
-import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
 import com.knowledgespike.junieviewer.domain.AppPreferences
 import com.knowledgespike.junieviewer.domain.FilterCategory
-import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
@@ -23,7 +20,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okio.FileSystem
 
 class ConversationViewModel(
     private val repository: SessionRepository,
@@ -127,10 +123,16 @@ class ConversationViewModel(
                 is ConversationAction.OnSearchQueryChange -> {
                     // Single atomic emission per Search Query change (F8)
                     _state.update {
-                        filterMessages(
-                            it.copy(searchQuery = action.query, currentMatchIndex = if (action.query.isBlank()) -1 else 0),
+                        val updated = filterMessages(
+                            it.copy(
+                                searchQuery = action.query,
+                                currentMatchIndex = if (action.query.isBlank()) -1 else 0,
+                                // Clear force-expansion dismissals when Search Query changes
+                                dismissedForceExpandedBlockIds = emptySet()
+                            ),
                             action.query
                         )
+                        updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
                     }
                     logVisibleMessages()
                 }
@@ -170,22 +172,25 @@ class ConversationViewModel(
                             FilterKind.Patch -> currentState.filter.copy(showPatches = !currentState.filter.showPatches)
                             FilterKind.Terminal -> currentState.filter.copy(showTerminal = !currentState.filter.showTerminal)
                         }
-                        filterMessages(currentState.copy(filter = newFilter), currentState.searchQuery)
+                        val updated = filterMessages(currentState.copy(filter = newFilter), currentState.searchQuery)
+                        updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
                     }
                     logVisibleMessages()
                 }
                 ConversationAction.OnNextMatch -> {
                     _state.update { currentState ->
                         val count = currentState.filteredMessages.size
-                        if (count == 0) currentState.copy(currentMatchIndex = -1)
+                        val updated = if (count == 0) currentState.copy(currentMatchIndex = -1)
                         else currentState.copy(currentMatchIndex = (currentState.currentMatchIndex + 1).mod(count))
+                        updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
                     }
                 }
                 ConversationAction.OnPreviousMatch -> {
                     _state.update { currentState ->
                         val count = currentState.filteredMessages.size
-                        if (count == 0) currentState.copy(currentMatchIndex = -1)
+                        val updated = if (count == 0) currentState.copy(currentMatchIndex = -1)
                         else currentState.copy(currentMatchIndex = (currentState.currentMatchIndex - 1).mod(count))
+                        updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
                     }
                 }
                 is ConversationAction.OnThemeModeChange -> {
@@ -329,7 +334,7 @@ class ConversationViewModel(
                     result to info
                 }
                 _state.update {
-                    filterMessages(
+                    val updated = filterMessages(
                         it.copy(
                             messages = loadResult.messages,
                             isLoading = false,
@@ -338,6 +343,7 @@ class ConversationViewModel(
                         ),
                         it.searchQuery
                     )
+                    updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
                 }
                 logVisibleMessages()
                 logger.d { "Successfully loaded ${loadResult.messages.size} messages" }
@@ -379,7 +385,8 @@ class ConversationViewModel(
                             logger.d { "Live tracking: ${event.messages.size} new messages" }
                             _state.update { currentState ->
                                 val updatedMessages = currentState.messages + event.messages
-                                filterMessages(currentState.copy(messages = updatedMessages), currentState.searchQuery)
+                                val updated = filterMessages(currentState.copy(messages = updatedMessages), currentState.searchQuery)
+                                updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
                             }
                             logVisibleMessages()
                         }
@@ -412,14 +419,20 @@ class ConversationViewModel(
     }
 
     // ---------------------------------------------------------------------------
-    // Collapse All / Show All / per-block toggle (Area 7)
+    // Collapse All / Show All / per-block toggle (Area 6 — centralized expansion)
     // ---------------------------------------------------------------------------
 
     /** Collapses all collapsible blocks by setting every known block ID to false. */
     private fun collapseAllBlocks() {
         val allIds = MessageContentRegistry.collectCollapsibleBlockIds(_state.value.messages)
         val collapsed = allIds.associateWith { false }
-        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + collapsed) }
+        _state.update {
+            val updated = it.copy(
+                blockExpansionStates = it.blockExpansionStates + collapsed,
+                dismissedForceExpandedBlockIds = emptySet()
+            )
+            updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
+        }
         logger.i { "Collapse All: ${allIds.size} blocks collapsed" }
     }
 
@@ -427,7 +440,13 @@ class ConversationViewModel(
     private fun showAllBlocks() {
         val allIds = MessageContentRegistry.collectCollapsibleBlockIds(_state.value.messages)
         val expanded = allIds.associateWith { true }
-        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + expanded) }
+        _state.update {
+            val updated = it.copy(
+                blockExpansionStates = it.blockExpansionStates + expanded,
+                dismissedForceExpandedBlockIds = emptySet()
+            )
+            updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
+        }
         logger.i { "Show All: ${allIds.size} blocks expanded" }
     }
 
@@ -448,17 +467,78 @@ class ConversationViewModel(
         }
     }
 
-    /** Toggles the expansion state of a single block identified by its stable block ID. */
+    /**
+     * Toggles the expansion state of a single block identified by its stable block ID.
+     * If the block is currently force-expanded by a Search Query, toggling records a
+     * force-dismissal so the block collapses while the query remains active.
+     */
     private fun toggleBlockExpansion(blockId: String) {
         _state.update { currentState ->
-            val currentExpanded = currentState.blockExpansionStates[blockId]
-            // If no explicit state exists, the block is at its default — toggle from default
-            val newExpanded = !(currentExpanded ?: true)
-            currentState.copy(
-                blockExpansionStates = currentState.blockExpansionStates + (blockId to newExpanded)
+            val derived = currentState.derivedBlockExpansionStates[blockId]
+            val isCurrentlyExpanded = derived ?: true
+            // Check if this block is force-expanded by search
+            val isForceExpanded = isBlockForceExpanded(currentState, blockId)
+            val newDismissals = if (isCurrentlyExpanded && isForceExpanded) {
+                // User is collapsing a force-expanded block — record dismissal
+                currentState.dismissedForceExpandedBlockIds + blockId
+            } else {
+                currentState.dismissedForceExpandedBlockIds
+            }
+            val newManualExpanded = !isCurrentlyExpanded
+            val updated = currentState.copy(
+                blockExpansionStates = currentState.blockExpansionStates + (blockId to newManualExpanded),
+                dismissedForceExpandedBlockIds = newDismissals
             )
+            updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
         }
         logger.d { "Block toggled: $blockId" }
+    }
+
+    /** Returns true if the given block should be force-expanded by the current Search Query. */
+    private fun isBlockForceExpanded(state: ConversationState, blockId: String): Boolean {
+        if (state.searchQuery.isBlank()) return false
+        val matchIndex = state.currentMatchIndex
+        if (matchIndex < 0 || matchIndex >= state.filteredMessages.size) return false
+        val currentMatchMessage = state.filteredMessages[matchIndex]
+        val searchText = MessageContentRegistry.searchableText(currentMatchMessage)
+        if (!searchText.contains(state.searchQuery, ignoreCase = true)) return false
+        // Check if this blockId belongs to the current match message
+        val descriptor = MessageContentRegistry.descriptorFor(currentMatchMessage.kind)
+        val messageBlockId = descriptor.getCollapsibleBlockId(currentMatchMessage)
+        return messageBlockId == blockId
+    }
+
+    /**
+     * Derives the final per-block expansion state from manual state, Search Query
+     * force-expansion, and user dismissals. The result is ready for UI consumption.
+     *
+     * Priority rule (Sprint 5):
+     *   manualExpanded || (forceExpanded && blockId !in dismissedForceExpandedBlockIds)
+     */
+    private fun deriveBlockExpansionStates(state: ConversationState): Map<String, Boolean> {
+        val allBlockIds = MessageContentRegistry.collectCollapsibleBlockIds(state.messages)
+        // Determine which block IDs are force-expanded by the current search match
+        val forceExpandedIds = computeForceExpandedBlockIds(state)
+
+        return allBlockIds.associateWith { blockId ->
+            val manualExpanded = state.blockExpansionStates[blockId] ?: true
+            val forceExpanded = blockId in forceExpandedIds
+            val dismissed = blockId in state.dismissedForceExpandedBlockIds
+            manualExpanded || (forceExpanded && !dismissed)
+        }
+    }
+
+    /** Computes the set of block IDs that should be force-expanded by the current Search Query match. */
+    private fun computeForceExpandedBlockIds(state: ConversationState): Set<String> {
+        if (state.searchQuery.isBlank()) return emptySet()
+        val matchIndex = state.currentMatchIndex
+        if (matchIndex < 0 || matchIndex >= state.filteredMessages.size) return emptySet()
+        val currentMatchMessage = state.filteredMessages[matchIndex]
+        val searchText = MessageContentRegistry.searchableText(currentMatchMessage)
+        if (!searchText.contains(state.searchQuery, ignoreCase = true)) return emptySet()
+        val descriptor = MessageContentRegistry.descriptorFor(currentMatchMessage.kind)
+        val blockId = descriptor.getCollapsibleBlockId(currentMatchMessage) ?: return emptySet()
+        return setOf(blockId)
     }
 
     /**
@@ -524,7 +604,10 @@ class ConversationViewModel(
             SortOrder.OldestFirst -> SortOrder.NewestFirst
             SortOrder.NewestFirst -> SortOrder.OldestFirst
         }
-        _state.update { filterMessages(it.copy(sortOrder = newOrder), it.searchQuery) }
+        _state.update {
+            val updated = filterMessages(it.copy(sortOrder = newOrder), it.searchQuery)
+            updated.copy(derivedBlockExpansionStates = deriveBlockExpansionStates(updated))
+        }
         logger.i { "Sort order toggled: $newOrder" }
         saveSortOrder(newOrder)
     }

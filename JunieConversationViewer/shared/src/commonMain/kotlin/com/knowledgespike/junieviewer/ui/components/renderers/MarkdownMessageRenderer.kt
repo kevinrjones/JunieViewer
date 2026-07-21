@@ -5,7 +5,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
-import com.knowledgespike.junieviewer.ui.components.*
+import com.knowledgespike.junieviewer.ui.components.CollapsibleBlock
+import com.knowledgespike.junieviewer.ui.components.MarkdownContent
+import com.knowledgespike.junieviewer.ui.components.TrackedSelectionContainer
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 @Composable
@@ -25,8 +27,7 @@ fun MarkdownMessageRenderer(
         borderColor = colors.codeBorder,
         headerTestTag = "markdown_block_header",
         bodyTestTag = "markdown_block_body",
-        forceExpanded = isCurrentMatch && blockContainsSearchHit(mdText, searchQuery),
-        externalExpanded = blockExpansionStates[blockId],
+        expanded = blockExpansionStates[blockId] ?: true,
         onToggle = { onToggleBlock(blockId) },
         body = {
             TrackedSelectionContainer(modifier = Modifier.testTag("selectable_message_text")) {

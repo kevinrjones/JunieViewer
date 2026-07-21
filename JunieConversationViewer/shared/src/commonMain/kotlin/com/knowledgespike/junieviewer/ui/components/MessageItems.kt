@@ -119,11 +119,9 @@ private fun MessageCard(
 ) {
     val spacing = JunieViewerTheme.spacing
     val isHuman = message.sender == Sender.Human
-    val expansionState = rememberMessageExpansionState(
-        isCurrentMatch = isCurrentMatch,
-        isHuman = isHuman,
-        searchQuery = searchQuery
-    )
+    // Human card expansion is ViewModel-derived via a "{messageId}:card" block ID
+    val humanCardBlockId = "${message.id}:card"
+    val humanCardExpanded = blockExpansionStates[humanCardBlockId] ?: true
 
     val cardModifier = Modifier
         .fillMaxWidth(widthFraction)
@@ -151,9 +149,7 @@ private fun MessageCard(
                         .then(
                             if (isHuman) Modifier
                                 .pointerInput(Unit) {
-                                    detectTapGestures {
-                                        expansionState.toggle()
-                                    }
+                                    detectTapGestures { onToggleBlock(humanCardBlockId) }
                                 }
                                 .testTag("human_block_header")
                             else Modifier
@@ -163,7 +159,7 @@ private fun MessageCard(
                 ) {
                     if (isHuman) {
                         Text(
-                            text = if (expansionState.isVisible) "▼" else "▶",
+                            text = if (humanCardExpanded) "▼" else "▶",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -185,7 +181,7 @@ private fun MessageCard(
                 }
                 if (isHuman) {
                     AnimatedVisibility(
-                        visible = expansionState.isVisible,
+                        visible = humanCardExpanded,
                         modifier = Modifier.testTag("human_block_body")
                     ) {
                         Column {

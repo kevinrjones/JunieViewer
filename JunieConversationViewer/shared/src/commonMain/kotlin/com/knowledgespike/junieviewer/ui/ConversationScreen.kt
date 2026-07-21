@@ -11,13 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.knowledgespike.junieviewer.domain.Sender
@@ -360,7 +358,7 @@ private fun BoxScope.ConversationList(state: ConversationState, onAction: (Conve
                         message = message,
                         searchQuery = state.searchQuery,
                         isCurrentMatch = isCurrentMatch,
-                        blockExpansionStates = state.blockExpansionStates,
+                        blockExpansionStates = state.derivedBlockExpansionStates,
                         onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
                     )
                 }
@@ -376,7 +374,7 @@ private fun BoxScope.ConversationList(state: ConversationState, onAction: (Conve
                         message = message,
                         searchQuery = state.searchQuery,
                         isCurrentMatch = isCurrentMatch,
-                        blockExpansionStates = state.blockExpansionStates,
+                        blockExpansionStates = state.derivedBlockExpansionStates,
                         onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
                     )
                 }

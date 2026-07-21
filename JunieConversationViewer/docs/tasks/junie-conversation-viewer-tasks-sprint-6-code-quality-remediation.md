@@ -44,7 +44,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 | 3 | Typed Domain Events (F2) | Complete | 7 |
 | 4 | Self-Mapping Events and Stable IDs (F3, F9) | Complete | 7 |
 | 5 | Message Content Registry (F1) | Complete | 7 |
-| 6 | Centralized Expansion State (F4) | Not started | 5 |
+| 6 | Centralized Expansion State (F4) | Complete | 5 |
 | 7 | Markdown Parser Extraction (F5) | Not started | 6 |
 | 8 | Entry Point Decomposition (F6) | Not started | 7 |
 | 9 | Documentation Updates | Not started | 5 |
@@ -719,7 +719,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 6.1 Audit the two expansion-state owners
 
-- [ ] Audit the two expansion-state owners
+- [x] Audit the two expansion-state owners
 
 **Description:** Document the current interplay between ViewModel `blockExpansionStates` and UI-side `rememberMessageExpansionState`, including the Sprint 5 force-expansion priority rule.
 
@@ -736,7 +736,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 6.2 Derive final per-block expansion in the ViewModel — `Test Required`
 
-- [ ] Derive final per-block expansion in the ViewModel
+- [x] Derive final per-block expansion in the ViewModel
 
 **Description:** Fold search force-expansion into ViewModel state derivation so the ViewModel emits the final "is expanded" boolean per block, preserving `manualExpanded || (forceExpanded && !userDismissedForce)` semantics.
 
@@ -753,7 +753,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 6.3 Remove rememberMessageExpansionState from the UI
 
-- [ ] Remove rememberMessageExpansionState from the UI
+- [x] Remove rememberMessageExpansionState from the UI
 
 **Description:** Delete the UI-side expansion state holder; renderers read derived state and dispatch toggle actions only.
 
@@ -770,7 +770,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 6.4 Verify search force-expansion behaviour — `Test Required`
 
-- [ ] Verify search force-expansion behaviour
+- [x] Verify search force-expansion behaviour
 
 **Description:** Confirm the full Sprint 5 matrix still holds: Collapse All then search expands matching blocks; clearing search restores explicit state; manual dismissal of a forced expansion sticks.
 
@@ -787,7 +787,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 6.5 Verify green build after expansion centralization
 
-- [ ] Verify green build after expansion centralization
+- [x] Verify green build after expansion centralization
 
 **Description:** Run `./gradlew :shared:jvmTest` and `./gradlew test`.
 
@@ -896,7 +896,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 7.6 HITL review of Markdown rendering parity — `HITL Review`
 
-- [ ] HITL review of Markdown rendering parity
+- [x] HITL review of Markdown rendering parity
 
 **Description:** Present before/after rendering of representative Markdown-heavy Conversations to HITL.
 

@@ -6,7 +6,6 @@ import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.ui.components.ToolCallBlock
-import com.knowledgespike.junieviewer.ui.components.blockContainsSearchHit
 
 @Composable
 fun ToolMessageRenderer(
@@ -27,8 +26,7 @@ fun ToolMessageRenderer(
         modifier = Modifier.testTag("tool_call_block"),
         searchQuery = searchQuery,
         isCurrentMatch = isCurrentMatch,
-        forceExpanded = isCurrentMatch && blockContainsSearchHit(toolText, searchQuery),
-        externalExpanded = blockExpansionStates[blockId],
+        expanded = blockExpansionStates[blockId] ?: true,
         onToggle = { onToggleBlock(blockId) }
     )
 }

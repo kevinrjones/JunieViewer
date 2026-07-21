@@ -26,9 +26,8 @@ fun StructuredOutputBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false,
-    externalExpanded: Boolean? = null,
-    onToggle: (() -> Unit)? = null
+    expanded: Boolean = true,
+    onToggle: () -> Unit = {}
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -39,8 +38,7 @@ fun StructuredOutputBlock(
         borderColor = colors.codeBorder,
         headerTestTag = "structured_output_block_header",
         bodyTestTag = "structured_output_block_body",
-        forceExpanded = forceExpanded,
-        externalExpanded = externalExpanded,
+        expanded = expanded,
         onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.weight(1f))

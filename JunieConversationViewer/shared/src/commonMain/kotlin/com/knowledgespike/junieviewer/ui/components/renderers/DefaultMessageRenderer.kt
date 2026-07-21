@@ -8,7 +8,14 @@ import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
-import com.knowledgespike.junieviewer.ui.components.*
+import com.knowledgespike.junieviewer.ui.components.CodeBlockWithCopy
+import com.knowledgespike.junieviewer.ui.components.CollapsibleBlock
+import com.knowledgespike.junieviewer.ui.components.DiffBlock
+import com.knowledgespike.junieviewer.ui.components.MarkdownContent
+import com.knowledgespike.junieviewer.ui.components.StructuredOutputBlock
+import com.knowledgespike.junieviewer.ui.components.TerminalOutputBlock
+import com.knowledgespike.junieviewer.ui.components.TrackedSelectionContainer
+import com.knowledgespike.junieviewer.ui.components.themedHighlightSearchMatches
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import dev.snipme.highlights.model.SyntaxLanguage
 
@@ -55,8 +62,7 @@ private fun ContentRenderer(
                 borderColor = colors.codeBorder,
                 headerTestTag = "text_block_header",
                 bodyTestTag = "text_block_body",
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.text, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
+                expanded = blockExpansionStates[blockId] ?: true,
                 onToggle = { onToggleBlock(blockId) },
                 body = {
                     if (isMarkdownKind || looksLikeMarkdown(content.text)) {
@@ -95,8 +101,7 @@ private fun ContentRenderer(
                     else -> SyntaxLanguage.KOTLIN
                 },
                 modifier = Modifier.testTag("code_block"),
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.code, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
+                expanded = blockExpansionStates[blockId] ?: true,
                 onToggle = { onToggleBlock(blockId) }
             )
         }
@@ -107,8 +112,7 @@ private fun ContentRenderer(
                 modifier = Modifier.testTag("diff_block"),
                 searchQuery = searchQuery,
                 isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.diff, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
+                expanded = blockExpansionStates[blockId] ?: true,
                 onToggle = { onToggleBlock(blockId) }
             )
         }
@@ -119,8 +123,7 @@ private fun ContentRenderer(
                 modifier = Modifier.testTag("terminal_block"),
                 searchQuery = searchQuery,
                 isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.output, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
+                expanded = blockExpansionStates[blockId] ?: true,
                 onToggle = { onToggleBlock(blockId) }
             )
         }
@@ -131,8 +134,7 @@ private fun ContentRenderer(
                 modifier = Modifier.testTag("structured_output_block"),
                 searchQuery = searchQuery,
                 isCurrentMatch = isCurrentMatch,
-                forceExpanded = isCurrentMatch && blockContainsSearchHit(content.data, searchQuery),
-                externalExpanded = blockExpansionStates[blockId],
+                expanded = blockExpansionStates[blockId] ?: true,
                 onToggle = { onToggleBlock(blockId) }
             )
         }

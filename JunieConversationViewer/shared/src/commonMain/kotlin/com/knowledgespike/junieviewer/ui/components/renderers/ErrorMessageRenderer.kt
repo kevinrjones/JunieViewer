@@ -7,7 +7,7 @@ import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.ui.components.ErrorWarningBlock
-import com.knowledgespike.junieviewer.ui.components.blockContainsSearchHit
+import com.knowledgespike.junieviewer.ui.MessageContentRegistry
 
 @Composable
 fun ErrorMessageRenderer(
@@ -21,12 +21,14 @@ fun ErrorMessageRenderer(
         is MessageContent.Text -> c.text
         else -> "Unknown error"
     }
+    val blockId = MessageContentRegistry.descriptorFor(message.kind).getCollapsibleBlockId(message)
     ErrorWarningBlock(
         text = errText,
         isWarning = message.kind == MessageKind.Warning,
         modifier = Modifier.testTag("error_warning_block"),
         searchQuery = searchQuery,
         isCurrentMatch = isCurrentMatch,
-        forceExpanded = isCurrentMatch && blockContainsSearchHit(errText, searchQuery)
+        expanded = if (blockId != null) blockExpansionStates[blockId] ?: true else true,
+        onToggle = { if (blockId != null) onToggleBlock(blockId) }
     )
 }

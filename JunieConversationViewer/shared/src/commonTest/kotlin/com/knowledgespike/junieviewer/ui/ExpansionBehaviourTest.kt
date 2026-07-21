@@ -123,23 +123,27 @@ class ExpansionBehaviourTest {
             "Other blocks should remain expanded")
     }
 
-    // -- Search force-expansion priority --
+    // -- Search force-expansion priority (Area 6 — centralized derivation) --
 
     @Test
-    fun `search forceExpanded takes priority over collapsed state`() = runConversationStateTest(testMessages) {
+    fun `search forceExpanded takes priority over collapsed state in derived expansion`() = runConversationStateTest(testMessages) {
         val vm = createViewModelWithSession()
         advanceUntilIdle()
 
         // Collapse all blocks
         vm.onCommand(ConversationCommand.CollapseAll)
-        assertEquals(false, vm.state.value.blockExpansionStates["msg-4:terminal"])
-
-        // The block expansion state remains collapsed in the ViewModel,
-        // but the UI's forceExpanded param (computed from search match) takes priority.
-        // We verify the ViewModel state is collapsed — the UI composable handles
-        // the forceExpanded || externalExpanded logic.
         assertEquals(false, vm.state.value.blockExpansionStates["msg-4:terminal"],
-            "ViewModel state should remain collapsed; UI forceExpanded handles search priority")
+            "Canonical state should be collapsed")
+
+        // Search for terminal content — "$ ls" is in msg-4
+        vm.onAction(ConversationAction.OnSearchQueryChange("\$ ls"))
+
+        // Canonical state remains collapsed, but derived state should be expanded
+        // because the current match (msg-4) contains the search hit
+        assertEquals(false, vm.state.value.blockExpansionStates["msg-4:terminal"],
+            "Canonical state should remain collapsed during search")
+        assertEquals(true, vm.state.value.derivedBlockExpansionStates["msg-4:terminal"],
+            "Derived state should force-expand the matching block")
     }
 
     @Test
@@ -147,20 +151,61 @@ class ExpansionBehaviourTest {
         val vm = createViewModelWithSession()
         advanceUntilIdle()
 
-        // Collapse all, then search (search would force-expand in UI)
+        // Collapse all, then search
         vm.onCommand(ConversationCommand.CollapseAll)
-        vm.onAction(ConversationAction.OnSearchQueryChange("ls"))
+        vm.onAction(ConversationAction.OnSearchQueryChange("\$ ls"))
 
-        // The ViewModel expansion state should still be collapsed
-        assertEquals(false, vm.state.value.blockExpansionStates["msg-4:terminal"],
-            "Expansion state should remain collapsed in ViewModel during search")
+        // Derived state should be expanded for the match
+        assertEquals(true, vm.state.value.derivedBlockExpansionStates["msg-4:terminal"],
+            "Derived state should force-expand during search")
 
         // Clear search
         vm.onAction(ConversationAction.OnSearchQueryChange(""))
 
-        // Block should still be collapsed (its explicit state)
-        assertEquals(false, vm.state.value.blockExpansionStates["msg-4:terminal"],
-            "After clearing search, block should return to its explicit collapsed state")
+        // Block should return to its explicit collapsed state
+        assertEquals(false, vm.state.value.derivedBlockExpansionStates["msg-4:terminal"],
+            "After clearing search, derived state should return to explicit collapsed state")
+    }
+
+    @Test
+    fun `manual dismissal of force-expanded block sticks while search remains active`() = runConversationStateTest(testMessages) {
+        val vm = createViewModelWithSession()
+        advanceUntilIdle()
+
+        // Collapse all, then search to force-expand
+        vm.onCommand(ConversationCommand.CollapseAll)
+        vm.onAction(ConversationAction.OnSearchQueryChange("\$ ls"))
+        assertEquals(true, vm.state.value.derivedBlockExpansionStates["msg-4:terminal"],
+            "Block should be force-expanded by search")
+
+        // User manually toggles (dismisses) the force-expanded block
+        vm.onAction(ConversationAction.OnToggleBlockExpansion("msg-4:terminal"))
+
+        // Block should now be collapsed (dismissal sticks)
+        assertEquals(false, vm.state.value.derivedBlockExpansionStates["msg-4:terminal"],
+            "Manual dismissal of force-expanded block should stick while search is active")
+        assertTrue(vm.state.value.dismissedForceExpandedBlockIds.contains("msg-4:terminal"),
+            "Block should be in dismissed set")
+    }
+
+    @Test
+    fun `manual expansion works when no search query is active`() = runConversationStateTest(testMessages) {
+        val vm = createViewModelWithSession()
+        advanceUntilIdle()
+
+        // All blocks default to expanded in derived state
+        assertEquals(true, vm.state.value.derivedBlockExpansionStates["msg-2:thought"] ?: true,
+            "Block should default to expanded")
+
+        // Manually collapse
+        vm.onAction(ConversationAction.OnToggleBlockExpansion("msg-2:thought"))
+        assertEquals(false, vm.state.value.derivedBlockExpansionStates["msg-2:thought"],
+            "Manual collapse should work without search")
+
+        // Manually expand
+        vm.onAction(ConversationAction.OnToggleBlockExpansion("msg-2:thought"))
+        assertEquals(true, vm.state.value.derivedBlockExpansionStates["msg-2:thought"],
+            "Manual expand should work without search")
     }
 
     // -- Stability across sort order changes --

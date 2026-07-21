@@ -6,7 +6,6 @@ import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.ui.components.ThoughtBlock
-import com.knowledgespike.junieviewer.ui.components.blockContainsSearchHit
 
 @Composable
 fun ThoughtMessageRenderer(
@@ -23,8 +22,7 @@ fun ThoughtMessageRenderer(
         modifier = Modifier.testTag("thought_block"),
         searchQuery = searchQuery,
         isCurrentMatch = isCurrentMatch,
-        forceExpanded = isCurrentMatch && blockContainsSearchHit(thoughtText, searchQuery),
-        externalExpanded = blockExpansionStates[blockId],
+        expanded = blockExpansionStates[blockId] ?: true,
         onToggle = { onToggleBlock(blockId) }
     )
 }
