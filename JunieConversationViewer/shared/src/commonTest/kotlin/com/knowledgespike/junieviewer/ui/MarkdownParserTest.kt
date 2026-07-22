@@ -1,7 +1,7 @@
 package com.knowledgespike.junieviewer.ui
 
-import com.knowledgespike.junieviewer.ui.components.MarkdownBlock
-import com.knowledgespike.junieviewer.ui.components.parseMarkdownBlocks
+import com.knowledgespike.junieviewer.markdown.MarkdownBlock
+import com.knowledgespike.junieviewer.markdown.parseMarkdownBlocks
 import com.knowledgespike.junieviewer.ui.components.renderInlineMarkdown
 import org.junit.Test
 import strikt.api.expectThat

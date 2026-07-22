@@ -41,17 +41,17 @@ class LiveSessionTracker(
      *
      * @param eventsJsonlPath path to the events.jsonl file
      * @param initialOffset byte offset after initial full load (to avoid re-reading existing content)
-     * @param existingMessageCount number of messages already loaded (for id generation)
+     * @param nextLineNumber 1-based line number of the next line to be read (for stable IDs, F9/Q3)
      */
     fun track(
         eventsJsonlPath: Path,
         initialOffset: Long = 0L,
-        existingMessageCount: Int = 0
+        nextLineNumber: Int = 1
     ): Flow<LiveTrackingEvent> = flow {
         var partialLineBuffer = ""
-        var messageIndex = existingMessageCount
+        var lineNumber = nextLineNumber
 
-        logger.i { "LiveSessionTracker started: path=$eventsJsonlPath, offset=$initialOffset, existingMessages=$existingMessageCount" }
+        logger.i { "LiveSessionTracker started: path=$eventsJsonlPath, offset=$initialOffset, nextLine=$nextLineNumber" }
 
         fileWatcher.watch(eventsJsonlPath, initialOffset).collect { event ->
             when (event) {
@@ -71,19 +71,23 @@ class LiveSessionTracker(
 
                         val newMessages = mutableListOf<Message>()
                         for (line in completeLines) {
-                            if (line.isBlank()) continue
+                            if (line.isBlank()) {
+                                lineNumber++
+                                continue
+                            }
                             JsonlParser.parseLine(line)
                                 .onRight { junieEvent ->
-                                    val mapped = EventToMessageMapper.mapEventsToMessages(listOf(junieEvent))
-                                    // Re-index messages to avoid id collisions with initial load
-                                    mapped.forEach { msg ->
-                                        newMessages.add(msg.copy(id = "${messageIndex}-live-${msg.id}"))
-                                        messageIndex++
-                                    }
+                                    // Stable IDs: use the same line-based scheme as full load (F9/Q3)
+                                    val mapped = EventToMessageMapper.mapEventsToMessages(
+                                        listOf(junieEvent),
+                                        startLineNumber = lineNumber
+                                    )
+                                    newMessages.addAll(mapped)
                                 }
                                 .onLeft { error ->
                                     logger.w { "Skipping malformed line during live tracking: ${error.message}" }
                                 }
+                            lineNumber++
                         }
 
                         if (newMessages.isNotEmpty()) {
@@ -96,7 +100,7 @@ class LiveSessionTracker(
                 is FileChangeEvent.Truncated -> {
                     logger.w { "File truncated — requesting full reload" }
                     partialLineBuffer = ""
-                    messageIndex = 0
+                    lineNumber = 1
                     emit(LiveTrackingEvent.FileReset)
                 }
 

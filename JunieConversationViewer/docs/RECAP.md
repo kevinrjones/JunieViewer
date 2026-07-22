@@ -241,3 +241,28 @@
 - **Testing**: Added 6 new Area 8 tests to `ConversationCommandTest.kt` verifying search navigation and copy command safety. Full test suite (332+ tests) passes.
 - **Documentation**: All core documentation (HOW_TO_USE, README, TESTING, RECAP, project_memory) updated to reflect Sprint 5 features and architecture.
 - **Sprint Status**: Sprint 5 is now complete and ready for final HITL approval.
+
+# 2026-07-22
+
+## 10:44
+### Sprint 5 Wrap-Up and Sprint 6 Refactor Groundwork
+This recap covers all work since the previous entry (2026-07-20 07:15), spanning the completion of Sprint 5 interaction features and the start of the Sprint 6 architectural refactor on the `feat/sprint6` branch.
+
+- **Global Text Selection Tracking**: Introduced `TrackedSelectionContainer` to track global text-selection presence and report it into the Copy command logic. Menu and keyboard-shortcut enablement now align with the actual selection state. Updated content components, menu handlers, and added tests. (`feat/toolbar` merged into the main line.)
+- **Characterization Test Baseline**: Added a comprehensive characterization test suite for `EventToMessageMapper` covering all supported event-to-message mappings, fallback behaviours, and metadata-only events — locking current behaviour ahead of the Sprint 6 refactor with exhaustive assertions on message IDs, kinds, senders, and content. Subsequently removed outdated/superseded suites (`CollapseShowAllTest`, `CollapsibleBlockTest`, `LiveTrackingViewModelTest`, `RefreshAndAutoRefreshTest`).
+- **Typed Domain Payload Models**: Replaced raw `JsonElement` usage in the domain layer with a typed `PayloadValue` model for structured and unstructured event payloads. Added serializer boundary tests and real-log shape coverage to validate the new typed models.
+- **Registry-Driven Rendering**: Introduced `MessageContentRegistry` and `MessageRendererRegistry` to centralise metadata and UI logic for `MessageKind` variants, replacing exhaustive `when` chains with a modular, registry-driven design. Added `MessageKindMarker`, type-specific renderers, and tests to improve maintainability and testability.
+- **Centralised Expansion State**: Moved expansion-state logic fully into `ConversationViewModel`. Removed the UI-side `rememberMessageExpansionState`, derived final expansion states in the ViewModel, and exposed `derivedBlockExpansionStates` for UI consumption, simplifying block components and their tests.
+- **Desktop Modularisation**: Extracted desktop-specific functionality into a dedicated package — `DesktopClipboardManager`, `DesktopExceptionHandler`, `DesktopLogging`, `JunieMenuBar`, and `WindowStateTracker` — for modularity, maintainability, and reuse. Updated `main.kt` for integration and added tests for `WindowStateTracker`.
+- **Toolbar Copy Fix**: Added an `onCopySelectedText` callback to `ConversationScreen` and `ConversationToolbar`, and fixed the toolbar Copy button's focus-stealing issue using the `focusable` modifier (updated `ToolbarIconButton` for focus control).
+- **Commits since last recap**:
+    - `b67cc2d` — Enable global text selection state tracking with `TrackedSelectionContainer`
+    - `9061b4d` — Merge branch 'feat/toolbar'
+    - `d86a708` — Add comprehensive characterization tests for `EventToMessageMapper`
+    - `0eb1c22` — Remove outdated characterization test suites
+    - `6561bfd` — Introduce typed domain models (`PayloadValue`) for event payloads
+    - `91b81d8` — Introduce `MessageContentRegistry` and `MessageRendererRegistry`
+    - `e55ca6f` — Centralize expansion state logic in `ConversationViewModel`
+    - `98a00a8` — Move desktop-specific functionality to dedicated package
+    - `9da0da2` — Add `onCopySelectedText` callback; fix toolbar Copy button focus-stealing
+- **Current State**: Work is on the `feat/sprint6` branch. Uncommitted change: `docs/EVENT_CATALOG.md` deleted (pending).

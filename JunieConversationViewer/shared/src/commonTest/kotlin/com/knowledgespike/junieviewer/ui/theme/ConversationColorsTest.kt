@@ -70,6 +70,18 @@ class ConversationColorsTest {
     }
 
     @Test
+    fun `errorBorder is visually distinct from errorBackground in both palettes`() {
+        expectThat(light.errorBorder).isNotEqualTo(light.errorBackground)
+        expectThat(dark.errorBorder).isNotEqualTo(dark.errorBackground)
+    }
+
+    @Test
+    fun `warningBorder is visually distinct from warningBackground in both palettes`() {
+        expectThat(light.warningBorder).isNotEqualTo(light.warningBackground)
+        expectThat(dark.warningBorder).isNotEqualTo(dark.warningBackground)
+    }
+
+    @Test
     fun `all 18 semantic tokens are present`() {
         // Verify all tokens are accessible (compile-time check via property access)
         val tokens = listOf(

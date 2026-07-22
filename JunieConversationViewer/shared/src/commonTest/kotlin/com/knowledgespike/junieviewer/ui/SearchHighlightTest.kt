@@ -2,7 +2,6 @@ package com.knowledgespike.junieviewer.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import com.knowledgespike.junieviewer.ui.components.highlightSearchMatches
 import org.junit.Test
 import strikt.api.expectThat

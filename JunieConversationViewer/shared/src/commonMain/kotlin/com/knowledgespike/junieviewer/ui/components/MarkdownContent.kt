@@ -18,6 +18,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import com.knowledgespike.junieviewer.markdown.MarkdownBlock
+import com.knowledgespike.junieviewer.markdown.parseMarkdownBlocks
+import com.knowledgespike.junieviewer.search.findCaseInsensitiveMatches
 import com.knowledgespike.junieviewer.ui.theme.ConversationColors
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
@@ -93,99 +96,6 @@ fun MarkdownContent(
     }
 }
 
-/** Parsed Markdown block types. */
-sealed interface MarkdownBlock {
-    data class Heading(val level: Int, val text: String) : MarkdownBlock
-    data class Paragraph(val text: String) : MarkdownBlock
-    data class ListItem(val bullet: String, val text: String) : MarkdownBlock
-    data class CodeFence(val code: String, val language: String) : MarkdownBlock
-}
-
-/** Parses Markdown text into a list of blocks using line-based dispatch. */
-fun parseMarkdownBlocks(markdown: String): List<MarkdownBlock> {
-    val lines = markdown.lines()
-    return MarkdownBlockParser(lines).parse()
-}
-
-/**
- * Line-based Markdown block parser. Each block type is handled by a dedicated
- * method, keeping the main parse loop small and extensible.
- */
-private class MarkdownBlockParser(private val lines: List<String>) {
-    private var cursor = 0
-    private val blocks = mutableListOf<MarkdownBlock>()
-
-    fun parse(): List<MarkdownBlock> {
-        while (cursor < lines.size) {
-            val line = lines[cursor]
-            when {
-                line.trimStart().startsWith("```") -> parseCodeFence(line)
-                line.startsWith("#") -> parseHeading(line)
-                line.trimStart().let { it.startsWith("- ") || it.startsWith("* ") } -> parseUnorderedList(line)
-                line.trimStart().matches(ORDERED_LIST_REGEX) -> parseOrderedList(line)
-                line.isBlank() -> cursor++
-                else -> parseParagraph(line)
-            }
-        }
-        return blocks
-    }
-
-    private fun parseCodeFence(openingLine: String) {
-        val lang = openingLine.trimStart().removePrefix("```").trim()
-        val codeLines = mutableListOf<String>()
-        cursor++
-        while (cursor < lines.size && !lines[cursor].trimStart().startsWith("```")) {
-            codeLines.add(lines[cursor])
-            cursor++
-        }
-        blocks.add(MarkdownBlock.CodeFence(codeLines.joinToString("\n"), lang))
-        cursor++ // skip closing ```
-    }
-
-    private fun parseHeading(line: String) {
-        val level = line.takeWhile { it == '#' }.length
-        val text = line.drop(level).trimStart()
-        blocks.add(MarkdownBlock.Heading(level.coerceIn(1, 6), text))
-        cursor++
-    }
-
-    private fun parseUnorderedList(line: String) {
-        val text = line.trimStart().drop(2)
-        blocks.add(MarkdownBlock.ListItem("•", text))
-        cursor++
-    }
-
-    private fun parseOrderedList(line: String) {
-        val trimmed = line.trimStart()
-        val num = trimmed.takeWhile { it.isDigit() || it == '.' }
-        val text = trimmed.drop(num.length).trimStart()
-        blocks.add(MarkdownBlock.ListItem(num, text))
-        cursor++
-    }
-
-    private fun parseParagraph(firstLine: String) {
-        val paraLines = mutableListOf(firstLine)
-        cursor++
-        while (cursor < lines.size && isContinuationLine(lines[cursor])) {
-            paraLines.add(lines[cursor])
-            cursor++
-        }
-        blocks.add(MarkdownBlock.Paragraph(paraLines.joinToString(" ")))
-    }
-
-    /** Returns true when the line should be folded into the current paragraph. */
-    private fun isContinuationLine(line: String): Boolean =
-        line.isNotBlank() &&
-            !line.startsWith("#") &&
-            !line.trimStart().startsWith("```") &&
-            !line.trimStart().let { it.startsWith("- ") || it.startsWith("* ") } &&
-            !line.trimStart().matches(ORDERED_LIST_REGEX)
-
-    companion object {
-        private val ORDERED_LIST_REGEX = Regex("^\\d+\\.\\s.*")
-    }
-}
-
 /**
  * Applies search highlighting over an existing [AnnotatedString], preserving
  * any inline Markdown formatting spans already present.
@@ -200,20 +110,7 @@ fun applySearchHighlight(
 ): AnnotatedString {
     if (query.isBlank()) return annotated
 
-    val text = annotated.text
-    val lowerText = text.lowercase()
-    val lowerQuery = query.lowercase()
-    val queryLen = lowerQuery.length
-
-    val matches = mutableListOf<IntRange>()
-    var searchFrom = 0
-    while (searchFrom <= lowerText.length - queryLen) {
-        val idx = lowerText.indexOf(lowerQuery, searchFrom)
-        if (idx < 0) break
-        matches.add(idx until idx + queryLen)
-        searchFrom = idx + queryLen
-    }
-
+    val matches = findCaseInsensitiveMatches(annotated.text, query)
     if (matches.isEmpty()) return annotated
 
     val bgColor = if (isCurrentMatch) colors.currentMatchBackground else colors.searchHighlightBackground

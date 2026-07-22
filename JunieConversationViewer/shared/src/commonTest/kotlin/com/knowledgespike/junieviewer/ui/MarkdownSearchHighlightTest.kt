@@ -7,13 +7,9 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import com.knowledgespike.junieviewer.ui.components.MarkdownContent
 import com.knowledgespike.junieviewer.ui.components.applySearchHighlight
 import com.knowledgespike.junieviewer.ui.components.renderInlineMarkdown
-import com.knowledgespike.junieviewer.ui.theme.ConversationColors
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.darkConversationColors
 import com.knowledgespike.junieviewer.ui.theme.lightConversationColors
@@ -22,7 +18,6 @@ import org.junit.Test
 import strikt.api.expectThat
 import strikt.assertions.contains
 import strikt.assertions.hasSize
-import strikt.assertions.isEmpty
 import strikt.assertions.isEqualTo
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue

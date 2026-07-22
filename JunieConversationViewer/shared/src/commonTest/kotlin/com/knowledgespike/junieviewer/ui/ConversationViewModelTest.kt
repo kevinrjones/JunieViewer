@@ -1,17 +1,9 @@
 package com.knowledgespike.junieviewer.ui
 
 import app.cash.turbine.test
-import com.knowledgespike.junieviewer.data.LiveSessionTracker
-import com.knowledgespike.junieviewer.data.PreferencesRepository
-import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.*
-import okio.FileSystem
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -20,8 +12,6 @@ import kotlin.test.assertFalse
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConversationViewModelTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-
     private val testMessages = listOf(
         Message("1", Sender.Human, MessageContent.Text("Hello"), MessageKind.Text),
         Message("2", Sender.Junie, MessageContent.Text("Hello"), MessageKind.Text),
@@ -29,43 +19,11 @@ class ConversationViewModelTest {
         Message("4", Sender.Junie, MessageContent.Text("Other"), MessageKind.Text)
     )
 
-    private val fakeRepository = object : SessionRepository {
-        var lastSessionId: String? = null
-        override fun getMessages(): List<Message> = testMessages
-        override fun listSessions(homePath: String): List<SessionInfo> = listOf(
-            SessionInfo("test-session", "/path/test-session", 123L)
-        )
-        override fun setSession(sessionId: String, homePath: String) {
-            lastSessionId = sessionId
-        }
-        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
-            SessionInfo(sessionId, "/path/$sessionId", 123L, createdAt = 1000L, workingDirectory = "/projects/test")
-    }
-
-    private lateinit var tempPrefsPath: okio.Path
-    private lateinit var fakePreferencesRepository: PreferencesRepository
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-        tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "test-prefs-${System.currentTimeMillis()}.json"
-        fakePreferencesRepository = PreferencesRepository(
-            path = tempPrefsPath,
-            fileSystem = FileSystem.SYSTEM
-        )
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        FileSystem.SYSTEM.delete(tempPrefsPath)
-    }
-
     @Test
-    fun `initial state is correctly loaded from preferences`() = runTest {
-        fakePreferencesRepository.save(AppPreferences(lastSessionId = "saved-session", junieHomePath = "/custom/path"))
+    fun `initial state is correctly loaded from preferences`() = runConversationStateTest {
+        preferencesRepository.save(AppPreferences(lastSessionId = "saved-session", junieHomePath = "/custom/path"))
         
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+        val viewModel = createViewModel()
         
         viewModel.state.test {
             val state = awaitItem()
@@ -77,21 +35,18 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `search query updates filtered messages`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+    fun `search query updates filtered messages`() = runConversationStateTest(testMessages) {
+        val viewModel = createViewModel()
         // Ensure a session is selected and messages are loaded
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
 
         viewModel.state.test {
             val initialState = awaitItem()
-            println("INITIAL SIZE: ${initialState.filteredMessages.size}")
             assertEquals(4, initialState.filteredMessages.size)
 
             viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
-            // First item: searchQuery changed
-            val intermediateState = awaitItem()
-            // Second item: filteredMessages updated
+            // Single atomic emission: searchQuery and filteredMessages update together (F8)
             val finalState = awaitItem()
             
             assertEquals("Hello", finalState.searchQuery)
@@ -101,8 +56,11 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `toggling session picker updates state and loads sessions`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+    fun `toggling session picker updates state and loads sessions`() = runConversationStateTest {
+        sessionRepository.sessionsToReturn = listOf(
+            SessionInfo("test-session", "/path/test-session", 123L)
+        )
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.state.test {
@@ -122,8 +80,8 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `selecting session updates preference and loads messages`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+    fun `selecting session updates preference and loads messages`() = runConversationStateTest {
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         val newSession = SessionInfo("new-session", "/path/new-session", 456L)
@@ -131,13 +89,13 @@ class ConversationViewModelTest {
         advanceUntilIdle()
 
         assertEquals("new-session", viewModel.state.value.selectedSessionId)
-        assertEquals("new-session", fakePreferencesRepository.load().lastSessionId)
-        assertEquals("new-session", fakeRepository.lastSessionId)
+        assertEquals("new-session", preferencesRepository.load().lastSessionId)
+        assertEquals("new-session", sessionRepository.lastSessionId)
     }
 
     @Test
-    fun `toggling filters updates filtered messages`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+    fun `toggling filters updates filtered messages`() = runConversationStateTest(testMessages) {
+        val viewModel = createViewModel()
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
 
@@ -146,9 +104,7 @@ class ConversationViewModelTest {
 
             // Toggle off Junie messages
             viewModel.onAction(ConversationAction.OnToggleFilter(FilterKind.Junie))
-            // First item: filter changed
-            awaitItem()
-            // Second item: filteredMessages updated
+            // Single atomic emission: filter and filteredMessages update together (F8)
             val state = awaitItem()
             
             assertFalse(state.filter.showJunie)
@@ -159,21 +115,26 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `changing home path updates state and preferences`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+    fun `changing home path updates state and preferences`() = runConversationStateTest {
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.onAction(ConversationAction.OnHomePathChange("/new/home"))
         
         assertEquals("/new/home", viewModel.state.value.junieHomePath)
-        assertEquals("/new/home", fakePreferencesRepository.load().junieHomePath)
+        assertEquals("/new/home", preferencesRepository.load().junieHomePath)
     }
 
     @Test
-    fun `selectedSession is populated on startup when preferences contain a saved session`() = runTest {
-        fakePreferencesRepository.save(AppPreferences(lastSessionId = "startup-session"))
+    fun `selectedSession is populated on startup when preferences contain a saved session`() = runConversationStateTest {
+        preferencesRepository.save(AppPreferences(lastSessionId = "startup-session"))
+        sessionRepository.sessionInfoProvider = { sessionId, _ ->
+            if (sessionId == "startup-session") {
+                SessionInfo(sessionId, "/path/$sessionId", 123L, createdAt = 1000L, workingDirectory = "/projects/test")
+            } else null
+        }
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         val state = viewModel.state.value
@@ -186,8 +147,8 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `toggling settings updates state`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+    fun `toggling settings updates state`() = runConversationStateTest {
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.state.test {
@@ -202,31 +163,31 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `changing theme mode updates state and persists preference`() = runTest {
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+    fun `changing theme mode updates state and persists preference`() = runConversationStateTest {
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.onAction(ConversationAction.OnThemeModeChange(ThemeMode.Dark))
 
         assertEquals(ThemeMode.Dark, viewModel.state.value.themeMode)
-        assertEquals("Dark", fakePreferencesRepository.load().themeMode)
+        assertEquals("Dark", preferencesRepository.load().themeMode)
     }
 
     @Test
-    fun `theme mode is loaded from preferences on startup`() = runTest {
-        fakePreferencesRepository.save(AppPreferences(themeMode = "Light"))
+    fun `theme mode is loaded from preferences on startup`() = runConversationStateTest {
+        preferencesRepository.save(AppPreferences(themeMode = "Light"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertEquals(ThemeMode.Light, viewModel.state.value.themeMode)
     }
 
     @Test
-    fun `invalid theme mode in preferences defaults to System`() = runTest {
-        fakePreferencesRepository.save(AppPreferences(themeMode = "InvalidValue"))
+    fun `invalid theme mode in preferences defaults to System`() = runConversationStateTest {
+        preferencesRepository.save(AppPreferences(themeMode = "InvalidValue"))
 
-        val viewModel = ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertEquals(ThemeMode.System, viewModel.state.value.themeMode)

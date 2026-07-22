@@ -4,15 +4,9 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.runComposeUiTest
-import com.knowledgespike.junieviewer.data.LiveSessionTracker
-import com.knowledgespike.junieviewer.data.PreferencesRepository
-import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
 import com.knowledgespike.junieviewer.fixtures.RepresentativeFixtures
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import okio.FileSystem
 import org.junit.Test
 
 /**
@@ -22,8 +16,6 @@ import org.junit.Test
 @OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
 class AccessibilityAndArea8Test {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-
     // Three searchable messages for match navigation tests
     private val searchableMessages = listOf(
         Message("s1", Sender.Human, MessageContent.Text("alpha beta"), MessageKind.Text, 1000L),
@@ -32,38 +24,20 @@ class AccessibilityAndArea8Test {
         Message("s4", Sender.Human, MessageContent.Text("no match here"), MessageKind.Text, 1003L)
     )
 
-    private fun fakeRepo(messages: List<Message> = searchableMessages) = object : SessionRepository {
-        override fun getMessages(): List<Message> = messages
-        override fun listSessions(homePath: String): List<SessionInfo> = emptyList()
-        override fun setSession(sessionId: String, homePath: String) {}
-        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? = null
-    }
-
-    private fun tempPrefs(suffix: String): PreferencesRepository {
-        val path = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "a8-test-$suffix-${System.currentTimeMillis()}.json"
-        val repo = PreferencesRepository(path = path, fileSystem = FileSystem.SYSTEM)
-        repo.save(AppPreferences(lastSessionId = "test-session"))
-        return repo
-    }
-
     // -- Area 7.2: Semantic labels / content descriptions --
 
     @Test
-    fun `open session button has content description`() = runComposeUiTest {
-        val prefs = tempPrefs("a7-picker")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `open session button has content description`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         robot.assertContentDescriptionExists("Open Session")
     }
 
     @Test
-    fun `toolbar buttons have content descriptions`() = runComposeUiTest {
-        val prefs = tempPrefs("a7-settings")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `toolbar buttons have content descriptions`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         robot.assertContentDescriptionExists("Refresh")
         robot.assertContentDescriptionExists("Copy")
@@ -74,11 +48,10 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `no session state has content description`() = runComposeUiTest {
-        val robot = ConversationRobot(this)
+    fun `no session state has content description`() = runConversationUiTest {
         setContent {
             ConversationScreen(
-                state = ConversationState(selectedSessionId = null),
+                state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = null)),
                 onAction = {}
             )
         }
@@ -88,11 +61,10 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `loading state has content description`() = runComposeUiTest {
-        val robot = ConversationRobot(this)
+    fun `loading state has content description`() = runConversationUiTest {
         setContent {
             ConversationScreen(
-                state = ConversationState(isLoading = true, selectedSessionId = "s1"),
+                state = ConversationState(sessionLoad = SessionLoadState(isLoading = true, selectedSessionId = "s1")),
                 onAction = {}
             )
         }
@@ -102,13 +74,14 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `error state has content description`() = runComposeUiTest {
-        val robot = ConversationRobot(this)
+    fun `error state has content description`() = runConversationUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    errorMessage = "Something went wrong",
-                    selectedSessionId = "s1"
+                    sessionLoad = SessionLoadState(
+                        errorMessage = "Something went wrong",
+                        selectedSessionId = "s1"
+                    )
                 ),
                 onAction = {}
             )
@@ -120,13 +93,14 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `empty conversation state has content description`() = runComposeUiTest {
-        val robot = ConversationRobot(this)
+    fun `empty conversation state has content description`() = runConversationUiTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    selectedSessionId = "s1",
-                    messages = emptyList()
+                    sessionLoad = SessionLoadState(
+                        selectedSessionId = "s1",
+                        messages = emptyList()
+                    )
                 ),
                 onAction = {}
             )
@@ -139,23 +113,20 @@ class AccessibilityAndArea8Test {
     // -- Area 8.5: Human/Junie rendering --
 
     @Test
-    fun `sender markers show Human and Junie`() = runComposeUiTest {
-        val prefs = tempPrefs("a8-sender")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `sender markers show Human and Junie`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         robot.assertSenderMarkerVisible("Human")
         robot.assertSenderMarkerVisible("Junie")
     }
 
     @Test
-    fun `message kind markers are visible for first visible fixture kinds`() = runComposeUiTest {
+    fun `message kind markers are visible for first visible fixture kinds`() = runConversationUiTest {
         // Only test kinds that are visible without scrolling (LazyColumn virtualises off-screen items)
-        val prefs = tempPrefs("a8-kinds")
-        val vm = ConversationViewModel(fakeRepo(RepresentativeFixtures.allMessageKinds), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+        sessionRepository.messagesToReturn = RepresentativeFixtures.allMessageKinds
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // The first few items are always visible: Human text, then Junie turn with Thought, Tool, etc.
         robot.assertMessageOfKindVisible("Text")
@@ -164,11 +135,9 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `junie messages are grouped with turn headers`() = runComposeUiTest {
-        val prefs = tempPrefs("a8-turns")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `junie messages are grouped with turn headers`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // searchableMessages has Human, Junie, Junie, Human — so 1 Junie turn header
         robot.assertTagExists("turn_header")
@@ -177,11 +146,9 @@ class AccessibilityAndArea8Test {
     // -- Area 8: Match navigation --
 
     @Test
-    fun `match navigation buttons appear when multiple matches exist`() = runComposeUiTest {
-        val prefs = tempPrefs("a8-matchnav")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `match navigation buttons appear when multiple matches exist`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Search for "alpha" — 3 matches
         robot.typeSearchQuery("alpha")
@@ -204,11 +171,9 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `match navigation buttons have content descriptions`() = runComposeUiTest {
-        val prefs = tempPrefs("a8-matchcd")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `match navigation buttons have content descriptions`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         robot.typeSearchQuery("alpha")
         robot.assertContentDescriptionExists("Previous match")
@@ -216,11 +181,9 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `clear search button has content description`() = runComposeUiTest {
-        val prefs = tempPrefs("a8-clearcd")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `clear search button has content description`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         robot.typeSearchQuery("alpha")
         robot.assertContentDescriptionExists("Clear search")
@@ -229,10 +192,9 @@ class AccessibilityAndArea8Test {
     // -- Area 8.4: Semantic tag coverage --
 
     @Test
-    fun `important controls have stable test tags`() = runComposeUiTest {
-        val prefs = tempPrefs("a8-tags")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `important controls have stable test tags`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("search_field").assertExists()
         onNodeWithTag("toolbar_open_session").assertExists()
@@ -249,17 +211,16 @@ class AccessibilityAndArea8Test {
     // -- Area 8.10: Long Junie response --
 
     @Test
-    fun `long junie response renders without crashing and preserves turn grouping`() = runComposeUiTest {
+    fun `long junie response renders without crashing and preserves turn grouping`() = runConversationUiTest {
         val longText = "Line of text. ".repeat(500)
         val longMessages = listOf(
             Message("l1", Sender.Human, MessageContent.Text("Start"), MessageKind.Text, 1L),
             Message("l2", Sender.Junie, MessageContent.Text(longText), MessageKind.Text, 2L),
             Message("l3", Sender.Junie, MessageContent.Text("Follow-up"), MessageKind.Text, 3L)
         )
-        val prefs = tempPrefs("a8-long")
-        val vm = ConversationViewModel(fakeRepo(longMessages), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+        sessionRepository.messagesToReturn = longMessages
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // LazyColumn virtualises — not all items rendered. Verify it doesn't crash and turn header exists.
         robot.assertTagExists("turn_header")
@@ -269,15 +230,14 @@ class AccessibilityAndArea8Test {
     // -- Area 7.5: Non-colour-only status indicators --
 
     @Test
-    fun `error and warning messages have text labels not just colour`() = runComposeUiTest {
+    fun `error and warning messages have text labels not just colour`() = runConversationUiTest {
         val messages = listOf(
             RepresentativeFixtures.junieErrorMessage,
             RepresentativeFixtures.junieWarningMessage
         )
-        val prefs = tempPrefs("a7-noncolour")
-        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+        sessionRepository.messagesToReturn = messages
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         // Kind markers include emoji+text, not colour alone
         robot.assertMessageOfKindVisible("Error")
@@ -285,11 +245,11 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `unsupported event has text label and card`() = runComposeUiTest {
+    fun `unsupported event has text label and card`() = runConversationUiTest {
         val messages = listOf(RepresentativeFixtures.malformedContentMessage)
-        val prefs = tempPrefs("a7-unsup")
-        val vm = ConversationViewModel(fakeRepo(messages), prefs, testDispatcher, LiveSessionTracker())
-        setContent { ConversationRoot(viewModel = vm) }
+        sessionRepository.messagesToReturn = messages
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         onNodeWithTag("unsupported_event_card").assertExists()
     }
@@ -297,16 +257,18 @@ class AccessibilityAndArea8Test {
     // -- Area 8.4: Themed component tests --
 
     @Test
-    fun `human and junie messages render under light theme`() = runComposeUiTest {
+    fun `human and junie messages render under light theme`() = runConversationUiTest(searchableMessages) {
         setContent {
             com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
                 themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Light
             ) {
                 ConversationScreen(
                     state = ConversationState(
-                        selectedSessionId = "s1",
-                        messages = searchableMessages,
-                        filteredMessages = searchableMessages
+                        sessionLoad = SessionLoadState(
+                            selectedSessionId = "s1",
+                            messages = searchableMessages
+                        ),
+                        search = SearchState(filteredMessages = searchableMessages)
                     ),
                     onAction = {}
                 )
@@ -318,16 +280,18 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `human and junie messages render under dark theme`() = runComposeUiTest {
+    fun `human and junie messages render under dark theme`() = runConversationUiTest(searchableMessages) {
         setContent {
             com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
                 themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Dark
             ) {
                 ConversationScreen(
                     state = ConversationState(
-                        selectedSessionId = "s1",
-                        messages = searchableMessages,
-                        filteredMessages = searchableMessages
+                        sessionLoad = SessionLoadState(
+                            selectedSessionId = "s1",
+                            messages = searchableMessages
+                        ),
+                        search = SearchState(filteredMessages = searchableMessages)
                     ),
                     onAction = {}
                 )
@@ -339,16 +303,18 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `rich content blocks render under dark theme without crashing`() = runComposeUiTest {
+    fun `rich content blocks render under dark theme without crashing`() = runConversationUiTest {
         setContent {
             com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
                 themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Dark
             ) {
                 ConversationScreen(
                     state = ConversationState(
-                        selectedSessionId = "s1",
-                        messages = RepresentativeFixtures.allMessageKinds,
-                        filteredMessages = RepresentativeFixtures.allMessageKinds
+                        sessionLoad = SessionLoadState(
+                            selectedSessionId = "s1",
+                            messages = RepresentativeFixtures.allMessageKinds
+                        ),
+                        search = SearchState(filteredMessages = RepresentativeFixtures.allMessageKinds)
                     ),
                     onAction = {}
                 )
@@ -360,13 +326,13 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `state surfaces render under dark theme`() = runComposeUiTest {
+    fun `state surfaces render under dark theme`() = runConversationUiTest {
         setContent {
             com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme(
                 themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Dark
             ) {
                 ConversationScreen(
-                    state = ConversationState(isLoading = true, selectedSessionId = "s1"),
+                    state = ConversationState(sessionLoad = SessionLoadState(isLoading = true, selectedSessionId = "s1")),
                     onAction = {}
                 )
             }
@@ -376,11 +342,9 @@ class AccessibilityAndArea8Test {
     }
 
     @Test
-    fun `footer renders with session metadata`() = runComposeUiTest {
-        val prefs = tempPrefs("a8-footer")
-        val vm = ConversationViewModel(fakeRepo(), prefs, testDispatcher, LiveSessionTracker())
-        val robot = ConversationRobot(this)
-        setContent { ConversationRoot(viewModel = vm) }
+    fun `footer renders with session metadata`() = runConversationUiTest(searchableMessages) {
+        preferencesRepository.save(AppPreferences(lastSessionId = "test-session"))
+        setConversationContent()
 
         robot.assertTagExists("session_context_footer")
     }

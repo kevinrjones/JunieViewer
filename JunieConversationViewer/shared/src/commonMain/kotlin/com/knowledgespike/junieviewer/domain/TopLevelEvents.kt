@@ -1,8 +1,6 @@
 package com.knowledgespike.junieviewer.domain
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 
 // ---------------------------------------------------------------------------
 // Top-level events in events.jsonl
@@ -14,15 +12,26 @@ data class UserPromptEvent(
     val prompt: String,
     val requestId: String? = null,
     val presentablePrompt: String? = null,
-    val customAttachments: JsonElement? = null
-) : JunieEvent
+    val customAttachments: PayloadValue? = null
+) : JunieEvent {
+    override fun toMessage(context: MappingContext): Message = Message(
+        id = "line-${context.lineNumber}",
+        sender = Sender.Human,
+        content = MessageContent.Text(prompt),
+        kind = MessageKind.Text,
+        timestamp = context.timestampMs ?: 0L
+    )
+}
 
 /** Wrapper for nested agent events within a session. */
 @Serializable
 data class SessionA2uxEvent(
     val event: AgentEventWrapper,
     val timestampMs: Long? = null
-) : JunieEvent
+) : JunieEvent {
+    override fun toMessage(context: MappingContext): Message? =
+        event.agentEvent.toMessage(context.copy(timestampMs = timestampMs))
+}
 
 /** Indicates a Junie task has started. */
 @Serializable
@@ -52,7 +61,7 @@ data class UserMessagesCommittedToHistory(
 data class UserAsyncResponseEvent(
     val requestId: String? = null,
     val response: String? = null,
-    val entries: JsonElement? = null,
+    val entries: List<ResponseEntry>? = null,
     val timestampMs: Long? = null
 ) : JunieEvent
 
@@ -61,7 +70,21 @@ data class UserAsyncResponseEvent(
 data class SystemMessageEvent(
     val text: String,
     val details: String? = null
-) : JunieEvent
+) : JunieEvent {
+    override fun toMessage(context: MappingContext): Message {
+        val content = buildString {
+            append(text)
+            if (!details.isNullOrBlank()) append("\n\n$details")
+        }
+        return Message(
+            id = "line-${context.lineNumber}",
+            sender = Sender.Junie,
+            content = MessageContent.Text(content),
+            kind = MessageKind.SystemMessage,
+            timestamp = context.timestampMs ?: 0L
+        )
+    }
+}
 
 /** Signals that a message/task is being sent to the agent. */
 @Serializable
@@ -69,7 +92,15 @@ data object SendToAgentEvent : JunieEvent
 
 /** Signals that the user cancelled the agent's current operation. */
 @Serializable
-data object CancelAgentEvent : JunieEvent
+data object CancelAgentEvent : JunieEvent {
+    override fun toMessage(context: MappingContext): Message = Message(
+        id = "line-${context.lineNumber}",
+        sender = Sender.Human,
+        content = MessageContent.Text("⛔ Agent cancelled"),
+        kind = MessageKind.Cancelled,
+        timestamp = context.timestampMs ?: 0L
+    )
+}
 
 /** Sets or updates the session title. */
 @Serializable
@@ -86,14 +117,30 @@ data class SkillsStatusEvent(
 
 /** Indicates that a "continue" operation on a task was stopped. */
 @Serializable
-data object TaskContinueStopped : JunieEvent
+data object TaskContinueStopped : JunieEvent {
+    override fun toMessage(context: MappingContext): Message = Message(
+        id = "line-${context.lineNumber}",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Continue stopped"),
+        kind = MessageKind.Status,
+        timestamp = context.timestampMs ?: 0L
+    )
+}
 
 /** User's response to a choice or question from the agent. */
 @Serializable
 data class UserResponseEvent(
     val prompt: String,
     val isChoice: Boolean = false
-) : JunieEvent
+) : JunieEvent {
+    override fun toMessage(context: MappingContext): Message = Message(
+        id = "line-${context.lineNumber}",
+        sender = Sender.Human,
+        content = MessageContent.Text(prompt),
+        kind = MessageKind.Text,
+        timestamp = context.timestampMs ?: 0L
+    )
+}
 
 /**
  * Fallback for any top-level event kind not yet modelled.
@@ -102,5 +149,13 @@ data class UserResponseEvent(
 data class UnknownJunieEvent(
     override val kind: String,
     val timestampMs: Long? = null,
-    val raw: JsonObject
-) : JunieEvent
+    val raw: PayloadValue.ObjectValue
+) : JunieEvent {
+    override fun toMessage(context: MappingContext): Message = Message(
+        id = "line-${context.lineNumber}",
+        sender = Sender.Junie,
+        content = MessageContent.Text("Unsupported event: $kind"),
+        kind = MessageKind.Unsupported,
+        timestamp = context.timestampMs ?: 0L
+    )
+}
