@@ -37,19 +37,19 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 ## 5. Progress Summary
 
-| # | Task Area | Status | Task Count |
-|---|-----------|--------|------------|
-| 1 | Discovery, Characterization, and Quick Wins (F7, F8, F10, F12) | Complete | 9 |
-| 2 | Test Infrastructure (F11) | Complete | 6 |
-| 3 | Typed Domain Events (F2) | Complete | 7 |
-| 4 | Self-Mapping Events and Stable IDs (F3, F9) | Complete | 7 |
-| 5 | Message Content Registry (F1) | Complete | 7 |
-| 6 | Centralized Expansion State (F4) | Complete | 5 |
-| 7 | Markdown Parser Extraction (F5) | Not started | 6 |
-| 8 | Entry Point Decomposition (F6) | Not started | 7 |
-| 9 | Documentation Updates | Not started | 5 |
-| 10 | Testing, Review, and Completion | Not started | 7 |
-| | **Total** | | **66** |
+| # | Task Area | Status                             | Task Count |
+|---|-----------|------------------------------------|------------|
+| 1 | Discovery, Characterization, and Quick Wins (F7, F8, F10, F12) | Complete                           | 9 |
+| 2 | Test Infrastructure (F11) | Complete                           | 6 |
+| 3 | Typed Domain Events (F2) | Complete                           | 7 |
+| 4 | Self-Mapping Events and Stable IDs (F3, F9) | Complete                           | 7 |
+| 5 | Message Content Registry (F1) | Complete                           | 7 |
+| 6 | Centralized Expansion State (F4) | Complete                           | 5 |
+| 7 | Markdown Parser Extraction (F5) | Complete                           | 6 |
+| 8 | Entry Point Decomposition (F6) | 8.1–8.6 Complete, 8.7 pending HITL | 7 |
+| 9 | Documentation Updates | Not started                        | 5 |
+| 10 | Testing, Review, and Completion | Not started                        | 7 |
+| | **Total** |                                    | **66** |
 
 ## 6. Task Status Legend
 
@@ -811,7 +811,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 7.1 Catalogue currently supported Markdown forms
 
-- [ ] Catalogue currently supported Markdown forms
+- [x] Catalogue currently supported Markdown forms
 
 **Description:** List every block and inline form currently handled by `MarkdownContent.kt` (~L114–307) so the extracted parser preserves exact behaviour, including quirks.
 
@@ -828,7 +828,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 7.2 Implement MarkdownDocument parser — `Test Required`
 
-- [ ] Implement MarkdownDocument parser
+- [x] Implement MarkdownDocument parser
 
 **Description:** Create a non-UI parser (e.g., `markdown/MarkdownParser.kt`) producing a typed `MarkdownDocument` block/inline model, replacing the index-walking logic.
 
@@ -845,7 +845,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 7.3 Rewire MarkdownContent to render the parsed model
 
-- [ ] Rewire MarkdownContent to render the parsed model
+- [x] Rewire MarkdownContent to render the parsed model
 
 **Description:** The composable iterates `MarkdownDocument` blocks; no `substring`/`indexOf` walking remains in UI code.
 
@@ -862,7 +862,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 7.4 Replace bespoke applySearchHighlight with canonical helper
 
-- [ ] Replace bespoke applySearchHighlight with canonical helper
+- [x] Replace bespoke applySearchHighlight with canonical helper
 
 **Description:** Delete the bespoke highlight implementation (~L195–229) and reuse `SearchHighlight.kt`.
 
@@ -879,7 +879,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 7.5 Verify green build after parser extraction — `Manual Review Required`
 
-- [ ] Verify green build after parser extraction
+- [x] Verify green build after parser extraction
 
 **Description:** Run `./gradlew :shared:jvmTest` and `./gradlew test`; manually spot-check Markdown-heavy Messages in both themes.
 
@@ -919,7 +919,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 8.1 Extract JunieMenuBar composable
 
-- [ ] Extract JunieMenuBar composable
+- [x] Extract JunieMenuBar composable
 
 **Description:** Move the 115-line `MenuBar` definition from `main.kt` into a dedicated `JunieMenuBar` composable, keeping all commands and keyboard shortcuts unchanged.
 
@@ -936,7 +936,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 8.2 Extract DesktopClipboardManager
 
-- [ ] Extract DesktopClipboardManager
+- [x] Extract DesktopClipboardManager
 
 **Description:** Move the AWT synthetic-copy-event hack (~L260–301) behind a `DesktopClipboardManager` abstraction; `main.kt` knows only the command.
 
@@ -953,7 +953,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 8.3 Extract WindowStateTracker — `Test Required`
 
-- [ ] Extract WindowStateTracker
+- [x] Extract WindowStateTracker
 
 **Description:** Move window-state persistence (~L92–104) into a `WindowStateTracker` collaborating with `PreferencesRepository` via constructor injection.
 
@@ -970,7 +970,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 8.4 Extract logging setup and exception dialog
 
-- [ ] Extract logging setup and exception dialog
+- [x] Extract logging setup and exception dialog
 
 **Description:** Move `setupLogging`, the `Slf4jLogger` wiring, and the global exception dialog into a dedicated startup/logging component.
 
@@ -987,7 +987,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 8.5 Reduce main.kt to pure wiring
 
-- [ ] Reduce main.kt to pure wiring
+- [x] Reduce main.kt to pure wiring
 
 **Description:** After extractions, `main.kt` should contain only composition of the extracted components (target: well under 100 lines).
 
@@ -1004,7 +1004,7 @@ This document breaks Sprint 6 into concrete, trackable tasks. It serves as:
 
 #### 8.6 Verify green build after decomposition
 
-- [ ] Verify green build after decomposition
+- [x] Verify green build after decomposition
 
 **Description:** Run `./gradlew :shared:jvmTest` and `./gradlew test`.
 
