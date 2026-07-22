@@ -5,8 +5,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
+import org.jetbrains.skia.Image
 import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
@@ -15,6 +19,20 @@ import com.knowledgespike.junieviewer.desktop.*
 import com.knowledgespike.junieviewer.domain.AppPreferences
 import com.knowledgespike.junieviewer.ui.ConversationCommandState
 import com.knowledgespike.junieviewer.ui.ConversationViewModel
+
+/**
+ * Loads a bitmap image bundled on the Java classpath and wraps it in a [Painter].
+ *
+ * Replaces the deprecated `androidx.compose.ui.res.painterResource(String)`; per the Compose
+ * migration guidance, classpath resources are decoded directly via Skia rather than the
+ * Compose resources generator (the icon lives under `src/main/resources`, not `composeResources`).
+ */
+private fun classpathPainter(resourcePath: String): Painter {
+    val bytes = checkNotNull(object {}.javaClass.getResourceAsStream(resourcePath)) {
+        "Classpath resource not found: $resourcePath"
+    }.use { it.readBytes() }
+    return BitmapPainter(Image.makeFromEncoded(bytes).toComposeImageBitmap())
+}
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
@@ -57,6 +75,7 @@ fun main() {
         )
 
         val clipboardManager = remember { DesktopClipboardManager() }
+        val windowIcon = remember { classpathPainter("/icons/icon.png") }
 
         fun saveAndExit() {
             val finalPrefs = AppPreferences(
@@ -76,6 +95,7 @@ fun main() {
             onCloseRequest = ::saveAndExit,
             state = windowState,
             title = "Junie Conversation Viewer",
+            icon = windowIcon,
         ) {
             JunieMenuBar(
                 commandState = commandState,

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Junie Conversation Viewer application icon.
+  Concept: a conversation between Junie (the AI assistant) and a human.
+  Two overlapping rounded speech bubbles:
+    - the back bubble (purple gradient) carries an AI "spark" mark for Junie,
+    - the front bubble (teal gradient) carries a human silhouette.
+  Designed on a 1024x1024 canvas with a rounded-square background so it reads
+  well at both large (installer) and small (taskbar/dock) sizes.
+-->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E1B2E"/>
+      <stop offset="1" stop-color="#2B2440"/>
+    </linearGradient>
+    <linearGradient id="junie" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#6D28D9"/>
+    </linearGradient>
+    <linearGradient id="human" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2DD4BF"/>
+      <stop offset="1" stop-color="#0D9488"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded-square app background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#bg)"/>
+
+  <!-- Junie (AI) speech bubble, upper-left, behind -->
+  <g>
+    <path d="M232 214
+             h372 a96 96 0 0 1 96 96
+             v208 a96 96 0 0 1 -96 96
+             h-198 l-118 104 v-104 h-56 a96 96 0 0 1 -96 -96
+             v-208 a96 96 0 0 1 96 -96 z"
+          fill="url(#junie)"/>
+    <!-- AI spark / four-point star mark for Junie -->
+    <path d="M418 296
+             c18 78 40 100 118 118
+             c-78 18 -100 40 -118 118
+             c-18 -78 -40 -100 -118 -118
+             c78 -18 100 -40 118 -118 z"
+          fill="#FFFFFF"/>
+    <circle cx="300" cy="470" r="20" fill="#FFFFFF" opacity="0.85"/>
+    <circle cx="548" cy="352" r="14" fill="#FFFFFF" opacity="0.7"/>
+  </g>
+
+  <!-- Human speech bubble, lower-right, in front -->
+  <g>
+    <path d="M420 470
+             h372 a96 96 0 0 1 96 96
+             v208 a96 96 0 0 1 -96 96
+             h-56 v104 l-118 -104 h-198 a96 96 0 0 1 -96 -96
+             v-208 a96 96 0 0 1 96 -96 z"
+          fill="url(#human)"/>
+    <!-- Human silhouette (head + shoulders) -->
+    <circle cx="606" cy="620" r="72" fill="#FFFFFF"/>
+    <path d="M494 806
+             a112 112 0 0 1 224 0 z"
+          fill="#FFFFFF"/>
+  </g>
+</svg>

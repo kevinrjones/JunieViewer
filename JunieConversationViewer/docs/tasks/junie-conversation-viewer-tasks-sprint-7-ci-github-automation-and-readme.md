@@ -41,13 +41,13 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 |---|-----------|--------|------------|
 | 1 | Discovery and Scope Confirmation | 6/6 complete | 6 |
 | 2 | GitHub Actions Workflow Design | 3/4 complete (awaiting HITL review) | 4 |
-| 3 | Tag Build Workflow Implementation | 0/9 not started | 9 |
+| 3 | Tag Build Workflow Implementation | 8/9 in progress (awaiting HITL review) | 9 |
 | 4 | Versioning and Artifact Naming | 0/4 not started | 4 |
 | 5 | GitHub README | 0/7 not started | 7 |
 | 6 | Documentation Updates | 1/6 in progress | 6 |
 | 7 | Testing and Local Verification | 0/6 not started | 6 |
 | 8 | Review, Cleanup, and Completion | 0/5 not started | 5 |
-| | **Total** | **10/47 in progress** | **47** |
+| | **Total** | **18/47 in progress** | **47** |
 
 ## 6. Task Status Legend
 
@@ -255,7 +255,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.1 Create `.github/workflows/tag-build.yml` with `v*` tag trigger — `Depends on 2.4`
 
-- [ ] Create workflow file with `v*` tag trigger
+- [x] Create workflow file with `v*` tag trigger
 
 **Description:** Add the workflow file triggered on pushes of tags matching `v*`, with an appropriate `name` and `permissions: contents: write` for Release publishing.
 
@@ -272,7 +272,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.2 Add checkout and JDK 21 setup with Gradle cache
 
-- [ ] Add checkout and JDK 21 setup with Gradle cache
+- [x] Add checkout and JDK 21 setup with Gradle cache
 
 **Description:** Add `actions/checkout`, `actions/setup-java@v5` (Temurin, Java 21, `cache: gradle`), and `chmod +x gradlew` on non-Windows.
 
@@ -289,7 +289,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.3 Add the build matrix (macOS, Windows, Linux)
 
-- [ ] Add the build matrix (macOS, Windows, Linux)
+- [x] Add the build matrix (macOS, Windows, Linux)
 
 **Description:** Add `strategy.matrix` covering `macos-latest`, `windows-latest`, and `ubuntu-latest` with per-OS `package-task` and output-path variables (D1).
 
@@ -306,7 +306,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.4 Add Linux Xvfb setup
 
-- [ ] Add Linux Xvfb setup
+- [x] Add Linux Xvfb setup
 
 **Description:** Install `xvfb` and required GL libraries on the Linux runner and run tests/packaging under `xvfb-run`.
 
@@ -323,7 +323,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.5 Add test step before packaging
 
-- [ ] Add test step before packaging
+- [x] Add test step before packaging
 
 **Description:** Run `./gradlew :shared:jvmTest` (and/or `./gradlew test`) before any packaging step so a test failure fails the job.
 
@@ -340,7 +340,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.6 Add per-OS package step using confirmed Gradle tasks — `Depends on 1.2`
 
-- [ ] Add per-OS package step using confirmed Gradle tasks
+- [x] Add per-OS package step using confirmed Gradle tasks
 
 **Description:** Add the packaging step invoking the **confirmed** per-OS Gradle task (`packageDmg`/`packageMsi`/`packageDeb`) plus `createDistributable` as needed.
 
@@ -357,7 +357,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.7 Add artifact upload with clear names
 
-- [ ] Add artifact upload with clear names
+- [x] Add artifact upload with clear names
 
 **Description:** Use `actions/upload-artifact` to upload the produced installers/distributables from the confirmed output paths, using clear, tag-aware names.
 
@@ -374,7 +374,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.8 Add GitHub Release publishing on tags — `Depends on 3.7`
 
-- [ ] Add GitHub Release publishing on tags
+- [x] Add GitHub Release publishing on tags
 
 **Description:** Add a `softprops/action-gh-release` step gated on `refs/tags/` that attaches installers/distributables (and optional SHA256 checksums), marking tags containing `-` as prereleases (per Q3).
 
@@ -391,7 +391,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 3.9 HITL review of implemented workflow — `HITL Review`
 
-- [ ] HITL review of implemented workflow
+- [x] HITL review of implemented workflow
 
 **Description:** Present the finished workflow to the HITL for review of correctness and maintainability.
 
@@ -967,3 +967,4 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 | 2026-07-22 | Area 2 workflow design complete (tasks 2.1–2.3) | Documented the full `tag-build.yml` design (no YAML written): `v*` tag-only trigger, `contents: write`, `actions/setup-java@v5` Temurin JDK 21 + Gradle cache, `./gradlew test` gate before packaging (under `xvfb-run` on Linux), 4-row matrix (`macos-latest`/`windows-latest`/`ubuntu-latest`/`ubuntu-24.04-arm`) with per-OS `packageDmg/Msi/Deb` + `createDistributable`, tag-aware `JunieConversationViewer-<tag>-<suffix>` naming, per-file `.sha256` sidecars, and `softprops/action-gh-release` publishing with `prerelease` on hyphenated tags. `packageVersion` stays `1.0.0`. Design recorded in [`docs/sprint-7-area-2-workflow-design.md`](../sprint-7-area-2-workflow-design.md). Task 2.4 (HITL review of the design) remains open pending sign-off. |
 | 2026-07-22 | Windows ARM64 added to the build matrix (design) | HITL asked CI to support **Windows x64 and Windows ARM** packages (or a universal binary if one existed). Confirmed Windows has **no universal binary** — `jpackage`/Compose Desktop emits an arch-specific `.msi`, so two native runners are used: `windows-latest` (windows-x64) and **`windows-11-arm` (windows-arm64)** (GitHub-hosted, GA since Apr 2025). Caveat: **Temurin ships no Windows `aarch64` JDK 21** ([temurin#271](https://github.com/adoptium/temurin/issues/271)), so the ARM64 job uses `distribution: microsoft` (Microsoft Build of OpenJDK) via a new `matrix.java-distribution`; other jobs stay on Temurin. Matrix now 5 rows; added artifact names `windows-x64`/`windows-arm64`, risks R8–R10. Design updated in [`docs/sprint-7-area-2-workflow-design.md`](../sprint-7-area-2-workflow-design.md); Windows ARM64 packaging/runner still to be verified on the runner in Area 7. Task 2.4 remains open pending HITL sign-off. |
 | 2026-07-22 | Added GitHub setup guide (task 6.6) | HITL requested step-by-step GitHub setup guidelines for the CI and publish steps. Created standalone [`docs/GITHUB_SETUP.md`](../GITHUB_SETUP.md) (create & push repo, enable Actions + Read and write workflow permissions, confirm runners incl. `windows-11-arm`/`ubuntu-24.04-arm`, publish via `vX.Y.Z` tag with hyphen→prerelease, monitor, verify installers/`-distributable.zip`/`.sha256`, troubleshooting), restating Area 2 design facts and marking `tag-build.yml`-dependent behaviour as Area 3. Added task 6.6 (Area 6 now 1/6, total 47), and a single README cross-link (minimal, to avoid pre-empting the Area 5 rewrite). |
+| 2026-07-22 | Area 3 workflow implemented (tasks 3.1–3.8) | Created `.github/workflows/tag-build.yml` (`Tag Build and Release`) per the approved Area 2 design: `v*` tag-only trigger, `permissions: contents: write`, `defaults.run` with `shell: bash` + `working-directory: JunieConversationViewer` (git repo root is the parent, gradlew lives in `JunieConversationViewer/`). `strategy: fail-fast: false` 5-row matrix (`macos-latest`/`windows-latest`/`windows-11-arm`/`ubuntu-latest`/`ubuntu-24.04-arm`) with `windows-11-arm` on `distribution: microsoft`. Steps: checkout@v4 → setup-java@v5 (JDK 21, `cache: gradle`) → `chmod +x gradlew` (non-Windows) → Linux Xvfb+GL install → `./gradlew test` (under `xvfb-run` on Linux) → per-OS `packageDmg/Msi/Deb` → `createDistributable` → prepare/rename installer + zip app image (`JunieConversationViewer-<tag>-<suffix>`; bash on Linux/macOS, pwsh on Windows) → per-file `.sha256` sidecars → `upload-artifact@v4` → tag-gated `softprops/action-gh-release@v2` (`prerelease` on hyphenated tags, `GITHUB_TOKEN`). YAML validated; `packageVersion` untouched. Task 3.9 (HITL review) left open; full run verification deferred to Area 7 (needs a real tag push). |

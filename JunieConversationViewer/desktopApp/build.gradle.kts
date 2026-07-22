@@ -31,6 +31,18 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.knowledgespike.junieviewer"
             packageVersion = "1.0.0"
+
+            // Per-OS application/installer icons. Each platform requires its
+            // own native icon format, generated from src/main/resources/icons.
+            macOS {
+                iconFile.set(project.file("src/main/resources/icons/icon.icns"))
+            }
+            windows {
+                iconFile.set(project.file("src/main/resources/icons/icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("src/main/resources/icons/icon.png"))
+            }
         }
     }
 }
