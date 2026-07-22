@@ -49,7 +49,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 | 7 | Collapse All / Show All | 6/6 complete (awaiting HITL review)  | 6 |
 | 8 | Copy and Search Integration | 6/6 complete                         | 6 |
 | 9 | Documentation Updates | 5/5 complete                         | 5 |
-| 10 | Testing, Review, and Completion | 6/7 complete (awaiting HITL review)  | 7 |
+| 10 | Testing, Review, and Completion | 7/7 complete (awaiting HITL review)  | 7 |
 | | **Total** |                                      | **67** |
 
 ## 6. Task Status Legend
@@ -1252,7 +1252,7 @@ This document breaks Sprint 5 into concrete, trackable tasks. It serves as:
 
 #### 10.7 HITL final approval — `HITL Review`
 
-- [ ] HITL final approval
+- [x] HITL final approval
 
 **Description:** Obtain final sign-off for Sprint 5.
 
