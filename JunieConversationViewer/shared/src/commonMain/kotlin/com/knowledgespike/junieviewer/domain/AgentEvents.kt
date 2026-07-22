@@ -1,8 +1,14 @@
 package com.knowledgespike.junieviewer.domain
 
+import co.touchlab.kermit.Logger
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNames
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+private val logger = Logger.withTag("AgentEvents")
 
 // ---------------------------------------------------------------------------
 // AgentEventWrapper — bridges SessionA2uxEvent to nested AgentEvent
@@ -31,14 +37,48 @@ sealed interface AgentEvent {
     /**
      * Maps this agent event to a UI [Message], or null if this event has no UI representation.
      * Each agent event type implements its own mapping logic (Strategy pattern, Q1).
+     * Defaults to null; only events with an actual UI representation override this.
      */
-    fun toMessage(context: MappingContext): Message?
+    fun toMessage(context: MappingContext): Message? = null
+
+    /**
+     * Returns the working directory this event reports, or null if it carries none.
+     * Defaults to null; overridden only by the handful of events that can carry a
+     * working directory (Strategy pattern, mirroring [toMessage]).
+     */
+    fun workingDirectoryOrNull(): String? = null
 }
 
-/** Builds a Message with a stable line-based id (F9, Q3). */
+/**
+ * Parses a serialized `AgentStateUpdatedEvent.blob` string as a JSON object and returns
+ * its `currentDirectory` field, or null when the blob is malformed or carries no such field.
+ */
+private fun currentDirectoryFromBlob(blob: String): String? = try {
+    Json.parseToJsonElement(blob).jsonObject["currentDirectory"]
+        ?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+} catch (e: Exception) {
+    logger.d(e) { "Skipping malformed agent-state blob" }
+    null
+}
+
+/** Builds a Message with a stable line-based id (F9, Q3) and the event's timestamp, when known. */
 private fun buildMessage(
     context: MappingContext, sender: Sender, content: MessageContent, kind: MessageKind
-) = Message(id = "line-${context.lineNumber}", sender = sender, content = content, kind = kind)
+) = Message(
+    id = "line-${context.lineNumber}",
+    sender = sender,
+    content = content,
+    kind = kind,
+    timestamp = context.timestampMs ?: 0L
+)
+
+/** Appends " [status]" to this string when [status] is non-null, otherwise returns this unchanged. */
+private fun String.withStatusSuffix(status: String?): String =
+    if (status != null) "$this [$status]" else this
+
+/** Truncates this string to [max] characters, appending an ellipsis when it was longer. */
+private fun String.truncated(max: Int): String =
+    if (length > max) take(max) + "…" else this
 
 // -- Known agent events --
 
@@ -116,33 +156,25 @@ data class TerminalBlockUpdatedEvent(
 
 /** Agent status update (metadata-only). */
 @Serializable
-data object AgentCurrentStatusUpdatedEvent : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+data object AgentCurrentStatusUpdatedEvent : AgentEvent
 
 /** Agent task name update (metadata-only). */
 @Serializable
-data class AgentTaskNameUpdatedEvent(val name: String? = null) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+data class AgentTaskNameUpdatedEvent(val name: String? = null) : AgentEvent
 
 /** Agent plan update (metadata-only). */
 @Serializable
 data class AgentPlanUpdatedEvent(
     val plan: String? = null,
     val items: List<PlanItem>? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Available pull requests metadata event. */
 @Serializable
 data class AvailablePullRequestsEvent(
     val pullRequests: PayloadValue? = null,
     val agent: AgentIdentity? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** LLM response metadata (token counts, model info). */
 @Serializable
@@ -151,9 +183,7 @@ data class LlmResponseMetadataEvent(
     val inputTokens: Int? = null,
     val outputTokens: Int? = null,
     val modelUsage: List<ModelUsage>? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Current working directory update (metadata-only). */
 @Serializable
@@ -163,16 +193,14 @@ data class CurrentDirectoryUpdatedEvent(
     @JsonNames("currentDirectory")
     val directory: String? = null
 ) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
+    override fun workingDirectoryOrNull(): String? = directory?.takeIf { it.isNotBlank() }
 }
 
 /** Environment variables update (metadata-only). */
 @Serializable
 data class EnvironmentVariablesUpdatedEvent(
     val variables: PayloadValue? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** View files block update — files Junie is examining. */
 @Serializable
@@ -180,9 +208,7 @@ data class ViewFilesBlockUpdatedEvent(
     val files: List<ViewedFile>? = null,
     val stepId: String? = null,
     val status: String? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Context window usage report (metadata-only). */
 @Serializable
@@ -190,9 +216,7 @@ data class ContextWindowReportEvent(
     val usedTokens: Int? = null,
     val maxTokens: Int? = null,
     val percentage: Double? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** File changes block update — files Junie has modified. */
 @Serializable
@@ -200,9 +224,7 @@ data class FileChangesBlockUpdatedEvent(
     val changes: List<FileChange>? = null,
     val stepId: String? = null,
     val status: String? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Tip suggestion for the user (metadata-only). */
 @Serializable
@@ -210,26 +232,20 @@ data class TipSuggestionCreatedEvent(
     val tip: String? = null,
     val id: String? = null,
     val description: String? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Plan progress indicator. */
 @Serializable
 data class ShowPlanProgressEvent(
     val progress: PayloadValue? = null,
     val items: List<PlanItem>? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Next prompt suggestion for the user. */
 @Serializable
 data class NextPromptSuggestionEvent(
     val suggestion: List<PromptSuggestion>? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Async request update (e.g. HITL approval request). */
 @Serializable
@@ -240,9 +256,7 @@ data class AskAsyncRequestUpdatedEvent(
     val title: String? = null,
     val request: AsyncRequest? = null,
     val status: String? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Authorization availability status (metadata-only). */
 @Serializable
@@ -250,9 +264,7 @@ data class AuthorizationAvailabilityEvent(
     val available: Boolean? = null,
     val agent: AgentIdentity? = null,
     val authorized: Boolean? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Agent started indicator (metadata-only). */
 @Serializable
@@ -261,9 +273,7 @@ data class AgentStartedEvent(
     val agent: AgentIdentity? = null,
     val stepId: String? = null,
     val agentType: String? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Plan suggestion from the agent. */
 @Serializable
@@ -272,9 +282,7 @@ data class SuggestPlanEvent(
     val sections: List<PlanSection>? = null,
     val deliveryPlan: List<PlanItem>? = null,
     val readyForReview: Boolean? = null
-) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : AgentEvent
 
 /** Test execution block — when Junie runs tests. */
 @Serializable
@@ -284,10 +292,7 @@ data class TestRunBlockUpdatedEvent(
     val name: String? = null
 ) : AgentEvent {
     override fun toMessage(context: MappingContext): Message? {
-        val label = buildString {
-            append("🧪 Test: ${name ?: "unknown"}")
-            if (status != null) append(" [$status]")
-        }
+        val label = "🧪 Test: ${name ?: "unknown"}".withStatusSuffix(status)
         return buildMessage(context, Sender.Junie, MessageContent.Text(label), MessageKind.TestRun)
     }
 }
@@ -301,11 +306,8 @@ data class McpBlockUpdatedEvent(
     val details: String? = null
 ) : AgentEvent {
     override fun toMessage(context: MappingContext): Message? {
-        val label = buildString {
-            append("MCP: ${toolName ?: "unknown"}")
-            if (status != null) append(" [$status]")
-            if (!details.isNullOrBlank()) append("\n$details")
-        }
+        val label = "MCP: ${toolName ?: "unknown"}".withStatusSuffix(status) +
+            if (!details.isNullOrBlank()) "\n$details" else ""
         return buildMessage(context, Sender.Junie, MessageContent.Code(label, "json"), MessageKind.Mcp)
     }
 }
@@ -319,7 +321,7 @@ data class CustomAgentBlockUpdatedEvent(
 ) : AgentEvent {
     override fun toMessage(context: MappingContext): Message? = buildMessage(
         context, Sender.Junie,
-        MessageContent.Text("${name ?: "Unnamed sub-agent"} [${status ?: "unknown"}]"),
+        MessageContent.Text((name ?: "Unnamed sub-agent").withStatusSuffix(status ?: "unknown")),
         MessageKind.SubAgent
     )
 }
@@ -342,7 +344,7 @@ data class AgentFailureEvent(
 data class AgentStateUpdatedEvent(
     val blob: String? = null
 ) : AgentEvent {
-    override fun toMessage(context: MappingContext): Message? = null
+    override fun workingDirectoryOrNull(): String? = blob?.let { currentDirectoryFromBlob(it) }
 }
 
 /** Synchronous question from the agent to the user. */
@@ -422,8 +424,7 @@ data class SubagentSpawnedEvent(
         val label = buildString {
             append("Sub-agent spawned: ${name ?: "unnamed"}")
             if (!task.isNullOrBlank()) {
-                val preview = if (task.length > 200) task.take(200) + "…" else task
-                append("\nTask: $preview")
+                append("\nTask: ${task.truncated(200)}")
             }
         }
         return buildMessage(context, Sender.Junie, MessageContent.Text(label), MessageKind.SubAgent)
@@ -443,7 +444,7 @@ data class AgentTaskFailedEvent(
         val text = buildString {
             append("Task Failed")
             if (!message.isNullOrBlank()) append(": $message")
-            if (!errorCode.isNullOrBlank()) append(" [$errorCode]")
+        }.withStatusSuffix(errorCode?.takeIf { it.isNotBlank() }) + buildString {
             if (!taskId.isNullOrBlank()) append("\nTask: $taskId")
             if (!stepId.isNullOrBlank()) append("\nStep: $stepId")
             if (details != null) append("\nDetails: $details")
@@ -470,4 +471,8 @@ data class UnknownAgentEvent(
         MessageContent.Text("Unsupported event: $kind"),
         MessageKind.Unsupported
     )
+
+    override fun workingDirectoryOrNull(): String? =
+        raw.textOrNull("currentDirectory")?.takeIf { it.isNotBlank() }
+            ?: raw.textOrNull("blob")?.let { currentDirectoryFromBlob(it) }
 }

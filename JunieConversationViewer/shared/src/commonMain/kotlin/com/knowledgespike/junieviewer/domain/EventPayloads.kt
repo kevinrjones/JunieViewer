@@ -12,35 +12,35 @@ import kotlinx.serialization.Serializable
  *
  * This exists so the `domain` layer never leans on kotlinx.serialization's JSON types
  * ([kotlinx.serialization.json.JsonElement] et al.) directly — those are confined to the
- * deserialization boundary in `EventSerializers.kt`. [toString] intentionally reproduces the
- * exact compact JSON rendering of the source [kotlinx.serialization.json.JsonElement] it was
- * decoded from, so callers that used to interpolate a `JsonElement` directly see no change.
+ * deserialization boundary in `EventSerializers.kt`. [toString] delegates to [toJsonElement],
+ * the same conversion used at the serialization boundary, so callers that used to interpolate
+ * a `JsonElement` directly see no change in the rendered (compact) JSON output.
  */
 @Serializable(with = PayloadValueSerializer::class)
 sealed interface PayloadValue {
     /** JSON `null`. */
     data object Null : PayloadValue {
-        override fun toString() = "null"
+        override fun toString() = toJsonElement().toString()
     }
 
     /** JSON `true`/`false`. */
     data class Bool(val value: Boolean) : PayloadValue {
-        override fun toString() = value.toString()
+        override fun toString() = toJsonElement().toString()
     }
 
     /** Numeric literal preserved exactly as written in the source JSON. */
     data class Number(val literal: String) : PayloadValue {
-        override fun toString() = literal
+        override fun toString() = toJsonElement().toString()
     }
 
     /** JSON string value. */
     data class Text(val value: String) : PayloadValue {
-        override fun toString() = jsonQuote(value)
+        override fun toString() = toJsonElement().toString()
     }
 
     /** JSON array. */
     data class ListValue(val values: List<PayloadValue>) : PayloadValue {
-        override fun toString() = values.joinToString(",", "[", "]")
+        override fun toString() = toJsonElement().toString()
     }
 
     /** JSON object. Preserves insertion order, matching the source JSON's key order. */
@@ -50,26 +50,8 @@ sealed interface PayloadValue {
         /** Returns the string value for [key] when it is a [Text], else null. */
         fun textOrNull(key: String): String? = (entries[key] as? Text)?.value
 
-        override fun toString() = entries.entries.joinToString(",", "{", "}") { (k, v) -> "${jsonQuote(k)}:$v" }
+        override fun toString() = toJsonElement().toString()
     }
-}
-
-/** Escapes [value] as a JSON string literal, matching kotlinx.serialization.json's rendering. */
-private fun jsonQuote(value: String): String = buildString {
-    append('"')
-    for (char in value) {
-        when {
-            char == '\\' -> append("\\\\")
-            char == '"' -> append("\\\"")
-            char == '\n' -> append("\\n")
-            char == '\r' -> append("\\r")
-            char == '\t' -> append("\\t")
-            char == '\b' -> append("\\b")
-            char.code in 0x00..0x1F -> append("\\u").append(char.code.toString(16).padStart(4, '0'))
-            else -> append(char)
-        }
-    }
-    append('"')
 }
 
 // ---------------------------------------------------------------------------

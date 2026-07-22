@@ -14,7 +14,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupPositionProvider
 import com.knowledgespike.junieviewer.ui.*
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
@@ -26,6 +31,43 @@ private val TOOLBAR_BUTTON_SIZE = 28.dp
 
 /** Minimum width for the search field to remain usable. */
 private val SEARCH_FIELD_MIN_WIDTH = 120.dp
+
+/** Height of the vertical divider separating toolbar button groups. */
+private val TOOLBAR_DIVIDER_HEIGHT = 20.dp
+
+/** Icon size for the compact search-field clear button. */
+private val SEARCH_CLEAR_ICON_SIZE = 14.dp
+
+/** Vertical gap between a toolbar button and its tooltip, in pixels. */
+private const val TOOLTIP_ANCHOR_SPACING_PX = 8
+
+/**
+ * Positions a tooltip above its anchor, horizontally centred but clamped so the tooltip
+ * never overflows the window edges. The Material default centres the tooltip over the
+ * anchor without clamping, so tooltips for buttons near the left edge (e.g. "Open Session")
+ * get clipped off-screen; this provider keeps them fully visible.
+ */
+private class ClampingTooltipPositionProvider(
+    private val spacingPx: Int = TOOLTIP_ANCHOR_SPACING_PX
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize
+    ): IntOffset {
+        // Centre horizontally over the anchor, then clamp within the window bounds.
+        val preferredX = anchorBounds.left + (anchorBounds.width - popupContentSize.width) / 2
+        val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
+        val x = preferredX.coerceIn(0, maxX)
+
+        // Prefer above the anchor; fall back to below when there is not enough room.
+        val above = anchorBounds.top - popupContentSize.height - spacingPx
+        val below = anchorBounds.bottom + spacingPx
+        val y = if (above >= 0) above else below
+        return IntOffset(x, y)
+    }
+}
 
 /**
  * Application toolbar providing unified command access for the Conversation Viewer.
@@ -191,7 +233,7 @@ private fun ToolbarIconButton(
     }
 
     TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        positionProvider = ClampingTooltipPositionProvider(),
         tooltip = { PlainTooltip { Text(tooltip) } },
         state = rememberTooltipState()
     ) {
@@ -217,12 +259,13 @@ private fun ToolbarIconButton(
 /** Vertical divider separating toolbar button groups. */
 @Composable
 private fun ToolbarDivider() {
-    Spacer(modifier = Modifier.width(4.dp))
+    val spacing = JunieViewerTheme.spacing
+    Spacer(modifier = Modifier.width(spacing.sm))
     VerticalDivider(
-        modifier = Modifier.height(20.dp),
+        modifier = Modifier.height(TOOLBAR_DIVIDER_HEIGHT),
         color = MaterialTheme.colorScheme.outlineVariant
     )
-    Spacer(modifier = Modifier.width(4.dp))
+    Spacer(modifier = Modifier.width(spacing.sm))
 }
 
 /**
@@ -268,7 +311,7 @@ private fun ToolbarSearchField(
                         Icon(
                             Icons.Default.Close,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(SEARCH_CLEAR_ICON_SIZE),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -285,7 +328,8 @@ private fun ToolbarSearchField(
 
         // Result count and navigation — shown when search or filters are active
         if (isSearchOrFilterActive) {
-            Spacer(modifier = Modifier.width(4.dp))
+            val spacing = JunieViewerTheme.spacing
+            Spacer(modifier = Modifier.width(spacing.sm))
             val countText = if (matchCount == 0) "No matching Messages"
                 else "$matchCount of $totalCount Messages"
             Text(
@@ -301,7 +345,7 @@ private fun ToolbarSearchField(
                     text = matchLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 4.dp).testTag("match_position")
+                    modifier = Modifier.padding(start = spacing.sm).testTag("match_position")
                 )
             }
 

@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.components.*
@@ -148,9 +149,10 @@ fun ConversationScreen(
                 .weight(1f)
         ) {
             // State priority: Loading > Error > No Session > Empty Conversation > No Results > Normal
+            val errorMessage = state.errorMessage
             when {
                 state.isLoading -> LoadingState()
-                state.errorMessage != null -> ErrorState(state.errorMessage, onAction)
+                errorMessage != null -> ErrorState(errorMessage, onAction)
                 state.selectedSessionId == null -> NoSessionState()
                 state.messages.isEmpty() -> EmptyConversationState()
                 state.filteredMessages.isEmpty() -> NoResultsState()
@@ -346,6 +348,12 @@ private fun BoxScope.ConversationList(state: ConversationState, onAction: (Conve
 
     val spacing = JunieViewerTheme.spacing
 
+    // Precomputed once per filteredMessages/currentMatchIndex change, so each row can look
+    // up "is this the current match?" by id instead of an O(n) indexOf() per recomposition.
+    val currentMatchMessageId = remember(state.filteredMessages, state.currentMatchIndex) {
+        state.filteredMessages.getOrNull(state.currentMatchIndex)?.id
+    }
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().testTag("message_list"),
@@ -353,34 +361,30 @@ private fun BoxScope.ConversationList(state: ConversationState, onAction: (Conve
         verticalArrangement = Arrangement.spacedBy(spacing.md)
     ) {
         turns.forEach { turn ->
-            if (turn.sender == Sender.Human) {
-                items(items = turn.messages, key = { it.id }) { message ->
-                    val msgIndex = state.filteredMessages.indexOf(message)
-                    val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
-                    HumanMessageItem(
-                        message = message,
-                        searchQuery = state.searchQuery,
-                        isCurrentMatch = isCurrentMatch,
-                        blockExpansionStates = state.derivedBlockExpansionStates,
-                        onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
-                    )
-                }
-            } else {
+            if (turn.sender != Sender.Human) {
                 item(key = "turn-header-${turn.messages.first().id}") {
                     Spacer(modifier = Modifier.height(spacing.xl))
                     TurnHeader()
                 }
-                items(items = turn.messages, key = { it.id }) { message ->
-                    val msgIndex = state.filteredMessages.indexOf(message)
-                    val isCurrentMatch = state.searchQuery.isNotBlank() && msgIndex == state.currentMatchIndex
-                    JunieMessageItem(
-                        message = message,
-                        searchQuery = state.searchQuery,
-                        isCurrentMatch = isCurrentMatch,
-                        blockExpansionStates = state.derivedBlockExpansionStates,
-                        onToggleBlock = { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
-                    )
+            }
+
+            // Both message renderers share the same signature, so the Human/Junie turn
+            // dispatch collapses into a single items(...) block parameterized by renderer.
+            val renderer: @Composable (Message, String, Boolean, Map<String, Boolean>, (String) -> Unit) -> Unit =
+                if (turn.sender == Sender.Human) {
+                    { message, query, isMatch, blockStates, onToggle -> HumanMessageItem(message, query, isMatch, blockStates, onToggle) }
+                } else {
+                    { message, query, isMatch, blockStates, onToggle -> JunieMessageItem(message, query, isMatch, blockStates, onToggle) }
                 }
+
+            items(items = turn.messages, key = { it.id }) { message ->
+                val isCurrentMatch = state.searchQuery.isNotBlank() && message.id == currentMatchMessageId
+                renderer(
+                    message,
+                    state.searchQuery,
+                    isCurrentMatch,
+                    state.derivedBlockExpansionStates
+                ) { blockId -> onAction(ConversationAction.OnToggleBlockExpansion(blockId)) }
             }
         }
     }

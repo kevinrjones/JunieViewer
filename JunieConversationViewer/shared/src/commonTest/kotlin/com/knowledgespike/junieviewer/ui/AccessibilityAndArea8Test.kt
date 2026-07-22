@@ -51,7 +51,7 @@ class AccessibilityAndArea8Test {
     fun `no session state has content description`() = runConversationUiTest {
         setContent {
             ConversationScreen(
-                state = ConversationState(selectedSessionId = null),
+                state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = null)),
                 onAction = {}
             )
         }
@@ -64,7 +64,7 @@ class AccessibilityAndArea8Test {
     fun `loading state has content description`() = runConversationUiTest {
         setContent {
             ConversationScreen(
-                state = ConversationState(isLoading = true, selectedSessionId = "s1"),
+                state = ConversationState(sessionLoad = SessionLoadState(isLoading = true, selectedSessionId = "s1")),
                 onAction = {}
             )
         }
@@ -78,8 +78,10 @@ class AccessibilityAndArea8Test {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    errorMessage = "Something went wrong",
-                    selectedSessionId = "s1"
+                    sessionLoad = SessionLoadState(
+                        errorMessage = "Something went wrong",
+                        selectedSessionId = "s1"
+                    )
                 ),
                 onAction = {}
             )
@@ -95,8 +97,10 @@ class AccessibilityAndArea8Test {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    selectedSessionId = "s1",
-                    messages = emptyList()
+                    sessionLoad = SessionLoadState(
+                        selectedSessionId = "s1",
+                        messages = emptyList()
+                    )
                 ),
                 onAction = {}
             )
@@ -260,9 +264,11 @@ class AccessibilityAndArea8Test {
             ) {
                 ConversationScreen(
                     state = ConversationState(
-                        selectedSessionId = "s1",
-                        messages = searchableMessages,
-                        filteredMessages = searchableMessages
+                        sessionLoad = SessionLoadState(
+                            selectedSessionId = "s1",
+                            messages = searchableMessages
+                        ),
+                        search = SearchState(filteredMessages = searchableMessages)
                     ),
                     onAction = {}
                 )
@@ -281,9 +287,11 @@ class AccessibilityAndArea8Test {
             ) {
                 ConversationScreen(
                     state = ConversationState(
-                        selectedSessionId = "s1",
-                        messages = searchableMessages,
-                        filteredMessages = searchableMessages
+                        sessionLoad = SessionLoadState(
+                            selectedSessionId = "s1",
+                            messages = searchableMessages
+                        ),
+                        search = SearchState(filteredMessages = searchableMessages)
                     ),
                     onAction = {}
                 )
@@ -302,9 +310,11 @@ class AccessibilityAndArea8Test {
             ) {
                 ConversationScreen(
                     state = ConversationState(
-                        selectedSessionId = "s1",
-                        messages = RepresentativeFixtures.allMessageKinds,
-                        filteredMessages = RepresentativeFixtures.allMessageKinds
+                        sessionLoad = SessionLoadState(
+                            selectedSessionId = "s1",
+                            messages = RepresentativeFixtures.allMessageKinds
+                        ),
+                        search = SearchState(filteredMessages = RepresentativeFixtures.allMessageKinds)
                     ),
                     onAction = {}
                 )
@@ -322,7 +332,7 @@ class AccessibilityAndArea8Test {
                 themeMode = com.knowledgespike.junieviewer.ui.theme.ThemeMode.Dark
             ) {
                 ConversationScreen(
-                    state = ConversationState(isLoading = true, selectedSessionId = "s1"),
+                    state = ConversationState(sessionLoad = SessionLoadState(isLoading = true, selectedSessionId = "s1")),
                     onAction = {}
                 )
             }

@@ -1,7 +1,7 @@
 package com.knowledgespike.junieviewer.ui
 
-import com.knowledgespike.junieviewer.ui.components.SideBySideDiffRow
-import com.knowledgespike.junieviewer.ui.components.parseUnifiedDiffForSideBySide
+import com.knowledgespike.junieviewer.diff.SideBySideDiffRow
+import com.knowledgespike.junieviewer.diff.parseUnifiedDiffForSideBySide
 import org.junit.Test
 import strikt.api.expectThat
 import strikt.assertions.*

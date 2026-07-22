@@ -18,7 +18,8 @@ data class UserPromptEvent(
         id = "line-${context.lineNumber}",
         sender = Sender.Human,
         content = MessageContent.Text(prompt),
-        kind = MessageKind.Text
+        kind = MessageKind.Text,
+        timestamp = context.timestampMs ?: 0L
     )
 }
 
@@ -37,9 +38,7 @@ data class SessionA2uxEvent(
 data class TaskStartedEvent(
     val taskId: String? = null,
     val timestampMs: Long? = null
-) : JunieEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : JunieEvent
 
 /** Represents a change in Junie task state. */
 @Serializable
@@ -47,9 +46,7 @@ data class TaskState(
     val taskId: String? = null,
     val state: String? = null,
     val timestampMs: Long? = null
-) : JunieEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : JunieEvent
 
 /** Records that user messages have been committed to conversation history. */
 @Serializable
@@ -57,9 +54,7 @@ data class UserMessagesCommittedToHistory(
     val requestId: String? = null,
     val userMessageIds: List<String>? = null,
     val timestampMs: Long? = null
-) : JunieEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : JunieEvent
 
 /** Async response event from the user (e.g. HITL approval). */
 @Serializable
@@ -68,9 +63,7 @@ data class UserAsyncResponseEvent(
     val response: String? = null,
     val entries: List<ResponseEntry>? = null,
     val timestampMs: Long? = null
-) : JunieEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : JunieEvent
 
 /** System-level message displayed to the user (announcements, notifications). */
 @Serializable
@@ -87,16 +80,15 @@ data class SystemMessageEvent(
             id = "line-${context.lineNumber}",
             sender = Sender.Junie,
             content = MessageContent.Text(content),
-            kind = MessageKind.SystemMessage
+            kind = MessageKind.SystemMessage,
+            timestamp = context.timestampMs ?: 0L
         )
     }
 }
 
 /** Signals that a message/task is being sent to the agent. */
 @Serializable
-data object SendToAgentEvent : JunieEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+data object SendToAgentEvent : JunieEvent
 
 /** Signals that the user cancelled the agent's current operation. */
 @Serializable
@@ -105,7 +97,8 @@ data object CancelAgentEvent : JunieEvent {
         id = "line-${context.lineNumber}",
         sender = Sender.Human,
         content = MessageContent.Text("⛔ Agent cancelled"),
-        kind = MessageKind.Cancelled
+        kind = MessageKind.Cancelled,
+        timestamp = context.timestampMs ?: 0L
     )
 }
 
@@ -114,17 +107,13 @@ data object CancelAgentEvent : JunieEvent {
 data class SessionTitleSetEvent(
     val name: String,
     val timestampMs: Long? = null
-) : JunieEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : JunieEvent
 
 /** Reports which agent skills were newly discovered/loaded. */
 @Serializable
 data class SkillsStatusEvent(
     val newSkills: List<String>? = null
-) : JunieEvent {
-    override fun toMessage(context: MappingContext): Message? = null
-}
+) : JunieEvent
 
 /** Indicates that a "continue" operation on a task was stopped. */
 @Serializable
@@ -133,7 +122,8 @@ data object TaskContinueStopped : JunieEvent {
         id = "line-${context.lineNumber}",
         sender = Sender.Junie,
         content = MessageContent.Text("Continue stopped"),
-        kind = MessageKind.Status
+        kind = MessageKind.Status,
+        timestamp = context.timestampMs ?: 0L
     )
 }
 
@@ -147,7 +137,8 @@ data class UserResponseEvent(
         id = "line-${context.lineNumber}",
         sender = Sender.Human,
         content = MessageContent.Text(prompt),
-        kind = MessageKind.Text
+        kind = MessageKind.Text,
+        timestamp = context.timestampMs ?: 0L
     )
 }
 
@@ -164,6 +155,7 @@ data class UnknownJunieEvent(
         id = "line-${context.lineNumber}",
         sender = Sender.Junie,
         content = MessageContent.Text("Unsupported event: $kind"),
-        kind = MessageKind.Unsupported
+        kind = MessageKind.Unsupported,
+        timestamp = context.timestampMs ?: 0L
     )
 }

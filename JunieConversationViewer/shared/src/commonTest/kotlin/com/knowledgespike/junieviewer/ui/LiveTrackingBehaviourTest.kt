@@ -264,11 +264,11 @@ class LiveTrackingBehaviourTest {
 
     @Test
     fun `command state reflects auto-refresh active state`() {
-        val stateEnabled = ConversationState(isAutoRefreshEnabled = true, selectedSessionId = "s1")
+        val stateEnabled = ConversationState(isAutoRefreshEnabled = true, sessionLoad = SessionLoadState(selectedSessionId = "s1"))
         val cmdEnabled = ConversationCommandState.fromConversationState(stateEnabled)
         assertTrue(cmdEnabled.isAutoRefreshActive)
 
-        val stateDisabled = ConversationState(isAutoRefreshEnabled = false, selectedSessionId = "s1")
+        val stateDisabled = ConversationState(isAutoRefreshEnabled = false, sessionLoad = SessionLoadState(selectedSessionId = "s1"))
         val cmdDisabled = ConversationCommandState.fromConversationState(stateDisabled)
         assertFalse(cmdDisabled.isAutoRefreshActive)
     }

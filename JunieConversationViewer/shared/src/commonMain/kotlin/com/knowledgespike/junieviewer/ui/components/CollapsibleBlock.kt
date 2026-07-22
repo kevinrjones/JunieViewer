@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
+import com.knowledgespike.junieviewer.ui.theme.RICH_CONTENT_BORDER_WIDTH
+import com.knowledgespike.junieviewer.ui.theme.RICH_CONTENT_SHAPE
 
 /**
  * Shared collapsible block structure used by rich content blocks.

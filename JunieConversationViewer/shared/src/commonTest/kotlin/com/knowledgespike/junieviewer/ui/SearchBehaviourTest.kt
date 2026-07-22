@@ -37,12 +37,13 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = navigationTestMessages.filter {
-                        messageContentText(it.content).contains("hello", ignoreCase = true)
-                    },
-                    searchQuery = "hello",
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(
+                        filteredMessages = navigationTestMessages.filter {
+                            messageContentText(it.content).contains("hello", ignoreCase = true)
+                        },
+                        searchQuery = "hello"
+                    )
                 ),
                 onAction = {}
             )
@@ -57,10 +58,8 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = navigationTestMessages,
-                    searchQuery = "",
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(filteredMessages = navigationTestMessages, searchQuery = "")
                 ),
                 onAction = {}
             )
@@ -76,10 +75,8 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = filtered,
-                    filter = FilterState(showHuman = false),
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(filteredMessages = filtered, filter = FilterState(showHuman = false))
                 ),
                 onAction = {}
             )
@@ -93,7 +90,10 @@ class SearchBehaviourTest {
     fun `filter labels use understandable names`() = runComposeUiTest {
         setContent {
             ConversationScreen(
-                state = ConversationState(messages = navigationTestMessages, filteredMessages = navigationTestMessages, selectedSessionId = "test"),
+                state = ConversationState(
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(filteredMessages = navigationTestMessages)
+                ),
                 onAction = {}
             )
         }
@@ -116,11 +116,12 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = filtered,
-                    searchQuery = "help",
-                    filter = FilterState(showHuman = false),
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(
+                        filteredMessages = filtered,
+                        searchQuery = "help",
+                        filter = FilterState(showHuman = false)
+                    )
                 ),
                 onAction = {}
             )
@@ -135,10 +136,8 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = navigationTestMessages,
-                    searchQuery = "",
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(filteredMessages = navigationTestMessages, searchQuery = "")
                 ),
                 onAction = {}
             )
@@ -156,10 +155,8 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = emptyList(),
-                    searchQuery = "zzzznonexistent",
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(filteredMessages = emptyList(), searchQuery = "zzzznonexistent")
                 ),
                 onAction = {}
             )
@@ -177,10 +174,8 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = filtered,
-                    searchQuery = "hello",
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(filteredMessages = filtered, searchQuery = "hello")
                 ),
                 onAction = {}
             )
@@ -194,10 +189,8 @@ class SearchBehaviourTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = navigationTestMessages,
-                    filteredMessages = navigationTestMessages,
-                    searchQuery = "",
-                    selectedSessionId = "test"
+                    sessionLoad = SessionLoadState(messages = navigationTestMessages, selectedSessionId = "test"),
+                    search = SearchState(filteredMessages = navigationTestMessages, searchQuery = "")
                 ),
                 onAction = {}
             )

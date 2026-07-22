@@ -26,28 +26,31 @@ class ConversationCommandTest {
 
     @Test
     fun `refresh is disabled when no session is selected`() {
-        val state = ConversationState(selectedSessionId = null)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = null))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.refreshEnabled)
     }
 
     @Test
     fun `refresh is enabled when session is selected and not loading`() {
-        val state = ConversationState(selectedSessionId = "s1", isLoading = false)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = "s1", isLoading = false))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.refreshEnabled)
     }
 
     @Test
     fun `refresh is disabled when loading`() {
-        val state = ConversationState(selectedSessionId = "s1", isLoading = true)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = "s1", isLoading = true))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.refreshEnabled)
     }
 
     @Test
     fun `find next and previous are disabled with blank query`() {
-        val state = ConversationState(searchQuery = "", messages = testMessages, filteredMessages = testMessages)
+        val state = ConversationState(
+            sessionLoad = SessionLoadState(messages = testMessages),
+            search = SearchState(searchQuery = "", filteredMessages = testMessages)
+        )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.findNextEnabled)
         assertFalse(cmdState.findPreviousEnabled)
@@ -56,9 +59,8 @@ class ConversationCommandTest {
     @Test
     fun `find next and previous are enabled when query has matching results`() {
         val state = ConversationState(
-            searchQuery = "alpha",
-            messages = testMessages,
-            filteredMessages = testMessages.take(2)
+            sessionLoad = SessionLoadState(messages = testMessages),
+            search = SearchState(searchQuery = "alpha", filteredMessages = testMessages.take(2))
         )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.findNextEnabled)
@@ -68,9 +70,8 @@ class ConversationCommandTest {
     @Test
     fun `find next and previous are disabled when query has no results`() {
         val state = ConversationState(
-            searchQuery = "nonexistent",
-            messages = testMessages,
-            filteredMessages = emptyList()
+            sessionLoad = SessionLoadState(messages = testMessages),
+            search = SearchState(searchQuery = "nonexistent", filteredMessages = emptyList())
         )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.findNextEnabled)
@@ -87,21 +88,21 @@ class ConversationCommandTest {
 
     @Test
     fun `toggle auto-refresh is disabled without session`() {
-        val state = ConversationState(selectedSessionId = null)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = null))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.toggleAutoRefreshEnabled)
     }
 
     @Test
     fun `toggle auto-refresh is enabled with session`() {
-        val state = ConversationState(selectedSessionId = "s1")
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = "s1"))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.toggleAutoRefreshEnabled)
     }
 
     @Test
     fun `sort order and collapse controls are disabled without messages`() {
-        val state = ConversationState(messages = emptyList())
+        val state = ConversationState(sessionLoad = SessionLoadState(messages = emptyList()))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.toggleSortOrderEnabled)
         assertFalse(cmdState.collapseAllEnabled)
@@ -110,7 +111,7 @@ class ConversationCommandTest {
 
     @Test
     fun `sort order and collapse controls are enabled with messages`() {
-        val state = ConversationState(messages = testMessages)
+        val state = ConversationState(sessionLoad = SessionLoadState(messages = testMessages))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.toggleSortOrderEnabled)
         assertTrue(cmdState.collapseAllEnabled)
@@ -119,14 +120,20 @@ class ConversationCommandTest {
 
     @Test
     fun `copy is enabled when text is selected`() {
-        val state = ConversationState(messages = testMessages, hasTextSelection = true)
+        val state = ConversationState(
+            sessionLoad = SessionLoadState(messages = testMessages),
+            blockExpansion = BlockExpansionState(hasTextSelection = true)
+        )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.copyEnabled)
     }
 
     @Test
     fun `copy is disabled when no text is selected`() {
-        val state = ConversationState(messages = testMessages, hasTextSelection = false)
+        val state = ConversationState(
+            sessionLoad = SessionLoadState(messages = testMessages),
+            blockExpansion = BlockExpansionState(hasTextSelection = false)
+        )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.copyEnabled)
     }

@@ -51,22 +51,17 @@ class FakeSessionRepository(
     var loadCount: Int = 0
         private set
 
-    /** The most recent session id passed to [setSession]. */
+    /** The most recent session id passed to [loadSession]. */
     var lastSessionId: String? = null
         private set
 
-    override fun getMessages(): List<Message> = messagesToReturn
-
-    override fun loadSession(): SessionLoadResult {
+    override fun loadSession(sessionId: String, homePath: String): SessionLoadResult {
+        lastSessionId = sessionId
         loadCount++
         return SessionLoadResult(messagesToReturn, null, 0L)
     }
 
     override fun listSessions(homePath: String): List<SessionInfo> = sessionsToReturn
-
-    override fun setSession(sessionId: String, homePath: String) {
-        lastSessionId = sessionId
-    }
 
     override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
         sessionInfoProvider(sessionId, homePath)

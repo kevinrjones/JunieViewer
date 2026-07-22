@@ -160,8 +160,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
         
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
         
         expectThat(messages).hasSize(2)
         expectThat(messages[0]).and {
@@ -176,8 +175,7 @@ class SessionRepositoryTest {
 
     @Test
     fun `given session file does not exist when getMessages then it returns empty list`() {
-        repository.setSession("missing", testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession("missing", testDir.toString()).messages
         expectThat(messages).hasSize(0)
     }
 
@@ -200,8 +198,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         // Human prompt + result + unknown top-level + unknown nested = 4 messages
         // TaskStartedEvent is metadata-only (no message)
@@ -241,8 +238,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         // Human prompt + Thought = 2 messages
         // AvailablePullRequestsEvent, LlmResponseMetadataEvent, UserMessagesCommittedToHistory, TaskState are metadata-only
@@ -262,8 +258,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"SystemMessageEvent","text":"Free Google AI","details":"Powered by Google"}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {
@@ -285,8 +280,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"CancelAgentEvent"}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0].kind).isEqualTo(MessageKind.Cancelled)
@@ -304,8 +298,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"UserResponseEvent","prompt":"Confirm the plan","isChoice":true}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {
@@ -334,8 +327,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(0)
     }
@@ -359,8 +351,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(5)
         expectThat(messages[0].kind).isEqualTo(MessageKind.TestRun)
@@ -381,8 +372,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AskRequestUpdatedEvent","title":"Junie asks","askRequest":{"id":"a1","question":"What next?"},"status":"IN_PROGRESS"}},"timestampMs":1}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {
@@ -403,8 +393,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ChoiceRequestUpdatedEvent","title":"How to proceed?","choiceRequest":{"id":"c1","options":[{"id":"Agree","description":"Confirm plan"}]},"status":"IN_PROGRESS"}},"timestampMs":1}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {

@@ -27,7 +27,7 @@ fun ErrorWarningBlock(
     val spacing = JunieViewerTheme.spacing
 
     val containerColor = if (isWarning) colors.warningBackground else colors.errorBackground
-    val borderColor = if (isWarning) colors.warningBackground else colors.errorBackground
+    val borderColor = if (isWarning) colors.warningBorder else colors.errorBorder
     val label = if (isWarning) "Warning" else "Error"
 
     CollapsibleBlock(

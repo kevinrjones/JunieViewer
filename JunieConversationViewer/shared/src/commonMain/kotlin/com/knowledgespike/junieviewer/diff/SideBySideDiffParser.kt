@@ -1,4 +1,4 @@
-package com.knowledgespike.junieviewer.ui.components
+package com.knowledgespike.junieviewer.diff
 
 /**
  * Represents a single row in a side-by-side diff view.

@@ -243,4 +243,15 @@ class EventToMessageMapperTest {
     fun `given SubAgent MessageKind then filterCategory is Tool`() {
         expectThat(MessageKind.SubAgent.filterCategory).isEqualTo(FilterCategory.Tool)
     }
+
+    // -- Message.timestamp population --
+
+    @Test
+    fun `given a SessionA2uxEvent with timestampMs when mapped then Message timestamp is populated`() {
+        val events = listOf(subAgentEvent(name = "worker", status = "STARTED", timestampMs = 424242L))
+        val messages = EventToMessageMapper.mapEventsToMessages(events)
+
+        expectThat(messages).hasSize(1)
+        expectThat(messages.first().timestamp).isEqualTo(424242L)
+    }
 }

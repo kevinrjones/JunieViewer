@@ -37,14 +37,16 @@ class DefaultFatalErrorReporter : FatalErrorReporter {
 /**
  * Global default instance for use in places where injection is not yet practical
  * (e.g. uncaught exception handler in main.kt). Prefer constructor injection where possible.
+ * Implements [FatalErrorReporter] so it can be used directly as the production default for
+ * constructor-injected consumers such as [ConversationViewModel].
  */
-object FatalErrorManager {
+object FatalErrorManager : FatalErrorReporter {
     private val delegate = DefaultFatalErrorReporter()
 
-    val errors: SharedFlow<Throwable> get() = delegate.errors
+    override val errors: SharedFlow<Throwable> get() = delegate.errors
 
     /** @return true if this specific throwable instance was already reported. */
-    fun hasBeenReported(t: Throwable): Boolean = delegate.hasBeenReported(t)
+    override fun hasBeenReported(t: Throwable): Boolean = delegate.hasBeenReported(t)
 
-    fun reportFatalError(t: Throwable) = delegate.reportFatalError(t)
+    override fun reportFatalError(t: Throwable) = delegate.reportFatalError(t)
 }

@@ -98,24 +98,42 @@ object AgentEventSerializer : JsonContentPolymorphicSerializer<AgentEvent>(Agent
 }
 
 /**
+ * Decodes the JSON object behind [decoder], pulls out its `kind` discriminator, wraps the
+ * whole object as a raw [PayloadValue.ObjectValue], and hands both — plus the original
+ * [JsonObject] for any event-specific extra fields — to [construct]. Shared by
+ * [UnknownJunieEventSerializer] and [UnknownAgentEventSerializer], which otherwise repeat the
+ * same decode→pull-kind→wrap-raw→construct steps.
+ */
+private inline fun <T> decodeUnknownEvent(
+    decoder: Decoder,
+    construct: (obj: JsonObject, kind: String, raw: PayloadValue.ObjectValue) -> T
+): T {
+    val jsonDecoder = decoder as JsonDecoder
+    val obj = jsonDecoder.decodeJsonElement().jsonObject
+    val kind = obj["kind"]?.jsonPrimitive?.content ?: "unknown"
+    val raw = obj.toPayloadValue() as PayloadValue.ObjectValue
+    return construct(obj, kind, raw)
+}
+
+/** Re-encodes [raw] verbatim — the shared serialize step for unknown-event wrappers. */
+private fun serializeUnknownEvent(encoder: Encoder, raw: PayloadValue.ObjectValue) {
+    val jsonEncoder = encoder as JsonEncoder
+    jsonEncoder.encodeJsonElement(raw.toJsonElement())
+}
+
+/**
  * Deserializer that wraps any unrecognised top-level event into [UnknownJunieEvent],
  * preserving the raw JSON object.
  */
 object UnknownJunieEventSerializer : KSerializer<UnknownJunieEvent> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("UnknownJunieEvent")
 
-    override fun deserialize(decoder: Decoder): UnknownJunieEvent {
-        val jsonDecoder = decoder as JsonDecoder
-        val obj = jsonDecoder.decodeJsonElement().jsonObject
-        val kind = obj["kind"]?.jsonPrimitive?.content ?: "unknown"
-        val timestampMs = obj["timestampMs"]?.jsonPrimitive?.longOrNull
-        return UnknownJunieEvent(kind = kind, timestampMs = timestampMs, raw = obj.toPayloadValue() as PayloadValue.ObjectValue)
-    }
+    override fun deserialize(decoder: Decoder): UnknownJunieEvent =
+        decodeUnknownEvent(decoder) { obj, kind, raw ->
+            UnknownJunieEvent(kind = kind, timestampMs = obj["timestampMs"]?.jsonPrimitive?.longOrNull, raw = raw)
+        }
 
-    override fun serialize(encoder: Encoder, value: UnknownJunieEvent) {
-        val jsonEncoder = encoder as JsonEncoder
-        jsonEncoder.encodeJsonElement(value.raw.toJsonElement())
-    }
+    override fun serialize(encoder: Encoder, value: UnknownJunieEvent) = serializeUnknownEvent(encoder, value.raw)
 }
 
 /**
@@ -125,17 +143,10 @@ object UnknownJunieEventSerializer : KSerializer<UnknownJunieEvent> {
 object UnknownAgentEventSerializer : KSerializer<UnknownAgentEvent> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("UnknownAgentEvent")
 
-    override fun deserialize(decoder: Decoder): UnknownAgentEvent {
-        val jsonDecoder = decoder as JsonDecoder
-        val obj = jsonDecoder.decodeJsonElement().jsonObject
-        val kind = obj["kind"]?.jsonPrimitive?.content ?: "unknown"
-        return UnknownAgentEvent(kind = kind, raw = obj.toPayloadValue() as PayloadValue.ObjectValue)
-    }
+    override fun deserialize(decoder: Decoder): UnknownAgentEvent =
+        decodeUnknownEvent(decoder) { _, kind, raw -> UnknownAgentEvent(kind = kind, raw = raw) }
 
-    override fun serialize(encoder: Encoder, value: UnknownAgentEvent) {
-        val jsonEncoder = encoder as JsonEncoder
-        jsonEncoder.encodeJsonElement(value.raw.toJsonElement())
-    }
+    override fun serialize(encoder: Encoder, value: UnknownAgentEvent) = serializeUnknownEvent(encoder, value.raw)
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +167,7 @@ private fun JsonElement.toPayloadValue(): PayloadValue = when (this) {
 
 /** Recursively converts a [PayloadValue] back into a [JsonElement] for re-encoding. */
 @OptIn(ExperimentalSerializationApi::class)
-private fun PayloadValue.toJsonElement(): JsonElement = when (this) {
+internal fun PayloadValue.toJsonElement(): JsonElement = when (this) {
     is PayloadValue.Null -> JsonNull
     is PayloadValue.Bool -> JsonPrimitive(value)
     is PayloadValue.Number -> JsonUnquotedLiteral(literal)
@@ -189,6 +200,43 @@ object PayloadValueSerializer : KSerializer<PayloadValue> {
 // ---------------------------------------------------------------------------
 
 /**
+ * Attempts to decode [element] via [structuredDecode]; any structural failure (non-object
+ * payload, unexpected field shapes) is logged under [label] and falls back to [toUnstructured]
+ * with the raw JSON text. Shared by [AskRequestSerializer] and [ChoiceRequestSerializer], which
+ * otherwise repeat the same structured-decode-with-unstructured-fallback logic.
+ */
+private inline fun <T> decodeStructuredOrFallback(
+    label: String,
+    element: JsonElement,
+    structuredDecode: (JsonObject) -> T,
+    toUnstructured: (String) -> T
+): T = try {
+    val obj = element as? JsonObject ?: error("$label is not a JSON object")
+    structuredDecode(obj)
+} catch (e: Exception) {
+    logger.w(e) { "Unstructured $label payload; preserving raw text" }
+    toUnstructured(element.toString())
+}
+
+/**
+ * Encodes [unstructuredText] back to a [JsonElement] when present (re-parsing it, or falling
+ * back to a plain string primitive if it isn't valid JSON); otherwise builds the structured
+ * shape via [structuredEncode]. Shared by [AskRequestSerializer] and [ChoiceRequestSerializer].
+ */
+private inline fun encodeStructuredOrFallback(
+    unstructuredText: String?,
+    structuredEncode: () -> JsonElement
+): JsonElement = if (unstructuredText != null) {
+    try {
+        Json.parseToJsonElement(unstructuredText)
+    } catch (e: Exception) {
+        JsonPrimitive(unstructuredText)
+    }
+} else {
+    structuredEncode()
+}
+
+/**
  * Custom serializer for [AskRequest]. Attempts to decode the structured `{id, question}`
  * shape; any structural failure (non-object payload, unexpected field shapes) is logged and
  * falls back to preserving the raw JSON text in [AskRequest.unstructuredText].
@@ -199,27 +247,22 @@ object AskRequestSerializer : KSerializer<AskRequest> {
     override fun deserialize(decoder: Decoder): AskRequest {
         val jsonDecoder = decoder as JsonDecoder
         val element = jsonDecoder.decodeJsonElement()
-        return try {
-            val obj = element as? JsonObject ?: error("askRequest is not a JSON object")
-            AskRequest(
-                id = obj["id"]?.jsonPrimitive?.content,
-                question = obj["question"]?.jsonPrimitive?.content
-            )
-        } catch (e: Exception) {
-            logger.w(e) { "Unstructured askRequest payload; preserving raw text" }
-            AskRequest(unstructuredText = element.toString())
-        }
+        return decodeStructuredOrFallback(
+            label = "askRequest",
+            element = element,
+            structuredDecode = { obj ->
+                AskRequest(
+                    id = obj["id"]?.jsonPrimitive?.content,
+                    question = obj["question"]?.jsonPrimitive?.content
+                )
+            },
+            toUnstructured = { text -> AskRequest(unstructuredText = text) }
+        )
     }
 
     override fun serialize(encoder: Encoder, value: AskRequest) {
         val jsonEncoder = encoder as JsonEncoder
-        val element = if (value.unstructuredText != null) {
-            try {
-                Json.parseToJsonElement(value.unstructuredText)
-            } catch (e: Exception) {
-                JsonPrimitive(value.unstructuredText)
-            }
-        } else {
+        val element = encodeStructuredOrFallback(value.unstructuredText) {
             buildJsonObject {
                 value.id?.let { put("id", it) }
                 value.question?.let { put("question", it) }
@@ -241,35 +284,30 @@ object ChoiceRequestSerializer : KSerializer<ChoiceRequest> {
     override fun deserialize(decoder: Decoder): ChoiceRequest {
         val jsonDecoder = decoder as JsonDecoder
         val element = jsonDecoder.decodeJsonElement()
-        return try {
-            val obj = element as? JsonObject ?: error("choiceRequest is not a JSON object")
-            val options = obj["options"]?.let { optionsElement ->
-                val array = optionsElement as? JsonArray ?: error("choiceRequest.options is not a JSON array")
-                array.map { optionElement ->
-                    val optionObj = optionElement as? JsonObject ?: error("choiceRequest option is not a JSON object")
-                    ChoiceOption(
-                        id = optionObj["id"]?.jsonPrimitive?.content,
-                        description = optionObj["description"]?.jsonPrimitive?.content,
-                        title = optionObj["title"]?.jsonPrimitive?.content
-                    )
+        return decodeStructuredOrFallback(
+            label = "choiceRequest",
+            element = element,
+            structuredDecode = { obj ->
+                val options = obj["options"]?.let { optionsElement ->
+                    val array = optionsElement as? JsonArray ?: error("choiceRequest.options is not a JSON array")
+                    array.map { optionElement ->
+                        val optionObj = optionElement as? JsonObject ?: error("choiceRequest option is not a JSON object")
+                        ChoiceOption(
+                            id = optionObj["id"]?.jsonPrimitive?.content,
+                            description = optionObj["description"]?.jsonPrimitive?.content,
+                            title = optionObj["title"]?.jsonPrimitive?.content
+                        )
+                    }
                 }
-            }
-            ChoiceRequest(id = obj["id"]?.jsonPrimitive?.content, options = options)
-        } catch (e: Exception) {
-            logger.w(e) { "Unstructured choiceRequest payload; preserving raw text" }
-            ChoiceRequest(unstructuredText = element.toString())
-        }
+                ChoiceRequest(id = obj["id"]?.jsonPrimitive?.content, options = options)
+            },
+            toUnstructured = { text -> ChoiceRequest(unstructuredText = text) }
+        )
     }
 
     override fun serialize(encoder: Encoder, value: ChoiceRequest) {
         val jsonEncoder = encoder as JsonEncoder
-        val element = if (value.unstructuredText != null) {
-            try {
-                Json.parseToJsonElement(value.unstructuredText)
-            } catch (e: Exception) {
-                JsonPrimitive(value.unstructuredText)
-            }
-        } else {
+        val element = encodeStructuredOrFallback(value.unstructuredText) {
             buildJsonObject {
                 value.id?.let { put("id", it) }
                 value.options?.let { options ->

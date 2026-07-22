@@ -39,6 +39,7 @@ sealed interface JunieEvent {
     /**
      * Maps this event to a UI [Message], or null if this event has no UI representation
      * (metadata-only events). Each event type implements its own mapping logic (Strategy pattern, Q1).
+     * Defaults to null; only events with an actual UI representation override this.
      */
-    fun toMessage(context: MappingContext): Message?
+    fun toMessage(context: MappingContext): Message? = null
 }

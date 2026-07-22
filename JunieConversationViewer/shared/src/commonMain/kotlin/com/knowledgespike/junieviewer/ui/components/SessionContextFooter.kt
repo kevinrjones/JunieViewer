@@ -14,6 +14,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.knowledgespike.junieviewer.ui.ConversationState
 import com.knowledgespike.junieviewer.ui.formatTimestamp
+import com.knowledgespike.junieviewer.ui.selectedSession
+import com.knowledgespike.junieviewer.ui.selectedSessionId
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**

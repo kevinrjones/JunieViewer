@@ -20,11 +20,9 @@ data class SessionLoadResult(
 )
 
 interface SessionRepository {
-    fun getMessages(): List<Message>
-    /** Loads messages and returns metadata needed for live tracking. */
-    fun loadSession(): SessionLoadResult = SessionLoadResult(getMessages(), null, 0L, 0)
+    /** Resolves the session identified by [sessionId] under [homePath] and loads its messages in one atomic call. */
+    fun loadSession(sessionId: String, homePath: String): SessionLoadResult
     fun listSessions(homePath: String): List<SessionInfo>
-    fun setSession(sessionId: String, homePath: String)
     /** Returns the [SessionInfo] for the currently set session, or null if unavailable. */
     fun getSessionInfo(sessionId: String, homePath: String): SessionInfo?
 }
@@ -37,52 +35,25 @@ class SessionRepositoryImpl(
     private val fileSystem: FileSystem = FileSystem.SYSTEM
 ) : SessionRepository {
     private val logger = Logger.withTag("SessionRepository")
-    private var currentSessionPath: Path? = null
-
-    override fun setSession(sessionId: String, homePath: String) {
-        val path = expandPath(homePath).toPath()
-            .div("sessions")
-            .div(sessionId)
-            .div("events.jsonl")
-        currentSessionPath = path
-        logger.i { "Session set to: $sessionId (Path: $path)" }
-    }
 
     override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? {
-        val expandedHome = try { expandPath(homePath) } catch (e: Exception) {
-            logger.e(e) { "Error expanding path for session info: $homePath" }
-            return null
-        }
-        val sessionDir = try {
-            expandedHome.toPath().div("sessions").div(sessionId)
-        } catch (e: Exception) {
-            logger.e(e) { "Invalid session directory path" }
-            return null
-        }
-        if (!fileSystem.exists(sessionDir)) {
-            logger.w { "Session directory does not exist: $sessionDir" }
+        val sessionDir = resolveExistingDir(homePath, "sessions", sessionId) ?: run {
+            logger.w { "Session directory does not exist for: $sessionId" }
             return null
         }
         return try {
-            val meta = fileSystem.metadata(sessionDir)
-            SessionInfo(
-                id = sessionId,
-                path = sessionDir.toString(),
-                lastModified = meta.lastModifiedAtMillis ?: 0L,
-                createdAt = meta.createdAtMillis,
-                workingDirectory = extractWorkingDirectory(sessionDir)
-            )
+            toSessionInfo(sessionId, sessionDir)
         } catch (e: Exception) {
             logger.e(e) { "Error reading session info for $sessionId" }
             null
         }
     }
 
-    override fun getMessages(): List<Message> = loadSession().messages
-
-    override fun loadSession(): SessionLoadResult {
-        val path = currentSessionPath ?: run {
-            logger.w { "loadSession called but currentSessionPath is null" }
+    override fun loadSession(sessionId: String, homePath: String): SessionLoadResult {
+        val path = try {
+            expandPath(homePath).toPath().div("sessions").div(sessionId).div("events.jsonl")
+        } catch (e: Exception) {
+            logger.e(e) { "Invalid session path for: $sessionId" }
             return SessionLoadResult(emptyList(), null, 0L)
         }
         if (!fileSystem.exists(path)) {
@@ -93,23 +64,20 @@ class SessionRepositoryImpl(
         logger.d { "Loading messages from: $path" }
         val events = mutableListOf<JunieEvent>()
         var parseErrors = 0
-        var totalLineCount = 0
-        fileSystem.source(path).buffer().use { source ->
-            while (true) {
-                val line = source.readUtf8Line() ?: break
-                totalLineCount++
-                if (line.isBlank()) continue
+        val totalLineCount = scanLines(path) { line ->
+            if (line.isNotBlank()) {
                 JsonlParser.parseLine(line)
                     .onRight { events.add(it) }
                     .onLeft { parseErrors++ }
             }
-            val knownCount = events.count { it !is UnknownJunieEvent && (it !is SessionA2uxEvent || it.event.agentEvent !is UnknownAgentEvent) }
-            val unknownTopLevel = events.count { it is UnknownJunieEvent }
-            val unknownNested = events.count { it is SessionA2uxEvent && it.event.agentEvent is UnknownAgentEvent }
-            logger.i { "Session loaded: $totalLineCount lines, ${events.size} events (known=$knownCount, unknownTopLevel=$unknownTopLevel, unknownNested=$unknownNested, parseErrors=$parseErrors)" }
-            if (unknownTopLevel + unknownNested > 0) {
-                logger.w { "Unknown event kinds found — these will appear as unsupported event indicators in the UI" }
-            }
+            true
+        }
+        val knownCount = events.count { it !is UnknownJunieEvent && (it !is SessionA2uxEvent || it.event.agentEvent !is UnknownAgentEvent) }
+        val unknownTopLevel = events.count { it is UnknownJunieEvent }
+        val unknownNested = events.count { it is SessionA2uxEvent && it.event.agentEvent is UnknownAgentEvent }
+        logger.i { "Session loaded: $totalLineCount lines, ${events.size} events (known=$knownCount, unknownTopLevel=$unknownTopLevel, unknownNested=$unknownNested, parseErrors=$parseErrors)" }
+        if (unknownTopLevel + unknownNested > 0) {
+            logger.w { "Unknown event kinds found — these will appear as unsupported event indicators in the UI" }
         }
 
         val messages = EventToMessageMapper.mapEventsToMessages(events)
@@ -123,45 +91,54 @@ class SessionRepositoryImpl(
             return emptyList()
         }
 
-        val expandedHome = try {
-            expandPath(homePath)
-        } catch (e: Exception) {
-            logger.e(e) { "Error expanding path: $homePath" }
-            return emptyList()
-        }
-
-        val sessionsDir = try {
-            expandedHome.toPath().div("sessions")
-        } catch (e: Exception) {
-            logger.e(e) { "Invalid sessions directory path: $expandedHome" }
+        val sessionsDir = resolveExistingDir(homePath, "sessions") ?: run {
+            logger.w { "Sessions directory does not exist for home path: $homePath" }
             return emptyList()
         }
 
         logger.d { "Listing sessions from: $sessionsDir" }
-        
-        if (!fileSystem.exists(sessionsDir)) {
-            logger.w { "Sessions directory does not exist: $sessionsDir" }
-            return emptyList()
-        }
-
         return try {
             fileSystem.list(sessionsDir)
                 .filter { fileSystem.metadata(it).isDirectory }
-                .map { dir ->
-                    val meta = fileSystem.metadata(dir)
-                    SessionInfo(
-                        id = dir.name,
-                        path = dir.toString(),
-                        lastModified = meta.lastModifiedAtMillis ?: 0L,
-                        createdAt = meta.createdAtMillis,
-                        workingDirectory = extractWorkingDirectory(dir)
-                    )
-                }
+                .map { dir -> toSessionInfo(dir.name, dir) }
                 .sortedByDescending { it.lastModified }
         } catch (e: Exception) {
             logger.e(e) { "Error listing sessions from $sessionsDir" }
             emptyList()
         }
+    }
+
+    /** Builds the [SessionInfo] for the session directory [dir], identified by [id]. */
+    private fun toSessionInfo(id: String, dir: Path): SessionInfo {
+        val meta = fileSystem.metadata(dir)
+        return SessionInfo(
+            id = id,
+            path = dir.toString(),
+            lastModified = meta.lastModifiedAtMillis ?: 0L,
+            createdAt = meta.createdAtMillis,
+            workingDirectory = extractWorkingDirectory(dir)
+        )
+    }
+
+    /**
+     * Expands [homePath] and appends [segments], returning the resulting [Path] only if it
+     * exists on disk. Returns null (logging the reason) on any expansion/resolution failure
+     * or when the resolved directory is missing.
+     */
+    private fun resolveExistingDir(homePath: String, vararg segments: String): Path? {
+        val expandedHome = try {
+            expandPath(homePath)
+        } catch (e: Exception) {
+            logger.e(e) { "Error expanding path: $homePath" }
+            return null
+        }
+        val dir = try {
+            segments.fold(expandedHome.toPath()) { path, segment -> path.div(segment) }
+        } catch (e: Exception) {
+            logger.e(e) { "Invalid directory path under: $expandedHome" }
+            return null
+        }
+        return dir.takeIf { fileSystem.exists(it) }
     }
 
     /**
@@ -173,36 +150,40 @@ class SessionRepositoryImpl(
         val eventsFile = sessionDir / "events.jsonl"
         if (!fileSystem.exists(eventsFile)) return null
 
-        return try {
-            fileSystem.source(eventsFile).buffer().use { source ->
-                while (true) {
-                    val line = source.readUtf8Line() ?: break
-                    // Cheap fast-path: only lines mentioning the field can produce a hit.
-                    if (!line.contains("currentDirectory")) continue
+        var found: String? = null
+        try {
+            scanLines(eventsFile) { line ->
+                // Cheap fast-path: only lines mentioning the field can produce a hit.
+                if (line.contains("currentDirectory")) {
                     JsonlParser.parseLine(line)
                         .onLeft { logger.d { "Skipping malformed line while extracting working directory: ${it.message}" } }
                         .getOrNull()
-                        ?.let { event -> workingDirectoryOf(event) }
-                        ?.let { directory -> return@use directory }
+                        ?.let { event -> (event as? SessionA2uxEvent)?.event?.agentEvent?.workingDirectoryOrNull() }
+                        ?.let { directory -> found = directory }
                 }
-                null
+                found == null
             }
         } catch (e: Exception) {
             logger.d { "Could not extract working directory from $eventsFile: ${e.message}" }
-            null
         }
+        return found
     }
 
-    /** Extracts the working directory from a parsed event, or null when it carries none. */
-    private fun workingDirectoryOf(event: JunieEvent): String? {
-        val agentEvent = (event as? SessionA2uxEvent)?.event?.agentEvent ?: return null
-        return when (agentEvent) {
-            is CurrentDirectoryUpdatedEvent -> agentEvent.directory?.takeIf { it.isNotBlank() }
-            is AgentStateUpdatedEvent -> agentEvent.blob?.let { JsonlParser.workingDirectoryFromAgentStateBlob(it) }
-            is UnknownAgentEvent -> agentEvent.raw.textOrNull("currentDirectory")?.takeIf { it.isNotBlank() }
-                ?: agentEvent.raw.textOrNull("blob")?.let { JsonlParser.workingDirectoryFromAgentStateBlob(it) }
-            else -> null
+    /**
+     * Reads [path] line by line, invoking [onLine] with each line and stopping early when it
+     * returns false. Returns the total number of lines read. Shared by [loadSession] and
+     * [extractWorkingDirectory], which both need a full or partial line-by-line scan.
+     */
+    private fun scanLines(path: Path, onLine: (String) -> Boolean): Int {
+        var totalLineCount = 0
+        fileSystem.source(path).buffer().use { source ->
+            while (true) {
+                val line = source.readUtf8Line() ?: break
+                totalLineCount++
+                if (!onLine(line)) break
+            }
         }
+        return totalLineCount
     }
 
     private fun expandPath(path: String): String {

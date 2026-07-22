@@ -1,18 +1,14 @@
 package com.knowledgespike.junieviewer.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
@@ -76,13 +72,12 @@ private fun InlineDiffView(
     val spacing = JunieViewerTheme.spacing
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RICH_CONTENT_SHAPE)
-            .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
-            .background(colors.codeBackground)
-            .padding(spacing.md)
-            .horizontalScroll(rememberScrollState())
+        modifier = modifier.richContentBox(
+            backgroundColor = colors.codeBackground,
+            borderColor = colors.codeBorder,
+            padding = spacing.md,
+            scrollable = true
+        )
     ) {
         diff.lines().forEach { line ->
             val (bgColor, textColor) = diffLineColors(line, colors)

@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import com.knowledgespike.junieviewer.search.findCaseInsensitiveMatches
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 
 /**
@@ -63,20 +64,7 @@ fun highlightSearchMatches(
     val fgColor = if (isCurrentMatch) currentMatchText else highlightText
     val style = SpanStyle(background = bgColor, color = fgColor)
 
-    val lowerText = text.lowercase()
-    val lowerQuery = query.lowercase()
-    val queryLen = lowerQuery.length
-
-    // Find all match positions
-    val matches = mutableListOf<IntRange>()
-    var searchFrom = 0
-    while (searchFrom <= lowerText.length - queryLen) {
-        val idx = lowerText.indexOf(lowerQuery, searchFrom)
-        if (idx < 0) break
-        matches.add(idx until idx + queryLen)
-        searchFrom = idx + queryLen
-    }
-
+    val matches = findCaseInsensitiveMatches(text, query)
     if (matches.isEmpty()) return AnnotatedString(text)
 
     return buildAnnotatedString {

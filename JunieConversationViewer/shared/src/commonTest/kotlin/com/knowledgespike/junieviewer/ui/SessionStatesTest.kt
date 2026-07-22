@@ -34,10 +34,12 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = testMessages,
-                    selectedSessionId = testSession.id,
-                    selectedSession = testSession
+                    sessionLoad = SessionLoadState(
+                        messages = testMessages,
+                        selectedSessionId = testSession.id,
+                        selectedSession = testSession
+                    ),
+                    search = SearchState(filteredMessages = testMessages)
                 ),
                 onAction = {}
             )
@@ -52,10 +54,12 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = testMessages,
-                    selectedSessionId = testSession.id,
-                    selectedSession = testSession
+                    sessionLoad = SessionLoadState(
+                        messages = testMessages,
+                        selectedSessionId = testSession.id,
+                        selectedSession = testSession
+                    ),
+                    search = SearchState(filteredMessages = testMessages)
                 ),
                 onAction = {}
             )
@@ -77,10 +81,12 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = testMessages,
-                    selectedSessionId = sessionNoCreated.id,
-                    selectedSession = sessionNoCreated
+                    sessionLoad = SessionLoadState(
+                        messages = testMessages,
+                        selectedSessionId = sessionNoCreated.id,
+                        selectedSession = sessionNoCreated
+                    ),
+                    search = SearchState(filteredMessages = testMessages)
                 ),
                 onAction = {}
             )
@@ -95,7 +101,7 @@ class SessionStatesTest {
     fun `no session selected state appears when no session is selected`() = runComposeUiTest {
         setContent {
             ConversationScreen(
-                state = ConversationState(selectedSessionId = null),
+                state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = null)),
                 onAction = {}
             )
         }
@@ -115,10 +121,12 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = emptyList(),
-                    filteredMessages = emptyList(),
-                    selectedSessionId = testSession.id,
-                    selectedSession = testSession
+                    sessionLoad = SessionLoadState(
+                        messages = emptyList(),
+                        selectedSessionId = testSession.id,
+                        selectedSession = testSession
+                    ),
+                    search = SearchState(filteredMessages = emptyList())
                 ),
                 onAction = {}
             )
@@ -136,9 +144,11 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    isLoading = true,
-                    selectedSessionId = testSession.id,
-                    selectedSession = testSession
+                    sessionLoad = SessionLoadState(
+                        isLoading = true,
+                        selectedSessionId = testSession.id,
+                        selectedSession = testSession
+                    )
                 ),
                 onAction = {}
             )
@@ -153,9 +163,11 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    errorMessage = "Could not load this Conversation. Check that the Session still exists and try again.",
-                    selectedSessionId = testSession.id,
-                    selectedSession = testSession
+                    sessionLoad = SessionLoadState(
+                        errorMessage = "Could not load this Conversation. Check that the Session still exists and try again.",
+                        selectedSessionId = testSession.id,
+                        selectedSession = testSession
+                    )
                 ),
                 onAction = {}
             )
@@ -176,11 +188,12 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = emptyList(),
-                    filteredMessages = emptyList(),
-                    selectedSessionId = testSession.id,
-                    selectedSession = testSession,
-                    searchQuery = ""
+                    sessionLoad = SessionLoadState(
+                        messages = emptyList(),
+                        selectedSessionId = testSession.id,
+                        selectedSession = testSession
+                    ),
+                    search = SearchState(filteredMessages = emptyList(), searchQuery = "")
                 ),
                 onAction = {}
             )
@@ -197,11 +210,12 @@ class SessionStatesTest {
         setContent {
             ConversationScreen(
                 state = ConversationState(
-                    messages = testMessages,
-                    filteredMessages = emptyList(),
-                    selectedSessionId = testSession.id,
-                    selectedSession = testSession,
-                    searchQuery = "nonexistent"
+                    sessionLoad = SessionLoadState(
+                        messages = testMessages,
+                        selectedSessionId = testSession.id,
+                        selectedSession = testSession
+                    ),
+                    search = SearchState(filteredMessages = emptyList(), searchQuery = "nonexistent")
                 ),
                 onAction = {}
             )
