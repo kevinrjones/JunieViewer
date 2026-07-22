@@ -1,6 +1,5 @@
 package com.knowledgespike.junieviewer.ui.components
 
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -21,13 +20,14 @@ fun ErrorWarningBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false
+    expanded: Boolean = true,
+    onToggle: () -> Unit = {}
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
 
     val containerColor = if (isWarning) colors.warningBackground else colors.errorBackground
-    val borderColor = if (isWarning) colors.warningBackground else colors.errorBackground
+    val borderColor = if (isWarning) colors.warningBorder else colors.errorBorder
     val label = if (isWarning) "Warning" else "Error"
 
     CollapsibleBlock(
@@ -36,7 +36,8 @@ fun ErrorWarningBlock(
         borderColor = borderColor,
         headerTestTag = "error_warning_block_header",
         bodyTestTag = "error_warning_block_body",
-        forceExpanded = forceExpanded,
+        expanded = expanded,
+        onToggle = onToggle,
         body = {
             TrackedSelectionContainer(modifier = Modifier.testTag("selectable_error_warning_content")) {
                 Text(

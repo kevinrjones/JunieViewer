@@ -3,32 +3,34 @@ package com.knowledgespike.junieviewer.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import com.knowledgespike.junieviewer.data.FileWatcher
 import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.LiveTrackingEvent
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
-import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
 import com.knowledgespike.junieviewer.domain.AppPreferences
-import com.knowledgespike.junieviewer.domain.FilterCategory
-import com.knowledgespike.junieviewer.domain.MessageContent
-import com.knowledgespike.junieviewer.domain.Sender
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okio.FileSystem
 
+/**
+ * Thin coordinator for the conversation screen. Dispatches [ConversationCommand]s and
+ * [ConversationAction]s, and coordinates focused collaborators that own the actual behaviour:
+ * [MessageVisibilityEngine] (filter/sort/match derivation), [BlockExpansionController]
+ * (per-block collapse/expand derivation), and [LiveTrackingController] (live-tracking
+ * lifecycle). Preferences persistence and error reporting are also delegated out so this
+ * class stays focused on routing user intent to state transitions.
+ */
 class ConversationViewModel(
     private val repository: SessionRepository,
     private val preferencesRepository: PreferencesRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val liveSessionTracker: LiveSessionTracker
+    private val liveSessionTracker: LiveSessionTracker,
+    private val errorReporter: FatalErrorReporter = FatalErrorManager
 ) : ViewModel() {
 
     private val logger = Logger.withTag("ConversationViewModel")
@@ -37,19 +39,19 @@ class ConversationViewModel(
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         logger.e(throwable) { "Unhandled coroutine exception" }
-        FatalErrorManager.reportFatalError(throwable)
+        errorReporter.reportFatalError(throwable)
     }
 
     private val _events = Channel<ConversationEvent>()
     val events = _events.receiveAsFlow()
 
-    /** Job for the current live tracking coroutine — cancelled when Session changes. */
-    private var liveTrackingJob: Job? = null
-
-    /** Cached metadata from the last successful load, used to restart live tracking. */
-    private var lastLoadedEventsFilePath: okio.Path? = null
-    private var lastLoadedFileSize: Long = 0L
-    private var lastLoadedMessageCount: Int = 0
+    /** Owns the live-tracking coroutine lifecycle and last-loaded session metadata. */
+    private val liveTracking = LiveTrackingController(
+        liveSessionTracker = liveSessionTracker,
+        scope = viewModelScope,
+        launchContext = ioDispatcher + exceptionHandler,
+        logger = logger
+    )
 
     init {
         logger.d { "ConversationViewModel initialized" }
@@ -58,78 +60,77 @@ class ConversationViewModel(
 
     /**
      * Handles a [ConversationCommand] dispatched from the toolbar, menu, or keyboard shortcut.
-     * Maps each command to existing [ConversationAction] handling or updates state directly.
+     * Commands with a direct [ConversationAction] equivalent are routed through [onAction];
+     * the rest are handled directly.
      */
     fun onCommand(command: ConversationCommand) {
         logger.d { "Command received: $command" }
-        try {
-            when (command) {
-                ConversationCommand.Copy -> {
-                    // Emit a CopyText event so the platform layer can dispatch a native
-                    // copy action (synthetic Cmd+C / Ctrl+C) to the focused component.
-                    logger.d { "Copy command: emitting CopyText event for platform handling" }
-                    viewModelScope.launch { _events.send(ConversationEvent.CopyText) }
-                }
-                ConversationCommand.Refresh -> {
-                    logger.i { "Refresh command: reloading current Session" }
-                    refreshSession()
-                }
-                ConversationCommand.OpenSession -> {
-                    onAction(ConversationAction.OnToggleSessionPicker)
-                }
-                ConversationCommand.ToggleAutoRefresh -> {
-                    toggleAutoRefresh()
-                }
-                ConversationCommand.ToggleSortOrder -> {
-                    toggleSortOrder()
-                }
-                ConversationCommand.CollapseAll -> {
-                    collapseAllBlocks()
-                }
-                ConversationCommand.ShowAll -> {
-                    showAllBlocks()
-                }
-                ConversationCommand.FocusSearch -> {
-                    // Handled at the UI level via FocusRequester — emit event
-                    viewModelScope.launch { _events.send(ConversationEvent.FocusSearch) }
-                }
-                ConversationCommand.FindNext -> {
-                    onAction(ConversationAction.OnNextMatch)
-                }
-                ConversationCommand.FindPrevious -> {
-                    onAction(ConversationAction.OnPreviousMatch)
-                }
-                ConversationCommand.Settings -> {
-                    onAction(ConversationAction.OnToggleSettings)
-                }
-                ConversationCommand.Quit -> {
-                    // Handled at the platform/Window level
-                    logger.d { "Quit command: handled at platform level" }
-                }
-                ConversationCommand.About -> {
-                    viewModelScope.launch { _events.send(ConversationEvent.ShowAbout) }
-                }
-                ConversationCommand.HowToUse -> {
-                    viewModelScope.launch { _events.send(ConversationEvent.ShowHowToUse) }
-                }
+        dispatch("command: $command") {
+            command.toActionOrNull()?.let(::onAction) ?: handleCommandDirectly(command)
+        }
+    }
+
+    /** Handles the [ConversationCommand]s that have no direct [ConversationAction] equivalent. */
+    private fun handleCommandDirectly(command: ConversationCommand) {
+        when (command) {
+            ConversationCommand.Copy -> {
+                // Emit a CopyText event so the platform layer can dispatch a native
+                // copy action (synthetic Cmd+C / Ctrl+C) to the focused component.
+                logger.d { "Copy command: emitting CopyText event for platform handling" }
+                viewModelScope.launch { _events.send(ConversationEvent.CopyText) }
             }
-        } catch (t: Throwable) {
-            logger.e(t) { "Error processing command: $command" }
-            FatalErrorManager.reportFatalError(t)
+            ConversationCommand.Refresh -> {
+                logger.i { "Refresh command: reloading current Session" }
+                refreshSession()
+            }
+            ConversationCommand.ToggleAutoRefresh -> toggleAutoRefresh()
+            ConversationCommand.ToggleSortOrder -> toggleSortOrder()
+            ConversationCommand.CollapseAll -> collapseAllBlocks()
+            ConversationCommand.ShowAll -> showAllBlocks()
+            ConversationCommand.FocusSearch -> {
+                // Handled at the UI level via FocusRequester — emit event
+                viewModelScope.launch { _events.send(ConversationEvent.FocusSearch) }
+            }
+            ConversationCommand.Quit -> {
+                // Handled at the platform/Window level
+                logger.d { "Quit command: handled at platform level" }
+            }
+            ConversationCommand.About -> {
+                viewModelScope.launch { _events.send(ConversationEvent.ShowAbout) }
+            }
+            ConversationCommand.HowToUse -> {
+                viewModelScope.launch { _events.send(ConversationEvent.ShowHowToUse) }
+            }
+            // These commands are routed to onAction via ConversationCommand.toActionOrNull()
+            // and never reach this function.
+            ConversationCommand.OpenSession,
+            ConversationCommand.FindNext,
+            ConversationCommand.FindPrevious,
+            ConversationCommand.Settings -> Unit
         }
     }
 
     fun onAction(action: ConversationAction) {
         logger.d { "Action received: $action" }
-        try {
+        dispatch("action: $action") {
             when (action) {
                 is ConversationAction.OnSearchQueryChange -> {
-                    _state.update { it.copy(searchQuery = action.query, currentMatchIndex = if (action.query.isBlank()) -1 else 0) }
-                    filterMessages(action.query)
+                    // Single atomic emission per Search Query change (F8)
+                    updateState {
+                        it.copy(
+                            search = it.search.copy(
+                                searchQuery = action.query,
+                                currentMatchIndex = if (action.query.isBlank()) -1 else 0
+                            ),
+                            // Clear force-expansion dismissals when Search Query changes
+                            blockExpansion = it.blockExpansion.copy(dismissedForceExpandedBlockIds = emptySet())
+                        )
+                    }
+                    logVisibleMessages()
                 }
                 ConversationAction.OnRetryClick -> loadMessages()
                 ConversationAction.OnToggleSessionPicker -> {
-                    _state.update { it.copy(isSessionPickerOpen = !it.isSessionPickerOpen) }
+                    _state.update { it.copy(dialogs = it.dialogs.copy(isSessionPickerOpen = !it.dialogs.isSessionPickerOpen)) }
                     if (_state.value.isSessionPickerOpen) {
                         loadSessions()
                     }
@@ -137,24 +138,26 @@ class ConversationViewModel(
                 is ConversationAction.OnSessionSelected -> {
                     logger.i { "Session selected: ${action.session.id}" }
                     _state.update { it.copy(
-                        selectedSessionId = action.session.id,
-                        selectedSession = action.session,
-                        isSessionPickerOpen = false,
-                        errorMessage = null
+                        sessionLoad = it.sessionLoad.copy(
+                            selectedSessionId = action.session.id,
+                            selectedSession = action.session,
+                            errorMessage = null
+                        ),
+                        dialogs = it.dialogs.copy(isSessionPickerOpen = false)
                     ) }
                     saveLastSession(action.session.id)
                     loadMessages()
                 }
                 ConversationAction.OnToggleSettings -> {
-                    _state.update { it.copy(isSettingsOpen = !it.isSettingsOpen) }
+                    _state.update { it.copy(dialogs = it.dialogs.copy(isSettingsOpen = !it.dialogs.isSettingsOpen)) }
                 }
                 is ConversationAction.OnHomePathChange -> {
                     logger.i { "Home path changed: ${action.path}" }
-                    _state.update { it.copy(junieHomePath = action.path) }
+                    _state.update { it.copy(sessionLoad = it.sessionLoad.copy(junieHomePath = action.path)) }
                     saveHomePath(action.path)
                 }
                 is ConversationAction.OnToggleFilter -> {
-                    _state.update { currentState ->
+                    updateState { currentState ->
                         val newFilter = when (action.kind) {
                             FilterKind.Human -> currentState.filter.copy(showHuman = !currentState.filter.showHuman)
                             FilterKind.Junie -> currentState.filter.copy(showJunie = !currentState.filter.showJunie)
@@ -163,22 +166,22 @@ class ConversationViewModel(
                             FilterKind.Patch -> currentState.filter.copy(showPatches = !currentState.filter.showPatches)
                             FilterKind.Terminal -> currentState.filter.copy(showTerminal = !currentState.filter.showTerminal)
                         }
-                        currentState.copy(filter = newFilter)
+                        currentState.copy(search = currentState.search.copy(filter = newFilter))
                     }
-                    filterMessages(_state.value.searchQuery)
+                    logVisibleMessages()
                 }
                 ConversationAction.OnNextMatch -> {
-                    _state.update { currentState ->
+                    updateState { currentState ->
                         val count = currentState.filteredMessages.size
-                        if (count == 0) currentState.copy(currentMatchIndex = -1)
-                        else currentState.copy(currentMatchIndex = (currentState.currentMatchIndex + 1).mod(count))
+                        val newIndex = if (count == 0) -1 else (currentState.currentMatchIndex + 1).mod(count)
+                        currentState.copy(search = currentState.search.copy(currentMatchIndex = newIndex))
                     }
                 }
                 ConversationAction.OnPreviousMatch -> {
-                    _state.update { currentState ->
+                    updateState { currentState ->
                         val count = currentState.filteredMessages.size
-                        if (count == 0) currentState.copy(currentMatchIndex = -1)
-                        else currentState.copy(currentMatchIndex = (currentState.currentMatchIndex - 1).mod(count))
+                        val newIndex = if (count == 0) -1 else (currentState.currentMatchIndex - 1).mod(count)
+                        currentState.copy(search = currentState.search.copy(currentMatchIndex = newIndex))
                     }
                 }
                 is ConversationAction.OnThemeModeChange -> {
@@ -193,37 +196,71 @@ class ConversationViewModel(
                     updateTextSelection(action.containerId, action.hasSelection)
                 }
             }
+        }
+    }
+
+    /**
+     * Runs [block], logging and reporting any exception through [errorReporter] with [label]
+     * as context. Shared by [onCommand] and [onAction] so error handling is defined once.
+     */
+    private inline fun dispatch(label: String, block: () -> Unit) {
+        try {
+            block()
         } catch (t: Throwable) {
-            logger.e(t) { "Error processing action: $action" }
-            FatalErrorManager.reportFatalError(t)
+            logger.e(t) { "Error processing $label" }
+            errorReporter.reportFatalError(t)
+        }
+    }
+
+    /**
+     * Applies [transform] to the current state and re-derives filtered messages, turns, and
+     * block-expansion state so every state transition emits a single, fully-consistent
+     * snapshot. This is the one place [MessageVisibilityEngine] and [BlockExpansionController]
+     * derivation is wired together — call sites only describe what changed.
+     */
+    private fun updateState(transform: (ConversationState) -> ConversationState) {
+        _state.update { current ->
+            val transformed = transform(current)
+            val filtered = filterMessages(transformed, transformed.searchQuery)
+            filtered.copy(
+                blockExpansion = filtered.blockExpansion.copy(
+                    derivedBlockExpansionStates = BlockExpansionController.deriveBlockExpansionStates(filtered)
+                )
+            )
         }
     }
 
     private fun loadPreferences() {
         val prefs = preferencesRepository.load()
         logger.d { "Applying preferences to state: $prefs" }
-        val themeMode = try {
-            ThemeMode.valueOf(prefs.themeMode)
-        } catch (_: IllegalArgumentException) {
-            ThemeMode.System
-        }
-        val sortOrder = try {
-            SortOrder.valueOf(prefs.sortOrder)
-        } catch (_: IllegalArgumentException) {
-            SortOrder.OldestFirst
-        }
+        val themeMode = enumValueOfOrDefault(prefs.themeMode, ThemeMode.System)
+        val sortOrder = enumValueOfOrDefault(prefs.sortOrder, SortOrder.OldestFirst)
         _state.update { 
             it.copy(
-                junieHomePath = prefs.junieHomePath,
-                selectedSessionId = prefs.lastSessionId,
+                sessionLoad = it.sessionLoad.copy(
+                    junieHomePath = prefs.junieHomePath,
+                    selectedSessionId = prefs.lastSessionId
+                ),
+                search = it.search.copy(sortOrder = sortOrder),
                 themeMode = themeMode,
-                isAutoRefreshEnabled = prefs.isAutoRefreshEnabled,
-                sortOrder = sortOrder
+                isAutoRefreshEnabled = prefs.isAutoRefreshEnabled
             )
         }
         logger.d { "Preferences loaded: autoRefresh=${prefs.isAutoRefreshEnabled}, sortOrder=$sortOrder" }
         loadMessages()
     }
+
+    /**
+     * Parses [name] as a [T] enum constant, logging a warning and falling back to [default]
+     * when [name] does not match any constant (e.g. corrupt or outdated preferences).
+     */
+    private inline fun <reified T : Enum<T>> enumValueOfOrDefault(name: String, default: T): T =
+        try {
+            enumValueOf<T>(name)
+        } catch (_: IllegalArgumentException) {
+            logger.w { "Invalid ${T::class.simpleName} value '$name' in preferences — defaulting to $default" }
+            default
+        }
 
     private val prefsMutex = Any()
 
@@ -260,12 +297,12 @@ class ConversationViewModel(
 
         if (newEnabled) {
             // Restart live tracking for the current Session from cached metadata
-            val path = lastLoadedEventsFilePath
-            if (path != null && _state.value.selectedSessionId != null) {
+            val metadata = liveTracking.lastLoadedMetadata
+            if (metadata.eventsFilePath != null && _state.value.selectedSessionId != null) {
                 val currentMessageCount = _state.value.messages.size
                 // Use current message count and recalculate approximate file offset
                 logger.i { "Restarting live tracking after auto-refresh enabled" }
-                startLiveTracking(path, lastLoadedFileSize, currentMessageCount)
+                startLiveTracking(metadata.eventsFilePath, metadata.fileSize, currentMessageCount)
             }
         } else {
             // Stop live tracking but keep Messages visible
@@ -294,7 +331,7 @@ class ConversationViewModel(
                 val sessions = withContext(ioDispatcher) {
                     repository.listSessions(_state.value.junieHomePath)
                 }
-                _state.update { it.copy(sessions = sessions) }
+                _state.update { it.copy(sessionLoad = it.sessionLoad.copy(sessions = sessions)) }
             } catch (e: Exception) {
                 logger.e(e) { "Failed to load sessions" }
             }
@@ -313,88 +350,78 @@ class ConversationViewModel(
         
         logger.i { "Loading messages for session: $sessionId" }
         viewModelScope.launch(exceptionHandler) {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            _state.update { it.copy(sessionLoad = it.sessionLoad.copy(isLoading = true, errorMessage = null)) }
             try {
                 val (loadResult, sessionInfo) = withContext(ioDispatcher) {
-                    repository.setSession(sessionId, homePath)
-                    val result = repository.loadSession()
+                    val result = repository.loadSession(sessionId, homePath)
                     val info = repository.getSessionInfo(sessionId, homePath)
                     result to info
                 }
-                _state.update { 
+                updateState {
                     it.copy(
-                        messages = loadResult.messages,
-                        filteredMessages = loadResult.messages,
-                        isLoading = false,
-                        errorMessage = null,
-                        selectedSession = sessionInfo ?: it.selectedSession
+                        sessionLoad = it.sessionLoad.copy(
+                            messages = loadResult.messages,
+                            isLoading = false,
+                            errorMessage = null,
+                            selectedSession = sessionInfo ?: it.selectedSession
+                        )
                     )
                 }
-                filterMessages(_state.value.searchQuery)
+                logVisibleMessages()
                 logger.d { "Successfully loaded ${loadResult.messages.size} messages" }
 
                 // Cache load metadata for potential live tracking restart
-                lastLoadedEventsFilePath = loadResult.eventsFilePath
-                lastLoadedFileSize = loadResult.fileSizeAfterLoad
-                lastLoadedMessageCount = loadResult.messages.size
+                liveTracking.rememberLoadedMetadata(
+                    LoadedSessionMetadata(
+                        eventsFilePath = loadResult.eventsFilePath,
+                        fileSize = loadResult.fileSizeAfterLoad,
+                        lineCount = loadResult.totalLineCount
+                    )
+                )
 
                 // Start live tracking only when auto-refresh is enabled
                 if (_state.value.isAutoRefreshEnabled) {
-                    startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.messages.size)
+                    startLiveTracking(loadResult.eventsFilePath, loadResult.fileSizeAfterLoad, loadResult.totalLineCount + 1)
                 } else {
                     logger.i { "Auto-refresh disabled — skipping live tracking after load" }
                 }
             } catch (e: Exception) {
                 logger.e(e) { "Failed to load messages for session $sessionId" }
                 _state.update { it.copy(
-                    isLoading = false,
-                    errorMessage = "Could not load this Conversation. Check that the Session still exists and try again."
+                    sessionLoad = it.sessionLoad.copy(
+                        isLoading = false,
+                        errorMessage = "Could not load this Conversation. Check that the Session still exists and try again."
+                    )
                 ) }
             }
         }
     }
 
-    /** Starts live tracking for the given events.jsonl file. */
-    private fun startLiveTracking(eventsFilePath: okio.Path?, initialOffset: Long, existingMessageCount: Int) {
-        if (eventsFilePath == null) {
-            logger.w { "Cannot start live tracking: no events file path" }
-            return
-        }
-
-        logger.i { "Starting live tracking: path=$eventsFilePath, offset=$initialOffset" }
-        liveTrackingJob = viewModelScope.launch(ioDispatcher + exceptionHandler) {
-            liveSessionTracker.track(eventsFilePath, initialOffset, existingMessageCount)
-                .collect { event ->
-                    when (event) {
-                        is LiveTrackingEvent.NewMessages -> {
-                            logger.d { "Live tracking: ${event.messages.size} new messages" }
-                            _state.update { currentState ->
-                                val updatedMessages = currentState.messages + event.messages
-                                currentState.copy(messages = updatedMessages)
-                            }
-                            filterMessages(_state.value.searchQuery)
-                        }
-                        is LiveTrackingEvent.FileReset -> {
-                            logger.i { "Live tracking: file reset — reloading session" }
-                            withContext(Dispatchers.Main) { loadMessages() }
-                        }
-                        is LiveTrackingEvent.FileDeleted -> {
-                            logger.w { "Live tracking: file deleted — stopping" }
-                            // Don't crash, just stop tracking
-                        }
+    /** Starts live tracking for the given events.jsonl file, applying each event to state. */
+    private fun startLiveTracking(eventsFilePath: okio.Path?, initialOffset: Long, nextLineNumber: Int) {
+        liveTracking.start(eventsFilePath, initialOffset, nextLineNumber) { event ->
+            when (event) {
+                is LiveTrackingEvent.NewMessages -> {
+                    logger.d { "Live tracking: ${event.messages.size} new messages" }
+                    updateState { currentState ->
+                        currentState.copy(sessionLoad = currentState.sessionLoad.copy(messages = currentState.messages + event.messages))
                     }
+                    logVisibleMessages()
                 }
+                is LiveTrackingEvent.FileReset -> {
+                    logger.i { "Live tracking: file reset — reloading session" }
+                    withContext(Dispatchers.Main) { loadMessages() }
+                }
+                is LiveTrackingEvent.FileDeleted -> {
+                    logger.w { "Live tracking: file deleted — stopping" }
+                    // Don't crash, just stop tracking
+                }
+            }
         }
     }
 
     /** Cancels the current live tracking job if active. */
-    internal fun stopLiveTracking() {
-        liveTrackingJob?.let {
-            logger.i { "Stopping live tracking" }
-            it.cancel()
-            liveTrackingJob = null
-        }
-    }
+    internal fun stopLiveTracking() = liveTracking.stop()
 
     override fun onCleared() {
         super.onCleared()
@@ -403,51 +430,20 @@ class ConversationViewModel(
     }
 
     // ---------------------------------------------------------------------------
-    // Collapse All / Show All / per-block toggle (Area 7)
+    // Collapse All / Show All / per-block toggle (Area 6 — centralized expansion)
     // ---------------------------------------------------------------------------
-
-    /**
-     * Builds the set of stable block IDs for all collapsible blocks in the current Messages.
-     * IDs follow the pattern "{messageId}:{blockType}".
-     */
-    private fun collectCollapsibleBlockIds(messages: List<com.knowledgespike.junieviewer.domain.Message>): Set<String> {
-        val ids = mutableSetOf<String>()
-        for (msg in messages) {
-            when (msg.kind) {
-                com.knowledgespike.junieviewer.domain.MessageKind.Thought -> ids.add("${msg.id}:thought")
-                com.knowledgespike.junieviewer.domain.MessageKind.Tool,
-                com.knowledgespike.junieviewer.domain.MessageKind.Mcp -> ids.add("${msg.id}:tool")
-                com.knowledgespike.junieviewer.domain.MessageKind.Markdown -> ids.add("${msg.id}:markdown")
-                com.knowledgespike.junieviewer.domain.MessageKind.SubAgent -> ids.add("${msg.id}:subagent")
-                else -> {
-                    // Content-level collapsible blocks (Text, Code, Diff, Terminal, Structured)
-                    when (msg.content) {
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Text -> ids.add("${msg.id}:text")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Code -> ids.add("${msg.id}:code")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Diff -> ids.add("${msg.id}:diff")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Terminal -> ids.add("${msg.id}:terminal")
-                        is com.knowledgespike.junieviewer.domain.MessageContent.Structured -> ids.add("${msg.id}:structured")
-                        else -> { /* not collapsible */ }
-                    }
-                }
-            }
-        }
-        return ids
-    }
 
     /** Collapses all collapsible blocks by setting every known block ID to false. */
     private fun collapseAllBlocks() {
-        val allIds = collectCollapsibleBlockIds(_state.value.messages)
-        val collapsed = allIds.associateWith { false }
-        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + collapsed) }
+        val allIds = MessageContentRegistry.collectCollapsibleBlockIds(_state.value.messages)
+        updateState { BlockExpansionController.collapseAll(it) }
         logger.i { "Collapse All: ${allIds.size} blocks collapsed" }
     }
 
     /** Expands all collapsible blocks by setting every known block ID to true. */
     private fun showAllBlocks() {
-        val allIds = collectCollapsibleBlockIds(_state.value.messages)
-        val expanded = allIds.associateWith { true }
-        _state.update { it.copy(blockExpansionStates = it.blockExpansionStates + expanded) }
+        val allIds = MessageContentRegistry.collectCollapsibleBlockIds(_state.value.messages)
+        updateState { BlockExpansionController.showAll(it) }
         logger.i { "Show All: ${allIds.size} blocks expanded" }
     }
 
@@ -463,65 +459,46 @@ class ConversationViewModel(
         else containersWithSelection.remove(containerId)
         val anySelection = containersWithSelection.isNotEmpty()
         if (_state.value.hasTextSelection != anySelection) {
-            _state.update { it.copy(hasTextSelection = anySelection) }
+            _state.update { it.copy(blockExpansion = it.blockExpansion.copy(hasTextSelection = anySelection)) }
             logger.d { "Text selection state changed: hasTextSelection=$anySelection" }
         }
     }
 
-    /** Toggles the expansion state of a single block identified by its stable block ID. */
+    /**
+     * Toggles the expansion state of a single block identified by its stable block ID.
+     * Delegates the actual derivation to [BlockExpansionController.toggle].
+     */
     private fun toggleBlockExpansion(blockId: String) {
-        _state.update { currentState ->
-            val currentExpanded = currentState.blockExpansionStates[blockId]
-            // If no explicit state exists, the block is at its default — toggle from default
-            val newExpanded = !(currentExpanded ?: true)
-            currentState.copy(
-                blockExpansionStates = currentState.blockExpansionStates + (blockId to newExpanded)
-            )
-        }
+        updateState { BlockExpansionController.toggle(it, blockId) }
         logger.d { "Block toggled: $blockId" }
     }
 
-    private fun filterMessages(query: String) {
-        _state.update { currentState ->
-            val filtered = currentState.messages.filter { message ->
-                val kindMatch = when (message.kind.filterCategory) {
-                    FilterCategory.Human -> currentState.filter.showHuman
-                    FilterCategory.Junie -> {
-                        if (message.sender == Sender.Human) currentState.filter.showHuman
-                        else currentState.filter.showJunie
-                    }
-                    FilterCategory.Thought -> currentState.filter.showThoughts
-                    FilterCategory.Tool -> currentState.filter.showTools
-                    FilterCategory.Patch -> currentState.filter.showPatches
-                    FilterCategory.Terminal -> currentState.filter.showTerminal
-                    FilterCategory.AlwaysShow -> true
-                }
-
-                if (!kindMatch) return@filter false
-
-                if (query.isBlank()) return@filter true
-
-                messageContentText(message.content).contains(query, ignoreCase = true)
-            }
-            // Apply sort order: canonical messages list is always chronological;
-            // reverse for NewestFirst display order
-            val sorted = when (currentState.sortOrder) {
-                SortOrder.OldestFirst -> filtered
-                SortOrder.NewestFirst -> filtered.asReversed()
-            }
-
-            // Reset currentMatchIndex safely after re-derivation
-            val newMatchIndex = when {
-                sorted.isEmpty() -> -1
-                currentState.currentMatchIndex < 0 -> if (query.isNotBlank() && sorted.isNotEmpty()) 0 else -1
-                currentState.currentMatchIndex >= sorted.size -> 0
-                else -> currentState.currentMatchIndex
-            }
-
-            currentState.copy(filteredMessages = sorted, currentMatchIndex = newMatchIndex)
-        }
-        logger.d { "Visible messages derived: ${_state.value.filteredMessages.size} (sortOrder=${_state.value.sortOrder})" }
+    /**
+     * Pure derivation of the visible Messages for [currentState] and the given Search Query.
+     * Delegates to [MessageVisibilityEngine] and folds the result back into the state without
+     * emitting — callers fold it into a single `_state.update` via [updateState] so each user
+     * action produces exactly one state emission.
+     */
+    private fun filterMessages(currentState: ConversationState, query: String): ConversationState {
+        val result = MessageVisibilityEngine.derive(
+            messages = currentState.messages,
+            filter = currentState.filter,
+            sortOrder = currentState.sortOrder,
+            query = query,
+            currentMatchIndex = currentState.currentMatchIndex
+        )
+        return currentState.copy(
+            search = currentState.search.copy(
+                filteredMessages = result.filteredMessages,
+                turns = result.turns,
+                currentMatchIndex = result.currentMatchIndex
+            )
+        )
     }
+
+    /** Logs the size of the derived visible Message list after a state emission. */
+    private fun logVisibleMessages() =
+        logger.d { "Visible messages derived: ${_state.value.filteredMessages.size} (sortOrder=${_state.value.sortOrder})" }
 
     /**
      * Toggles sort order between OldestFirst and NewestFirst.
@@ -532,18 +509,8 @@ class ConversationViewModel(
             SortOrder.OldestFirst -> SortOrder.NewestFirst
             SortOrder.NewestFirst -> SortOrder.OldestFirst
         }
-        _state.update { it.copy(sortOrder = newOrder) }
+        updateState { it.copy(search = it.search.copy(sortOrder = newOrder)) }
         logger.i { "Sort order toggled: $newOrder" }
         saveSortOrder(newOrder)
-        filterMessages(_state.value.searchQuery)
-    }
-
-    /** Extracts searchable plain text from any MessageContent variant. */
-    private fun messageContentText(content: MessageContent): String = when (content) {
-        is MessageContent.Text -> content.text
-        is MessageContent.Code -> content.code
-        is MessageContent.Diff -> content.diff
-        is MessageContent.Terminal -> content.output
-        is MessageContent.Structured -> content.data
     }
 }

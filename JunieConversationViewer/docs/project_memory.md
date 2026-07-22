@@ -437,3 +437,30 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - CollapseShowAllTest: 10 tests (global commands, per-block override, search force-expand)
 - AccessibilityAndArea8Test: toolbar content descriptions, search navigation
 - All existing Sprint 4 tests continue to pass
+
+## Sprint 6, Phase 3 — UI/Compose Code-Quality Refactor
+**Date/Time:** 2026-07-22 11:12
+
+### What was shipped
+- Extracted a single pure `findCaseInsensitiveMatches(text, query)` in a new `search` package; both `applySearchHighlight` (MarkdownContent.kt) and `highlightSearchMatches` (SearchHighlight.kt) now delegate to it instead of duplicating the scan loop.
+- Extracted `Modifier.richContentBox(...)` (RichContentSurface.kt) and moved `RICH_CONTENT_SHAPE`/`RICH_CONTENT_BORDER_WIDTH` out of `CodeBlock.kt` into `ui/theme/RichContentTokens.kt`; updated all 5 hand-rolled call sites (DiffBlock, StructuredOutputBlock, TerminalOutputBlock, ToolCallBlock, CodeBlock) plus `CollapsibleBlock`'s header.
+- Moved `MarkdownBlock`/`parseMarkdownBlocks` out of `MarkdownContent.kt` into `com.knowledgespike.junieviewer.markdown`, and `SideBySideDiffParser` out of `ui.components` into `com.knowledgespike.junieviewer.diff` — composables are now thin importers of these pure parsers.
+- Resolved the long-standing D4 gotcha: `CodeBlock.kt` no longer hardcodes `SyntaxThemes.default(darkMode = false)` — added `LocalIsDarkTheme`/`JunieViewerTheme.isDark` so syntax highlighting now follows the active app theme.
+- `ConversationScreen.kt`: precomputed a single `currentMatchMessageId` per `filteredMessages`/`currentMatchIndex` change (replacing an O(n) `indexOf` per row), and collapsed the duplicated Human/Junie turn dispatch into one `items(...)` block parameterized by a renderer lambda.
+- Added `errorBorder`/`warningBorder` tokens to `ConversationColors` (mirroring codeBorder/toolCallBorder) — fixes the invisible border in `ErrorWarningBlock` where border colour equalled background colour.
+- `ConversationToolbar.kt`: replaced magic `4.dp` literals with `spacing.sm`, and promoted `20.dp` (divider height) / `14.dp` (clear-icon size) into named private constants.
+
+### Key decisions
+- Chose an explicit typed `@Composable` lambda (`val renderer: @Composable (...) -> Unit = { ... }`) over a bare `::HumanMessageItem` / `::JunieMessageItem` function reference for the unified turn renderer — function references to composables produced a `KComposableFunction5` class missing at test runtime.
+- Kept `CodeBlock`'s `heightIn(max = ...)` outside of `richContentBox` (chained before it) since the shared modifier owns `fillMaxWidth`/clip/border/background/padding/scroll, not arbitrary size constraints.
+- New error/warning border colours chosen to be visually distinct from their matching background (light: red-200/amber-200; dark: red-300/orange-300) rather than reusing existing tokens.
+
+### Gotchas
+- Composable function references (`::SomeComposable`) assigned to a `val` and later invoked inside a `LazyColumn` `items` block crash at runtime with `NoClassDefFoundError: androidx/compose/runtime/internal/KComposableFunction5` even though the code compiles cleanly — always wrap in an explicit `@Composable (...) -> Unit` lambda instead.
+- `ConversationColorsTest`'s "all 18 semantic tokens" test only asserts a literal list size, not the full token count, so adding new tokens (`errorBorder`/`warningBorder`) doesn't require touching that test.
+
+### Test coverage areas
+- New `SearchMatcherTest` (8 tests) covering the extracted `findCaseInsensitiveMatches` pure function: blank/empty inputs, multiple matches, case-insensitivity, non-overlapping adjacency, literal special-character queries.
+- New `ConversationColorsTest` cases verifying `errorBorder`/`warningBorder` are visually distinct from their backgrounds in both palettes.
+- Existing `MarkdownParserTest` and `SideBySideDiffParserTest` updated to import from the new `markdown`/`diff` packages; behaviour unchanged.
+- Full suite: `./gradlew :shared:allTests` — 488 tests, 0 failures. `./gradlew :shared:compileKotlinJvm :desktopApp:compileKotlin` — BUILD SUCCESSFUL.

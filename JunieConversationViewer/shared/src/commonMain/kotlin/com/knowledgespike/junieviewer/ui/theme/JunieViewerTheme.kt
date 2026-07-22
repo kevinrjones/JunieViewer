@@ -8,7 +8,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+
+/** CompositionLocal providing whether the currently active theme is dark. Follows the same resolution as [JunieViewerTheme]. */
+val LocalIsDarkTheme = staticCompositionLocalOf { false }
 
 // ---------------------------------------------------------------------------
 // M3 Colour Schemes — Sprint 3 section 12.1
@@ -95,7 +99,8 @@ fun JunieViewerTheme(
 
     CompositionLocalProvider(
         LocalConversationColors provides conversationColors,
-        LocalJunieViewerSpacing provides JunieViewerSpacing()
+        LocalJunieViewerSpacing provides JunieViewerSpacing(),
+        LocalIsDarkTheme provides isDark
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -125,4 +130,10 @@ object JunieViewerTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalJunieViewerSpacing.current
+
+    /** Whether the currently active theme is dark, as resolved by [JunieViewerTheme]. */
+    val isDark: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalIsDarkTheme.current
 }

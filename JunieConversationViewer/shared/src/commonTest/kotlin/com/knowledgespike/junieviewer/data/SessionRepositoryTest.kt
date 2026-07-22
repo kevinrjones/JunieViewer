@@ -12,6 +12,7 @@ import strikt.api.expectThat
 import strikt.assertions.hasSize
 import strikt.assertions.isA
 import strikt.assertions.isEqualTo
+import strikt.assertions.isNull
 import kotlin.random.Random
 
 class SessionRepositoryTest {
@@ -58,6 +59,92 @@ class SessionRepositoryTest {
     }
 
     @Test
+    fun `given a session with a direct currentDirectory field when listSessions then workingDirectory is extracted`() {
+        val sessionDir = testDir / "sessions" / "session-direct"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                {"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hello"}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/my-project"}},"timestampMs":1}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/my-project")
+    }
+
+    @Test
+    fun `given a session with currentDirectory nested in blob when listSessions then workingDirectory is extracted`() {
+        val sessionDir = testDir / "sessions" / "session-blob"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                {"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hello"}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentStateUpdatedEvent","blob":"{\"currentDirectory\":\"/Users/dev/blob-project\",\"other\":1}"}},"timestampMs":1}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/blob-project")
+    }
+
+    @Test
+    fun `given a session without a working directory when listSessions then workingDirectory is null`() {
+        val sessionDir = testDir / "sessions" / "session-none"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8("""{"kind":"UserPromptEvent","requestId":"req-1","prompt":"Hello"}""")
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isNull()
+    }
+
+    @Test
+    fun `given malformed lines before the working directory when listSessions then they are skipped without throwing`() {
+        val sessionDir = testDir / "sessions" / "session-malformed"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                this is not json but mentions currentDirectory
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AgentStateUpdatedEvent","blob":"not-json currentDirectory"}},"timestampMs":1}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/after-malformed"}},"timestampMs":2}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/after-malformed")
+    }
+
+    @Test
+    fun `given multiple working directory events when listSessions then the first hit wins`() {
+        val sessionDir = testDir / "sessions" / "session-first"
+        fileSystem.createDirectories(sessionDir)
+        fileSystem.write(sessionDir / "events.jsonl") {
+            writeUtf8(
+                """
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/first"}},"timestampMs":1}
+                {"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"CurrentDirectoryUpdatedEvent","currentDirectory":"/Users/dev/second"}},"timestampMs":2}
+                """.trimIndent()
+            )
+        }
+
+        val result = repository.listSessions(testDir.toString())
+        expectThat(result).hasSize(1)
+        expectThat(result[0].workingDirectory).isEqualTo("/Users/dev/first")
+    }
+
+    @Test
     fun `given a session with events when getMessages then it returns mapped messages`() {
         val sessionId = "test-session"
         val sessionDir = testDir / "sessions" / sessionId
@@ -73,8 +160,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
         
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
         
         expectThat(messages).hasSize(2)
         expectThat(messages[0]).and {
@@ -89,8 +175,7 @@ class SessionRepositoryTest {
 
     @Test
     fun `given session file does not exist when getMessages then it returns empty list`() {
-        repository.setSession("missing", testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession("missing", testDir.toString()).messages
         expectThat(messages).hasSize(0)
     }
 
@@ -113,8 +198,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         // Human prompt + result + unknown top-level + unknown nested = 4 messages
         // TaskStartedEvent is metadata-only (no message)
@@ -154,8 +238,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         // Human prompt + Thought = 2 messages
         // AvailablePullRequestsEvent, LlmResponseMetadataEvent, UserMessagesCommittedToHistory, TaskState are metadata-only
@@ -175,8 +258,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"SystemMessageEvent","text":"Free Google AI","details":"Powered by Google"}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {
@@ -198,8 +280,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"CancelAgentEvent"}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0].kind).isEqualTo(MessageKind.Cancelled)
@@ -217,8 +298,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"UserResponseEvent","prompt":"Confirm the plan","isChoice":true}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {
@@ -247,8 +327,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(0)
     }
@@ -272,8 +351,7 @@ class SessionRepositoryTest {
             writeUtf8(content)
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(5)
         expectThat(messages[0].kind).isEqualTo(MessageKind.TestRun)
@@ -294,8 +372,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"AskRequestUpdatedEvent","title":"Junie asks","askRequest":{"id":"a1","question":"What next?"},"status":"IN_PROGRESS"}},"timestampMs":1}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {
@@ -316,8 +393,7 @@ class SessionRepositoryTest {
             writeUtf8("""{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ChoiceRequestUpdatedEvent","title":"How to proceed?","choiceRequest":{"id":"c1","options":[{"id":"Agree","description":"Confirm plan"}]},"status":"IN_PROGRESS"}},"timestampMs":1}""")
         }
 
-        repository.setSession(sessionId, testDir.toString())
-        val messages = repository.getMessages()
+        val messages = repository.loadSession(sessionId, testDir.toString()).messages
 
         expectThat(messages).hasSize(1)
         expectThat(messages[0]).and {

@@ -1,16 +1,8 @@
 package com.knowledgespike.junieviewer.ui
 
-import com.knowledgespike.junieviewer.data.LiveSessionTracker
-import com.knowledgespike.junieviewer.data.PreferencesRepository
-import com.knowledgespike.junieviewer.data.SessionLoadResult
-import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.*
-import okio.FileSystem
-import org.junit.After
-import org.junit.Before
+import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -23,56 +15,14 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class SortOrderTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-
     private val testMessages = listOf(
         Message("1", Sender.Human, MessageContent.Text("First message"), MessageKind.Text),
         Message("2", Sender.Junie, MessageContent.Text("Second message"), MessageKind.Text),
         Message("3", Sender.Human, MessageContent.Text("Third message"), MessageKind.Text)
     )
 
-    private val fakeRepository = object : SessionRepository {
-        var loadCount = 0
-        var messagesToReturn: List<Message> = testMessages
-
-        override fun getMessages(): List<Message> = messagesToReturn
-        override fun loadSession(): SessionLoadResult {
-            loadCount++
-            return SessionLoadResult(messagesToReturn, null, 0L)
-        }
-        override fun listSessions(homePath: String): List<SessionInfo> = listOf(
-            SessionInfo("test-session", "/path/test-session", 123L)
-        )
-        override fun setSession(sessionId: String, homePath: String) {}
-        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
-            SessionInfo(sessionId, "/path/$sessionId", 123L)
-    }
-
-    private lateinit var tempPrefsPath: okio.Path
-    private lateinit var preferencesRepository: PreferencesRepository
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-        tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "area6-test-${System.currentTimeMillis()}.json"
-        preferencesRepository = PreferencesRepository(
-            path = tempPrefsPath,
-            fileSystem = FileSystem.SYSTEM
-        )
-        fakeRepository.loadCount = 0
-        fakeRepository.messagesToReturn = testMessages
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        try { FileSystem.SYSTEM.delete(tempPrefsPath) } catch (_: Exception) {}
-    }
-
-    private fun createViewModel(): ConversationViewModel =
-        ConversationViewModel(fakeRepository, preferencesRepository, testDispatcher, LiveSessionTracker())
-
-    private fun createViewModelWithSession(): ConversationViewModel {
+    /** Creates a [ConversationViewModel] with a Session already selected. */
+    private fun ConversationStateTestScope.createViewModelWithSession(): ConversationViewModel {
         val vm = createViewModel()
         vm.onAction(ConversationAction.OnSessionSelected(SessionInfo("test-session", "/path", 0L)))
         return vm
@@ -81,7 +31,7 @@ class SortOrderTest {
     // -- Default Sort Order --
 
     @Test
-    fun `default sort order is OldestFirst`() = runTest {
+    fun `default sort order is OldestFirst`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModel()
         advanceUntilIdle()
         assertEquals(SortOrder.OldestFirst, viewModel.state.value.sortOrder)
@@ -90,7 +40,7 @@ class SortOrderTest {
     // -- Toggle Sort Order --
 
     @Test
-    fun `ToggleSortOrder changes OldestFirst to NewestFirst`() = runTest {
+    fun `ToggleSortOrder changes OldestFirst to NewestFirst`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
         assertEquals(SortOrder.OldestFirst, viewModel.state.value.sortOrder)
@@ -101,7 +51,7 @@ class SortOrderTest {
     }
 
     @Test
-    fun `ToggleSortOrder changes NewestFirst back to OldestFirst`() = runTest {
+    fun `ToggleSortOrder changes NewestFirst back to OldestFirst`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -117,7 +67,7 @@ class SortOrderTest {
     // -- Visible Message Ordering --
 
     @Test
-    fun `visible Messages are oldest-first by default`() = runTest {
+    fun `visible Messages are oldest-first by default`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -126,7 +76,7 @@ class SortOrderTest {
     }
 
     @Test
-    fun `visible Messages reverse in newest-first`() = runTest {
+    fun `visible Messages reverse in newest-first`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -140,7 +90,7 @@ class SortOrderTest {
     // -- Persistence --
 
     @Test
-    fun `sort order is saved when toggled`() = runTest {
+    fun `sort order is saved when toggled`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -152,7 +102,7 @@ class SortOrderTest {
     }
 
     @Test
-    fun `sort order is loaded from preferences`() = runTest {
+    fun `sort order is loaded from preferences`() = runConversationStateTest(testMessages) {
         // Save NewestFirst preference before creating ViewModel
         preferencesRepository.save(AppPreferences(sortOrder = "NewestFirst"))
 
@@ -162,7 +112,7 @@ class SortOrderTest {
     }
 
     @Test
-    fun `invalid saved sort order falls back to OldestFirst`() = runTest {
+    fun `invalid saved sort order falls back to OldestFirst`() = runConversationStateTest(testMessages) {
         preferencesRepository.save(AppPreferences(sortOrder = "InvalidValue"))
 
         val viewModel = createViewModel()
@@ -173,7 +123,7 @@ class SortOrderTest {
     // -- Filter Interaction --
 
     @Test
-    fun `filters still apply in both sort orders`() = runTest {
+    fun `filters still apply in both sort orders`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -196,7 +146,7 @@ class SortOrderTest {
     // -- Search Interaction --
 
     @Test
-    fun `search query still filters Messages in both sort orders`() = runTest {
+    fun `search query still filters Messages in both sort orders`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -216,7 +166,7 @@ class SortOrderTest {
     }
 
     @Test
-    fun `Find Next and Find Previous work in visible sorted order`() = runTest {
+    fun `Find Next and Find Previous work in visible sorted order`() = runConversationStateTest(testMessages) {
         // All messages contain "message" so all match
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
@@ -242,7 +192,7 @@ class SortOrderTest {
     }
 
     @Test
-    fun `current match index stays valid after sort order change`() = runTest {
+    fun `current match index stays valid after sort order change`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -267,7 +217,7 @@ class SortOrderTest {
     // -- Manual Refresh Respects Sort Order --
 
     @Test
-    fun `manual refresh respects current sort order`() = runTest {
+    fun `manual refresh respects current sort order`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 
@@ -288,7 +238,7 @@ class SortOrderTest {
     // -- Command State --
 
     @Test
-    fun `command state reflects current sort order`() = runTest {
+    fun `command state reflects current sort order`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModelWithSession()
         advanceUntilIdle()
 

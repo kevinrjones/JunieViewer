@@ -73,6 +73,28 @@ sealed interface ConversationCommand {
 }
 
 /**
+ * Maps this command to the equivalent [ConversationAction] when the command is a direct
+ * passthrough to existing action handling, or null when it requires direct handling in the
+ * ViewModel (e.g. side-effect emission, live-tracking control, or platform-level commands).
+ */
+fun ConversationCommand.toActionOrNull(): ConversationAction? = when (this) {
+    ConversationCommand.OpenSession -> ConversationAction.OnToggleSessionPicker
+    ConversationCommand.FindNext -> ConversationAction.OnNextMatch
+    ConversationCommand.FindPrevious -> ConversationAction.OnPreviousMatch
+    ConversationCommand.Settings -> ConversationAction.OnToggleSettings
+    ConversationCommand.Copy,
+    ConversationCommand.Refresh,
+    ConversationCommand.ToggleAutoRefresh,
+    ConversationCommand.ToggleSortOrder,
+    ConversationCommand.CollapseAll,
+    ConversationCommand.ShowAll,
+    ConversationCommand.FocusSearch,
+    ConversationCommand.Quit,
+    ConversationCommand.About,
+    ConversationCommand.HowToUse -> null
+}
+
+/**
  * Represents the sort order for displaying Messages in the Conversation.
  */
 enum class SortOrder {

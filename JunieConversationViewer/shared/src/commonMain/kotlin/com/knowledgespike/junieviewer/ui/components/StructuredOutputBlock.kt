@@ -1,17 +1,10 @@
 package com.knowledgespike.junieviewer.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import com.knowledgespike.junieviewer.ui.theme.JunieViewerTheme
 import com.knowledgespike.junieviewer.ui.theme.MonospaceFont
@@ -26,9 +19,8 @@ fun StructuredOutputBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false,
-    externalExpanded: Boolean? = null,
-    onToggle: (() -> Unit)? = null
+    expanded: Boolean = true,
+    onToggle: () -> Unit = {}
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -39,8 +31,7 @@ fun StructuredOutputBlock(
         borderColor = colors.codeBorder,
         headerTestTag = "structured_output_block_header",
         bodyTestTag = "structured_output_block_body",
-        forceExpanded = forceExpanded,
-        externalExpanded = externalExpanded,
+        expanded = expanded,
         onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.weight(1f))
@@ -57,13 +48,12 @@ fun StructuredOutputBlock(
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = MonospaceFont
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RICH_CONTENT_SHAPE)
-                        .border(width = RICH_CONTENT_BORDER_WIDTH, color = colors.codeBorder, shape = RICH_CONTENT_SHAPE)
-                        .background(colors.codeBackground)
-                        .padding(spacing.md)
-                        .horizontalScroll(rememberScrollState())
+                    modifier = Modifier.richContentBox(
+                        backgroundColor = colors.codeBackground,
+                        borderColor = colors.codeBorder,
+                        padding = spacing.md,
+                        scrollable = true
+                    )
                 )
             }
         },

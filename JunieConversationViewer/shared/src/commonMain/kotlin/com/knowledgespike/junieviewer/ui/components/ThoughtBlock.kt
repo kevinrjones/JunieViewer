@@ -22,9 +22,8 @@ fun ThoughtBlock(
     modifier: Modifier = Modifier,
     searchQuery: String = "",
     isCurrentMatch: Boolean = false,
-    forceExpanded: Boolean = false,
-    externalExpanded: Boolean? = null,
-    onToggle: (() -> Unit)? = null
+    expanded: Boolean = true,
+    onToggle: () -> Unit = {}
 ) {
     val colors = JunieViewerTheme.conversationColors
     val spacing = JunieViewerTheme.spacing
@@ -35,8 +34,7 @@ fun ThoughtBlock(
         borderColor = colors.thoughtBorder,
         headerTestTag = "thought_header",
         bodyTestTag = "thought_block_body",
-        forceExpanded = forceExpanded,
-        externalExpanded = externalExpanded,
+        expanded = expanded,
         onToggle = onToggle,
         headerTrailing = {
             Spacer(modifier = Modifier.width(spacing.md))

@@ -1,16 +1,8 @@
 package com.knowledgespike.junieviewer.ui
 
 import app.cash.turbine.test
-import com.knowledgespike.junieviewer.data.LiveSessionTracker
-import com.knowledgespike.junieviewer.data.PreferencesRepository
-import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.*
-import okio.FileSystem
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -23,8 +15,6 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConversationCommandTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-
     private val testMessages = listOf(
         Message("1", Sender.Human, MessageContent.Text("Hello alpha"), MessageKind.Text),
         Message("2", Sender.Junie, MessageContent.Text("Hello alpha"), MessageKind.Text),
@@ -32,67 +22,35 @@ class ConversationCommandTest {
         Message("4", Sender.Junie, MessageContent.Text("Other beta"), MessageKind.Text)
     )
 
-    private val fakeRepository = object : SessionRepository {
-        var lastSessionId: String? = null
-        override fun getMessages(): List<Message> = testMessages
-        override fun listSessions(homePath: String): List<SessionInfo> = listOf(
-            SessionInfo("test-session", "/path/test-session", 123L)
-        )
-        override fun setSession(sessionId: String, homePath: String) {
-            lastSessionId = sessionId
-        }
-        override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
-            SessionInfo(sessionId, "/path/$sessionId", 123L)
-    }
-
-    private lateinit var tempPrefsPath: okio.Path
-    private lateinit var fakePreferencesRepository: PreferencesRepository
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-        tempPrefsPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "cmd-test-${System.currentTimeMillis()}.json"
-        fakePreferencesRepository = PreferencesRepository(
-            path = tempPrefsPath,
-            fileSystem = FileSystem.SYSTEM
-        )
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        FileSystem.SYSTEM.delete(tempPrefsPath)
-    }
-
-    private fun createViewModel(): ConversationViewModel =
-        ConversationViewModel(fakeRepository, fakePreferencesRepository, testDispatcher, LiveSessionTracker())
-
     // -- Command State Derivation --
 
     @Test
     fun `refresh is disabled when no session is selected`() {
-        val state = ConversationState(selectedSessionId = null)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = null))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.refreshEnabled)
     }
 
     @Test
     fun `refresh is enabled when session is selected and not loading`() {
-        val state = ConversationState(selectedSessionId = "s1", isLoading = false)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = "s1", isLoading = false))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.refreshEnabled)
     }
 
     @Test
     fun `refresh is disabled when loading`() {
-        val state = ConversationState(selectedSessionId = "s1", isLoading = true)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = "s1", isLoading = true))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.refreshEnabled)
     }
 
     @Test
     fun `find next and previous are disabled with blank query`() {
-        val state = ConversationState(searchQuery = "", messages = testMessages, filteredMessages = testMessages)
+        val state = ConversationState(
+            sessionLoad = SessionLoadState(messages = testMessages),
+            search = SearchState(searchQuery = "", filteredMessages = testMessages)
+        )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.findNextEnabled)
         assertFalse(cmdState.findPreviousEnabled)
@@ -101,9 +59,8 @@ class ConversationCommandTest {
     @Test
     fun `find next and previous are enabled when query has matching results`() {
         val state = ConversationState(
-            searchQuery = "alpha",
-            messages = testMessages,
-            filteredMessages = testMessages.take(2)
+            sessionLoad = SessionLoadState(messages = testMessages),
+            search = SearchState(searchQuery = "alpha", filteredMessages = testMessages.take(2))
         )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.findNextEnabled)
@@ -113,9 +70,8 @@ class ConversationCommandTest {
     @Test
     fun `find next and previous are disabled when query has no results`() {
         val state = ConversationState(
-            searchQuery = "nonexistent",
-            messages = testMessages,
-            filteredMessages = emptyList()
+            sessionLoad = SessionLoadState(messages = testMessages),
+            search = SearchState(searchQuery = "nonexistent", filteredMessages = emptyList())
         )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.findNextEnabled)
@@ -132,21 +88,21 @@ class ConversationCommandTest {
 
     @Test
     fun `toggle auto-refresh is disabled without session`() {
-        val state = ConversationState(selectedSessionId = null)
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = null))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.toggleAutoRefreshEnabled)
     }
 
     @Test
     fun `toggle auto-refresh is enabled with session`() {
-        val state = ConversationState(selectedSessionId = "s1")
+        val state = ConversationState(sessionLoad = SessionLoadState(selectedSessionId = "s1"))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.toggleAutoRefreshEnabled)
     }
 
     @Test
     fun `sort order and collapse controls are disabled without messages`() {
-        val state = ConversationState(messages = emptyList())
+        val state = ConversationState(sessionLoad = SessionLoadState(messages = emptyList()))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.toggleSortOrderEnabled)
         assertFalse(cmdState.collapseAllEnabled)
@@ -155,7 +111,7 @@ class ConversationCommandTest {
 
     @Test
     fun `sort order and collapse controls are enabled with messages`() {
-        val state = ConversationState(messages = testMessages)
+        val state = ConversationState(sessionLoad = SessionLoadState(messages = testMessages))
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.toggleSortOrderEnabled)
         assertTrue(cmdState.collapseAllEnabled)
@@ -164,20 +120,26 @@ class ConversationCommandTest {
 
     @Test
     fun `copy is enabled when text is selected`() {
-        val state = ConversationState(messages = testMessages, hasTextSelection = true)
+        val state = ConversationState(
+            sessionLoad = SessionLoadState(messages = testMessages),
+            blockExpansion = BlockExpansionState(hasTextSelection = true)
+        )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.copyEnabled)
     }
 
     @Test
     fun `copy is disabled when no text is selected`() {
-        val state = ConversationState(messages = testMessages, hasTextSelection = false)
+        val state = ConversationState(
+            sessionLoad = SessionLoadState(messages = testMessages),
+            blockExpansion = BlockExpansionState(hasTextSelection = false)
+        )
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertFalse(cmdState.copyEnabled)
     }
 
     @Test
-    fun `text selection action updates hasTextSelection state`() = runTest {
+    fun `text selection action updates hasTextSelection state`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -198,7 +160,7 @@ class ConversationCommandTest {
     // -- Command Dispatch --
 
     @Test
-    fun `open session command toggles session picker`() = runTest {
+    fun `open session command toggles session picker`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -208,7 +170,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `settings command toggles settings dialog`() = runTest {
+    fun `settings command toggles settings dialog`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -218,7 +180,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `find next command maps to next match navigation`() = runTest {
+    fun `find next command maps to next match navigation`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModel()
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
@@ -234,7 +196,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `find previous command maps to previous match navigation`() = runTest {
+    fun `find previous command maps to previous match navigation`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModel()
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
@@ -250,7 +212,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `toggle auto-refresh command toggles state`() = runTest {
+    fun `toggle auto-refresh command toggles state`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -264,7 +226,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `toggle sort order command cycles between oldest and newest first`() = runTest {
+    fun `toggle sort order command cycles between oldest and newest first`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -280,7 +242,7 @@ class ConversationCommandTest {
     // -- Area 8: Copy and Search Integration --
 
     @Test
-    fun `copy command does not crash when no selection exists`() = runTest {
+    fun `copy command does not crash when no selection exists`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -291,7 +253,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `copy command emits CopyText event`() = runTest {
+    fun `copy command emits CopyText event`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -303,7 +265,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `focus search command emits FocusSearch event`() = runTest {
+    fun `focus search command emits FocusSearch event`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -315,7 +277,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `find next wraps around at end of matches`() = runTest {
+    fun `find next wraps around at end of matches`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModel()
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
@@ -333,7 +295,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `find previous wraps around at beginning of matches`() = runTest {
+    fun `find previous wraps around at beginning of matches`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModel()
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
@@ -348,7 +310,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `match navigation respects current search query`() = runTest {
+    fun `match navigation respects current search query`() = runConversationStateTest(testMessages) {
         val viewModel = createViewModel()
         viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
         advanceUntilIdle()
@@ -369,7 +331,7 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `all command cases are handled without throwing`() = runTest {
+    fun `all command cases are handled without throwing`() = runConversationStateTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 

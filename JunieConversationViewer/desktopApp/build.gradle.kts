@@ -19,6 +19,8 @@ dependencies {
     implementation(libs.kermit)
     implementation(libs.slf4j.api)
     implementation(libs.logback.classic)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.strikt.core)
 }
 
 compose.desktop {

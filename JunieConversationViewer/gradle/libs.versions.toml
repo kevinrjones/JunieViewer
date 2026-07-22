@@ -14,12 +14,13 @@ okio = "3.10.2"
 kodeview = "0.9.0"
 kermit = "2.0.4"
 logback = "1.5.6"
+slf4j = "2.0.13"
 turbine = "1.2.0"
 
 [libraries]
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
-slf4j-api = { module = "org.slf4j:slf4j-api", version = "2.0.13" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
