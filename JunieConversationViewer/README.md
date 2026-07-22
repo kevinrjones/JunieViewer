@@ -71,6 +71,8 @@ Run tests using Gradle:
 
 Learn more about [How to Use](docs/HOW_TO_USE.md) and [Testing](docs/TESTING.md).
 
+Maintainers: see the [GitHub Setup Guide](docs/GITHUB_SETUP.md) for wiring up CI and publishing releases.
+
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html).

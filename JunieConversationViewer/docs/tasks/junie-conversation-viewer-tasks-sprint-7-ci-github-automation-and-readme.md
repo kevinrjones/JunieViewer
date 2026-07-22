@@ -40,14 +40,14 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 | # | Task Area | Status | Task Count |
 |---|-----------|--------|------------|
 | 1 | Discovery and Scope Confirmation | 6/6 complete | 6 |
-| 2 | GitHub Actions Workflow Design | 0/4 not started | 4 |
+| 2 | GitHub Actions Workflow Design | 3/4 complete (awaiting HITL review) | 4 |
 | 3 | Tag Build Workflow Implementation | 0/9 not started | 9 |
 | 4 | Versioning and Artifact Naming | 0/4 not started | 4 |
 | 5 | GitHub README | 0/7 not started | 7 |
-| 6 | Documentation Updates | 0/5 not started | 5 |
+| 6 | Documentation Updates | 1/6 in progress | 6 |
 | 7 | Testing and Local Verification | 0/6 not started | 6 |
 | 8 | Review, Cleanup, and Completion | 0/5 not started | 5 |
-| | **Total** | **6/46 in progress** | **46** |
+| | **Total** | **10/47 in progress** | **47** |
 
 ## 6. Task Status Legend
 
@@ -181,7 +181,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 2.1 Define workflow trigger, JDK, and cache design
 
-- [ ] Define workflow trigger, JDK, and cache design
+- [x] Define workflow trigger, JDK, and cache design
 
 **Description:** Specify the `v*` tag trigger, `actions/setup-java@v5` (Temurin, Java 21), and Gradle caching for the workflow.
 
@@ -198,7 +198,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 2.2 Define build matrix and per-OS package tasks — `Depends on 1.2`
 
-- [ ] Define build matrix and per-OS package tasks
+- [x] Define build matrix and per-OS package tasks
 
 **Description:** Define the macOS/Windows/Linux matrix (D1) with per-OS package task and output path, plus Linux Xvfb handling, using the confirmed task names from 1.2.
 
@@ -215,7 +215,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 2.3 Define artifact naming and Release publishing design
 
-- [ ] Define artifact naming and Release publishing design
+- [x] Define artifact naming and Release publishing design
 
 **Description:** Specify tag-aware artifact/Release names (base `JunieConversationViewer` + tag) and the `gh-release` publishing step gated on `refs/tags/`, including prerelease detection for tags containing `-` (per Q3).
 
@@ -232,7 +232,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 2.4 HITL review of workflow design — `HITL Review`
 
-- [ ] HITL review of workflow design
+- [x] HITL review of workflow design
 
 **Description:** Present the full workflow design (trigger, matrix, package tasks, naming, Release publishing) to the HITL for approval before implementation.
 
@@ -696,6 +696,23 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 **Testing expectations:** None.
 
+#### 6.6 Author GitHub setup guide (CI + publish)
+
+- [x] Author GitHub setup guide (CI + publish)
+
+**Description:** Author a standalone, step-by-step operator guide (`docs/GITHUB_SETUP.md`) that walks a maintainer through setting up a GitHub repository for the tag-triggered CI/release workflow: create & push the repo, enable Actions, set Workflow permissions to Read and write (rationale: `contents: write` for Release publishing), confirm runner availability (incl. `windows-11-arm` and `ubuntu-24.04-arm`), publish a release via a `vX.Y.Z` tag (hyphenated tags → prerelease; `packageVersion` stays `1.0.0`), monitor the run, and verify per-OS installers, zipped distributables, and `.sha256` checksums. Includes a troubleshooting section and cross-links to the Area 2 design and `HOW_TO_USE.md`.
+
+**Source:** Delivery Area 6; HITL request (2026-07-22).
+
+**Dependencies:** 2.4 (design source of truth); forward-references Area 3 workflow behaviour.
+
+**Likely files / areas:** `docs/GITHUB_SETUP.md`, `README.md` (single cross-link).
+
+**Completion criteria:**
+- `docs/GITHUB_SETUP.md` exists with ordered CI + publish steps consistent with the Area 2 design; README links to it.
+
+**Testing expectations:** Documentation consistency review.
+
 ---
 
 ### Area 7 — Testing and Local Verification
@@ -909,7 +926,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 ## 9. Acceptance Criteria
 
-- All 46 tasks marked complete.
+- All 47 tasks marked complete.
 - All **Test Required** tasks have passing automated tests.
 - All **HITL Review** tasks have HITL approval.
 - All **Manual Review Required** tasks verified.
@@ -947,3 +964,6 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 | 2026-07-22 | D4 — Confirm packaging task names before hard-coding | Area 1 must confirm the exact Compose Desktop packaging/build Gradle task names and output paths (via `./gradlew :desktopApp:tasks` and a local package) before they are written into the workflow. |
 | 2026-07-22 | Area 1 discovery complete (tasks 1.1–1.5) | Confirmed all packaging tasks (`packageDmg`/`packageMsi`/`packageDeb`/`createDistributable`/`packageDistributionForCurrentOS`) and output paths via `./gradlew :desktopApp:tasks` and a successful local macOS `packageDistributionForCurrentOS` run (DMG + distributable). Documented README/HOW_TO_USE subsumption plan and LogViewer CI reuse (drop Detekt; x64-only first). Findings recorded in [`docs/sprint-7-area-1-discovery-findings.md`](../sprint-7-area-1-discovery-findings.md). Task 1.6 (HITL review of findings + Q1–Q6) remains open pending HITL sign-off. |
 | 2026-07-22 | Area 1 closed — HITL resolved open questions Q1–Q6 (+ Q-add) | HITL sign-off obtained; task 1.6 checked and Area 1 marked 6/6 complete. Decisions: Q1 name workflow `tag-build.yml`; Q2 tag-only this sprint (defer PR/`main`); Q3 hyphen tags → prerelease; Q4 `HOW_TO_USE.md` authoritative, README summarizes+links; **Q5 include ARM Linux `ubuntu-24.04-arm` now** (deviates from discovery's defer); **Q6 add a software license + License badge** (deviates from discovery's omit; specific license TBD in Area 5/6); Q-add publish installer **and** zipped distributable + SHA256 checksums. Resolutions recorded in [`docs/sprint-7-area-1-discovery-findings.md`](../sprint-7-area-1-discovery-findings.md) §7. |
+| 2026-07-22 | Area 2 workflow design complete (tasks 2.1–2.3) | Documented the full `tag-build.yml` design (no YAML written): `v*` tag-only trigger, `contents: write`, `actions/setup-java@v5` Temurin JDK 21 + Gradle cache, `./gradlew test` gate before packaging (under `xvfb-run` on Linux), 4-row matrix (`macos-latest`/`windows-latest`/`ubuntu-latest`/`ubuntu-24.04-arm`) with per-OS `packageDmg/Msi/Deb` + `createDistributable`, tag-aware `JunieConversationViewer-<tag>-<suffix>` naming, per-file `.sha256` sidecars, and `softprops/action-gh-release` publishing with `prerelease` on hyphenated tags. `packageVersion` stays `1.0.0`. Design recorded in [`docs/sprint-7-area-2-workflow-design.md`](../sprint-7-area-2-workflow-design.md). Task 2.4 (HITL review of the design) remains open pending sign-off. |
+| 2026-07-22 | Windows ARM64 added to the build matrix (design) | HITL asked CI to support **Windows x64 and Windows ARM** packages (or a universal binary if one existed). Confirmed Windows has **no universal binary** — `jpackage`/Compose Desktop emits an arch-specific `.msi`, so two native runners are used: `windows-latest` (windows-x64) and **`windows-11-arm` (windows-arm64)** (GitHub-hosted, GA since Apr 2025). Caveat: **Temurin ships no Windows `aarch64` JDK 21** ([temurin#271](https://github.com/adoptium/temurin/issues/271)), so the ARM64 job uses `distribution: microsoft` (Microsoft Build of OpenJDK) via a new `matrix.java-distribution`; other jobs stay on Temurin. Matrix now 5 rows; added artifact names `windows-x64`/`windows-arm64`, risks R8–R10. Design updated in [`docs/sprint-7-area-2-workflow-design.md`](../sprint-7-area-2-workflow-design.md); Windows ARM64 packaging/runner still to be verified on the runner in Area 7. Task 2.4 remains open pending HITL sign-off. |
+| 2026-07-22 | Added GitHub setup guide (task 6.6) | HITL requested step-by-step GitHub setup guidelines for the CI and publish steps. Created standalone [`docs/GITHUB_SETUP.md`](../GITHUB_SETUP.md) (create & push repo, enable Actions + Read and write workflow permissions, confirm runners incl. `windows-11-arm`/`ubuntu-24.04-arm`, publish via `vX.Y.Z` tag with hyphen→prerelease, monitor, verify installers/`-distributable.zip`/`.sha256`, troubleshooting), restating Area 2 design facts and marking `tag-build.yml`-dependent behaviour as Area 3. Added task 6.6 (Area 6 now 1/6, total 47), and a single README cross-link (minimal, to avoid pre-empting the Area 5 rewrite). |
