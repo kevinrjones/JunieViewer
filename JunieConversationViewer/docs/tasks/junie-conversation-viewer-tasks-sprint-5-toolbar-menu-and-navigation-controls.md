@@ -17,7 +17,6 @@
 | [`docs/RECAP.md`](../RECAP.md) | Chronological project history. |
 | [`docs/TESTING.md`](../TESTING.md) | Testing stack, Robot pattern, `testTag` conventions. |
 | [`docs/project_memory.md`](../project_memory.md) | Decisions, gotchas, shipped work. |
-| [`docs/EVENT_CATALOG.md`](../../docs/EVENT_CATALOG.md) | Catalogue of known Junie event types. |
 | [`docs/sprint-5-area-1-discovery-findings.md`](../sprint-5-area-1-discovery-findings.md) | Area 1 discovery findings and design recommendations. |
 
 ## 3. Purpose
