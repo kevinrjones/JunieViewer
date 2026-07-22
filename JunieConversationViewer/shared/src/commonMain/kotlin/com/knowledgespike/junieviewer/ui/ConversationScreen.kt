@@ -76,6 +76,7 @@ fun ConversationRoot(
             commandState = commandState,
             onAction = viewModel::onAction,
             onCommand = viewModel::onCommand,
+            onCopySelectedText = onCopyText,
             searchFocusRequester = searchFocusRequester
         )
     }
@@ -91,6 +92,7 @@ fun ConversationScreen(
     commandState: ConversationCommandState = ConversationCommandState.fromConversationState(state),
     onAction: (ConversationAction) -> Unit,
     onCommand: (ConversationCommand) -> Unit = {},
+    onCopySelectedText: () -> Unit = {},
     searchFocusRequester: FocusRequester = remember { FocusRequester() }
 ) {
     if (state.isSessionPickerOpen) {
@@ -132,6 +134,7 @@ fun ConversationScreen(
             state = state,
             commandState = commandState,
             onCommand = onCommand,
+            onCopySelectedText = onCopySelectedText,
             onSearchQueryChange = { onAction(ConversationAction.OnSearchQueryChange(it)) },
             searchFocusRequester = searchFocusRequester
         )

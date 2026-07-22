@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -45,6 +46,7 @@ fun ConversationToolbar(
     state: ConversationState,
     commandState: ConversationCommandState,
     onCommand: (ConversationCommand) -> Unit,
+    onCopySelectedText: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit,
     searchFocusRequester: FocusRequester,
     modifier: Modifier = Modifier
@@ -82,14 +84,21 @@ fun ConversationToolbar(
 
             ToolbarDivider()
 
-            // Group 2: Copy
+            // Group 2: Copy — dispatched via dedicated callback so the desktop layer
+            // can route it directly to the platform clipboard without going through
+            // the ViewModel event channel (which would cause a menu-accelerator loop).
+            // Non-focusable so clicking it does not steal Compose keyboard focus away from
+            // the Message text that has the actual selection — otherwise the synthetic
+            // Ctrl+C/Cmd+C key event dispatched afterwards would target this button instead
+            // of reaching the SelectionContainer holding the selected text.
             ToolbarIconButton(
                 icon = Icons.Default.ContentCopy,
                 contentDesc = "Copy",
                 tooltip = "Copy",
                 enabled = commandState.copyEnabled,
-                onClick = { onCommand(ConversationCommand.Copy) },
-                testTag = "toolbar_copy"
+                onClick = { onCopySelectedText() },
+                testTag = "toolbar_copy",
+                focusable = false
             )
 
             ToolbarDivider()
@@ -172,7 +181,8 @@ private fun ToolbarIconButton(
     enabled: Boolean,
     onClick: () -> Unit,
     testTag: String,
-    selected: Boolean = false
+    selected: Boolean = false,
+    focusable: Boolean = true
 ) {
     val tint = when {
         !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -192,6 +202,7 @@ private fun ToolbarIconButton(
                 .size(TOOLBAR_BUTTON_SIZE)
                 .testTag(testTag)
                 .semantics { contentDescription = contentDesc }
+                .focusProperties { canFocus = focusable }
         ) {
             Icon(
                 imageVector = icon,

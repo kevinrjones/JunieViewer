@@ -6,18 +6,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowPlacement
-import androidx.compose.ui.window.WindowPosition
-import androidx.compose.ui.window.application
-import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.ui.window.*
 import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.data.LiveSessionTracker
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepositoryImpl
 import com.knowledgespike.junieviewer.desktop.*
 import com.knowledgespike.junieviewer.domain.AppPreferences
-import com.knowledgespike.junieviewer.ui.ConversationCommand
 import com.knowledgespike.junieviewer.ui.ConversationCommandState
 import com.knowledgespike.junieviewer.ui.ConversationViewModel
 
