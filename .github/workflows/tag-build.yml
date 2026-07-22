@@ -67,6 +67,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Derive the version tag once from the pushed ref (e.g. "v1.2.0") and make
+      # it available both as a step output and as an environment variable so
+      # every downstream step (artifact/installer/zip/checksum names and the
+      # Release title) uses one consistent, tag-aware value. The leading "v" is
+      # intentionally preserved. NOTE: this only names artifacts/Release assets;
+      # Gradle `packageVersion` stays "1.0.0" (true tag-driven versioning is
+      # deferred, see docs/project_memory.md).
+      - name: Derive release tag
+        id: tag
+        run: |
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
@@ -118,7 +131,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir -p release-artifacts
-          base="JunieConversationViewer-${{ github.ref_name }}-${{ matrix.artifact-suffix }}"
+          base="JunieConversationViewer-${TAG}-${{ matrix.artifact-suffix }}"
           cp ${{ matrix.installer-path }} "release-artifacts/${base}.${{ matrix.installer-ext }}"
           cd desktopApp/build/compose/binaries/main/app
           zip -r "$GITHUB_WORKSPACE/JunieConversationViewer/release-artifacts/${base}-distributable.zip" .
@@ -129,7 +142,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
-          $base = "JunieConversationViewer-${{ github.ref_name }}-${{ matrix.artifact-suffix }}"
+          $base = "JunieConversationViewer-$env:TAG-${{ matrix.artifact-suffix }}"
           Copy-Item -Path ${{ matrix.installer-path }} -Destination "release-artifacts/$base.${{ matrix.installer-ext }}"
           Compress-Archive -Path desktopApp/build/compose/binaries/main/app/* -DestinationPath "release-artifacts/$base-distributable.zip"
 
@@ -176,12 +189,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: JunieConversationViewer ${{ github.ref_name }}
+          name: JunieConversationViewer ${{ steps.tag.outputs.tag }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: JunieConversationViewer/release-artifacts/*
           body: |
-            Automated release for tag `${{ github.ref_name }}`.
+            Automated release for tag `${{ steps.tag.outputs.tag }}`.
 
             Cross-platform Compose Desktop builds are attached for macOS, Windows x64,
             Windows ARM64, Linux x64, and Linux ARM64. Each platform includes a native

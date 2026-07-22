@@ -42,12 +42,12 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 | 1 | Discovery and Scope Confirmation | 6/6 complete | 6 |
 | 2 | GitHub Actions Workflow Design | 3/4 complete (awaiting HITL review) | 4 |
 | 3 | Tag Build Workflow Implementation | 8/9 in progress (awaiting HITL review) | 9 |
-| 4 | Versioning and Artifact Naming | 0/4 not started | 4 |
+| 4 | Versioning and Artifact Naming | 4/4 complete | 4 |
 | 5 | GitHub README | 0/7 not started | 7 |
 | 6 | Documentation Updates | 1/6 in progress | 6 |
 | 7 | Testing and Local Verification | 0/6 not started | 6 |
 | 8 | Review, Cleanup, and Completion | 0/5 not started | 5 |
-| | **Total** | **18/47 in progress** | **47** |
+| | **Total** | **22/47 in progress** | **47** |
 
 ## 6. Task Status Legend
 
@@ -414,7 +414,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 4.1 Derive the tag string in the workflow
 
-- [ ] Derive the tag string in the workflow
+- [x] Derive the tag string in the workflow
 
 **Description:** Extract the git tag (e.g. `v1.2.0`) from `github.ref` into a reusable workflow variable/output for naming.
 
@@ -431,7 +431,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 4.2 Embed the tag in artifact and Release names
 
-- [ ] Embed the tag in artifact and Release names
+- [x] Embed the tag in artifact and Release names
 
 **Description:** Use the derived tag with base name `JunieConversationViewer` in artifact and Release names (e.g. `JunieConversationViewer-v1.2.0-macos.dmg`).
 
@@ -448,7 +448,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 4.3 Confirm `packageVersion` remains unchanged
 
-- [ ] Confirm `packageVersion` remains unchanged
+- [x] Confirm `packageVersion` remains unchanged
 
 **Description:** Verify `desktopApp/build.gradle.kts` still sets `packageVersion = "1.0.0"` and is not modified this sprint.
 
@@ -465,7 +465,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 4.4 Document deferred tag-driven versioning — `Deferred`
 
-- [ ] Document deferred tag-driven versioning
+- [x] Document deferred tag-driven versioning
 
 **Description:** Note in the docs that true tag-driven `packageVersion` (e.g. via `-PappVersion`) is deferred and outline the minimal future approach.
 
@@ -968,3 +968,5 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 | 2026-07-22 | Windows ARM64 added to the build matrix (design) | HITL asked CI to support **Windows x64 and Windows ARM** packages (or a universal binary if one existed). Confirmed Windows has **no universal binary** — `jpackage`/Compose Desktop emits an arch-specific `.msi`, so two native runners are used: `windows-latest` (windows-x64) and **`windows-11-arm` (windows-arm64)** (GitHub-hosted, GA since Apr 2025). Caveat: **Temurin ships no Windows `aarch64` JDK 21** ([temurin#271](https://github.com/adoptium/temurin/issues/271)), so the ARM64 job uses `distribution: microsoft` (Microsoft Build of OpenJDK) via a new `matrix.java-distribution`; other jobs stay on Temurin. Matrix now 5 rows; added artifact names `windows-x64`/`windows-arm64`, risks R8–R10. Design updated in [`docs/sprint-7-area-2-workflow-design.md`](../sprint-7-area-2-workflow-design.md); Windows ARM64 packaging/runner still to be verified on the runner in Area 7. Task 2.4 remains open pending HITL sign-off. |
 | 2026-07-22 | Added GitHub setup guide (task 6.6) | HITL requested step-by-step GitHub setup guidelines for the CI and publish steps. Created standalone [`docs/GITHUB_SETUP.md`](../GITHUB_SETUP.md) (create & push repo, enable Actions + Read and write workflow permissions, confirm runners incl. `windows-11-arm`/`ubuntu-24.04-arm`, publish via `vX.Y.Z` tag with hyphen→prerelease, monitor, verify installers/`-distributable.zip`/`.sha256`, troubleshooting), restating Area 2 design facts and marking `tag-build.yml`-dependent behaviour as Area 3. Added task 6.6 (Area 6 now 1/6, total 47), and a single README cross-link (minimal, to avoid pre-empting the Area 5 rewrite). |
 | 2026-07-22 | Area 3 workflow implemented (tasks 3.1–3.8) | Created `.github/workflows/tag-build.yml` (`Tag Build and Release`) per the approved Area 2 design: `v*` tag-only trigger, `permissions: contents: write`, `defaults.run` with `shell: bash` + `working-directory: JunieConversationViewer` (git repo root is the parent, gradlew lives in `JunieConversationViewer/`). `strategy: fail-fast: false` 5-row matrix (`macos-latest`/`windows-latest`/`windows-11-arm`/`ubuntu-latest`/`ubuntu-24.04-arm`) with `windows-11-arm` on `distribution: microsoft`. Steps: checkout@v4 → setup-java@v5 (JDK 21, `cache: gradle`) → `chmod +x gradlew` (non-Windows) → Linux Xvfb+GL install → `./gradlew test` (under `xvfb-run` on Linux) → per-OS `packageDmg/Msi/Deb` → `createDistributable` → prepare/rename installer + zip app image (`JunieConversationViewer-<tag>-<suffix>`; bash on Linux/macOS, pwsh on Windows) → per-file `.sha256` sidecars → `upload-artifact@v4` → tag-gated `softprops/action-gh-release@v2` (`prerelease` on hyphenated tags, `GITHUB_TOKEN`). YAML validated; `packageVersion` untouched. Task 3.9 (HITL review) left open; full run verification deferred to Area 7 (needs a real tag push). |
+
+| 2026-07-22 | Area 4 complete (tasks 4.1–4.4) | Made tag-in-name versioning explicit in `.github/workflows/tag-build.yml`: added a "Derive release tag" step (`id: tag`) exporting the pushed tag (`github.ref_name`, leading `v` preserved) as both a step output (`steps.tag.outputs.tag`) and an env var (`TAG`), then rewired installer/zip/`.sha256` names and the Release title/body to use it, so every artifact and Release name follows `JunieConversationViewer-<tag>-<suffix>`. Confirmed `desktopApp/build.gradle.kts` still sets `packageVersion = "1.0.0"` (unmodified). Recorded in `docs/project_memory.md` that true tag-driven `packageVersion` (e.g. `-PappVersion=<version>` wired into `packageVersion`) is deferred. YAML re-validated (14 steps); Area 3 behaviour (matrix, checksums, prerelease detection) unchanged. |

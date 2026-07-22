@@ -464,3 +464,21 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - New `ConversationColorsTest` cases verifying `errorBorder`/`warningBorder` are visually distinct from their backgrounds in both palettes.
 - Existing `MarkdownParserTest` and `SideBySideDiffParserTest` updated to import from the new `markdown`/`diff` packages; behaviour unchanged.
 - Full suite: `./gradlew :shared:allTests` — 488 tests, 0 failures. `./gradlew :shared:compileKotlinJvm :desktopApp:compileKotlin` — BUILD SUCCESSFUL.
+
+## Sprint 7 — Area 4: Versioning and Artifact Naming
+**Date/Time:** 2026-07-22 17:51
+
+### What was shipped
+- Made tag-in-name versioning explicit in `.github/workflows/tag-build.yml`: a "Derive release tag" step (`id: tag`) reads the pushed tag from `github.ref_name` (leading `v` preserved) and exposes it as both a step output (`steps.tag.outputs.tag`) and an environment variable (`TAG`).
+- Rewired the installer copy/rename, distributable zip, `.sha256` sidecar, and GitHub Release title/body to consume the derived tag, so every artifact and Release asset follows `JunieConversationViewer-<tag>-<suffix>` (e.g. `JunieConversationViewer-v1.2.0-macos.dmg`).
+
+### Key decisions
+- Current Sprint 7 behaviour embeds the Git tag in **artifact and Release names only**; the Compose Desktop / Gradle `packageVersion` remains `1.0.0` and `desktopApp/build.gradle.kts` is unchanged.
+- **Deferred — true tag-driven package versioning:** a future enhancement could pass the version from the tag into Gradle (e.g. `./gradlew -PappVersion=<version> ...`) and wire that property into `packageVersion`, so the installer's internal version also tracks the tag. This is intentionally out of scope for Sprint 7.
+
+### Gotchas
+- The leading `v` in the tag is deliberately not stripped — it appears verbatim in artifact/Release names.
+- Windows steps read the value as `$env:TAG` (PowerShell); Linux/macOS bash steps use `$TAG`; the Release action uses `${{ steps.tag.outputs.tag }}`.
+
+### Test coverage areas
+- Workflow-only change: YAML re-validated with PyYAML (parses cleanly, 14 steps). No application code changed; existing test suite unaffected. Full artifact-name verification is deferred to Area 7 (requires a real tag push).
