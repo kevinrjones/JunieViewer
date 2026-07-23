@@ -43,11 +43,11 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 | 2 | GitHub Actions Workflow Design | 3/4 complete (awaiting HITL review) | 4 |
 | 3 | Tag Build Workflow Implementation | 8/9 in progress (awaiting HITL review) | 9 |
 | 4 | Versioning and Artifact Naming | 4/4 complete | 4 |
-| 5 | GitHub README | 0/7 not started | 7 |
+| 5 | GitHub README | 6/7 complete (awaiting HITL review) | 7 |
 | 6 | Documentation Updates | 1/6 in progress | 6 |
 | 7 | Testing and Local Verification | 0/6 not started | 6 |
 | 8 | Review, Cleanup, and Completion | 0/5 not started | 5 |
-| | **Total** | **22/47 in progress** | **47** |
+| | **Total** | **28/47 in progress** | **47** |
 
 ## 6. Task Status Legend
 
@@ -488,7 +488,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 5.1 Draft README skeleton (title, description, sections)
 
-- [ ] Draft README skeleton
+- [x] Draft README skeleton
 
 **Description:** Create the section skeleton per the blueprint: title, short description, badges placeholder, screenshot placeholder, features, install/run/build, usage, shortcuts, sessions/logs paths, troubleshooting, dev/test commands, doc links, status, contributing.
 
@@ -505,7 +505,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 5.2 Add badges — `Depends on 3.1`
 
-- [ ] Add badges
+- [x] Add badges
 
 **Description:** Add badges for the tag-build workflow status, Kotlin, Java 21, and Compose Desktop; add a License badge only if a license exists/added (per Q6).
 
@@ -522,7 +522,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 5.3 Write features, installation, run, and build sections
 
-- [ ] Write features, installation, run, and build sections
+- [x] Write features, installation, run, and build sections
 
 **Description:** Populate features, installation (from GitHub Releases), run-from-source (Gradle run), and build/package-locally (confirmed Gradle tasks) sections.
 
@@ -539,7 +539,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 5.4 Write usage section subsuming `HOW_TO_USE.md`
 
-- [ ] Write usage section subsuming `HOW_TO_USE.md`
+- [x] Write usage section subsuming `HOW_TO_USE.md`
 
 **Description:** Summarize usage (Session selection, toolbar/menu, Filters, sort order, collapse/show all, live auto-refresh) and link to `docs/HOW_TO_USE.md` as the full reference, avoiding contradictions.
 
@@ -556,7 +556,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 5.5 Add shortcuts, sessions/logs paths, and troubleshooting
 
-- [ ] Add shortcuts, sessions/logs paths, and troubleshooting
+- [x] Add shortcuts, sessions/logs paths, and troubleshooting
 
 **Description:** Add the keyboard-shortcuts summary, the Sessions path (`~/.junie/sessions/`), the logs path (`~/.junieviewer/logs/`), and a troubleshooting section.
 
@@ -573,7 +573,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 5.6 Add documentation links, status/limitations, and contributing
 
-- [ ] Add documentation links, status/limitations, and contributing
+- [x] Add documentation links, status/limitations, and contributing
 
 **Description:** Add links to `docs/HOW_TO_USE.md`, `docs/TESTING.md`, `docs/UBIQUITOUS-LANGUAGE.md`, and sprint docs; a status/limitations section; and brief contributing notes.
 
@@ -590,7 +590,7 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 
 #### 5.7 HITL review of README content — `HITL Review`
 
-- [ ] HITL review of README content
+- [x] HITL review of README content
 
 **Description:** Present the completed README to the HITL for content, badge, and subsumption review.
 
@@ -970,3 +970,4 @@ This document breaks Sprint 7 into concrete, trackable tasks. It serves as:
 | 2026-07-22 | Area 3 workflow implemented (tasks 3.1–3.8) | Created `.github/workflows/tag-build.yml` (`Tag Build and Release`) per the approved Area 2 design: `v*` tag-only trigger, `permissions: contents: write`, `defaults.run` with `shell: bash` + `working-directory: JunieConversationViewer` (git repo root is the parent, gradlew lives in `JunieConversationViewer/`). `strategy: fail-fast: false` 5-row matrix (`macos-latest`/`windows-latest`/`windows-11-arm`/`ubuntu-latest`/`ubuntu-24.04-arm`) with `windows-11-arm` on `distribution: microsoft`. Steps: checkout@v4 → setup-java@v5 (JDK 21, `cache: gradle`) → `chmod +x gradlew` (non-Windows) → Linux Xvfb+GL install → `./gradlew test` (under `xvfb-run` on Linux) → per-OS `packageDmg/Msi/Deb` → `createDistributable` → prepare/rename installer + zip app image (`JunieConversationViewer-<tag>-<suffix>`; bash on Linux/macOS, pwsh on Windows) → per-file `.sha256` sidecars → `upload-artifact@v4` → tag-gated `softprops/action-gh-release@v2` (`prerelease` on hyphenated tags, `GITHUB_TOKEN`). YAML validated; `packageVersion` untouched. Task 3.9 (HITL review) left open; full run verification deferred to Area 7 (needs a real tag push). |
 
 | 2026-07-22 | Area 4 complete (tasks 4.1–4.4) | Made tag-in-name versioning explicit in `.github/workflows/tag-build.yml`: added a "Derive release tag" step (`id: tag`) exporting the pushed tag (`github.ref_name`, leading `v` preserved) as both a step output (`steps.tag.outputs.tag`) and an env var (`TAG`), then rewired installer/zip/`.sha256` names and the Release title/body to use it, so every artifact and Release name follows `JunieConversationViewer-<tag>-<suffix>`. Confirmed `desktopApp/build.gradle.kts` still sets `packageVersion = "1.0.0"` (unmodified). Recorded in `docs/project_memory.md` that true tag-driven `packageVersion` (e.g. `-PappVersion=<version>` wired into `packageVersion`) is deferred. YAML re-validated (14 steps); Area 3 behaviour (matrix, checksums, prerelease detection) unchanged. |
+| 2026-07-22 | Area 5 GitHub README drafted (tasks 5.1–5.6) | Rewrote root `README.md` GitHub-ready: title/description, four badges (tag-build workflow status pointing at `.github/workflows/tag-build.yml`, Kotlin 2.4.0, Java 21, Compose Desktop 1.11.1), a "Screenshot coming soon." placeholder, features (using Session/Conversation/Message/Human/Junie terminology), installation from GitHub Releases (tag-aware `JunieConversationViewer-<tag>-<platform>` names + `.sha256` sidecars; no notarization/signing/Homebrew/auto-update claims), run-from-source (Java 21 + `./gradlew :desktopApp:run`, Windows `.\gradlew.bat`), local build/package (confirmed `packageDmg/Msi/Deb`/`createDistributable`/`packageDistributionForCurrentOS`), usage overview linking `docs/HOW_TO_USE.md` as the full reference, keyboard shortcuts, sessions (`~/.junie/sessions/`) and logs (`~/.junieviewer/logs/`) paths, troubleshooting, dev/test commands, documentation links, status/limitations, and contributing. **No License badge/section** — no LICENSE file exists yet (Q6 license still TBD). Task 5.7 (HITL review) left open. |
