@@ -123,3 +123,15 @@ Native macOS menu items cannot be tested via the Compose Test Rule. Testing stra
 ./gradlew :shared:jvmTest    # Shared module JVM tests
 ./gradlew test                # Full project test suite
 ```
+
+## Sprint 7 — CI Test Execution (Tag Build workflow)
+
+The `.github/workflows/tag-build.yml` GitHub Actions workflow enforces tests as a gate before any packaging or release:
+
+- **Test gate before packaging** — CI runs `./gradlew test` on every matrix runner *before* the per-OS package tasks (`packageDmg`/`packageMsi`/`packageDeb`) and `createDistributable`. If tests fail, packaging does not run.
+- **Shared module tests** — `./gradlew :shared:jvmTest` runs the shared JVM unit/UI tests; `./gradlew test` runs the full aggregate suite (shared + desktopApp).
+- **Linux virtual display (Xvfb)** — the Compose Desktop test and packaging steps on the Ubuntu runners (`ubuntu-latest`, `ubuntu-24.04-arm`) run under `xvfb-run` with GL libraries installed (`xvfb`, `libegl1`, `libgles2`, `libgl1`), so headless CI has a virtual display for reliable desktop test/packaging execution. macOS and Windows runners do not need Xvfb.
+- **Packaging verification** — producing the installer and zipped distributable per OS is part of release workflow validation; a real `v*` tag push exercises the full build → test → package → release path.
+- **Tag-only publishing** — the workflow triggers only on pushed tags matching `v*`; artifacts and GitHub Releases are published only for those tags (hyphenated tags such as `v1.0.0-rc1` publish as prereleases). There is no PR/`main` CI in this sprint.
+
+> Note: end-to-end CI behaviour (Windows x64/ARM64 and Linux x64/ARM64 packaging on real runners) has not yet been verified by a real tag push; local verification to date is on macOS only.

@@ -482,3 +482,34 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 
 ### Test coverage areas
 - Workflow-only change: YAML re-validated with PyYAML (parses cleanly, 14 steps). No application code changed; existing test suite unaffected. Full artifact-name verification is deferred to Area 7 (requires a real tag push).
+
+## Sprint 7 — CI, GitHub Automation, and README (Completion)
+**Date/Time:** 2026-07-23 06:50
+
+### What was shipped
+- `.github/workflows/tag-build.yml` — `Tag Build and Release`, a `v*`-tag-only cross-platform CI/release workflow (JDK 21, `./gradlew test` gate, per-OS installers + zipped distributables + `.sha256` checksums, GitHub Release publishing).
+- GitHub-facing `README.md` — overview, badges, install-from-Releases, run/build-from-source, usage overview, shortcuts, sessions/logs paths, troubleshooting, docs links, status/limitations.
+- `docs/GITHUB_SETUP.md` — step-by-step operator guide for wiring up CI and publishing releases.
+- Supporting doc updates: `docs/HOW_TO_USE.md` (README cross-link), `docs/TESTING.md` (Sprint 7 CI test-execution section), `docs/RECAP.md` (Sprint 7 milestone), and the Sprint 7 task document.
+
+### Key decisions
+- **`v*` tag-only workflow** — no PR/`main` CI this sprint; the workflow triggers only on pushed version tags.
+- **Release publishing via GitHub Releases** — `softprops/action-gh-release@v2`, gated on `refs/tags/`.
+- **Tag embedded in artifact/Release names only** — assets follow `JunieConversationViewer-<tag>-<platform>`; the internal `packageVersion` stays `1.0.0` (no tag-driven package versioning — deferred).
+- **Linux Xvfb** — Ubuntu runners run tests and packaging under `xvfb-run` with GL libraries installed.
+- **`contents: write` permission** — required so the built-in `GITHUB_TOKEN` can publish Releases; no custom secrets needed.
+- **Windows ARM64 uses Microsoft OpenJDK** — the `windows-11-arm` matrix row pins `distribution: microsoft` because Temurin ships no Windows AArch64 JDK 21.
+- **Hyphenated tags → prereleases** — e.g. `v1.0.0-rc1` publishes as a prerelease.
+
+### Gotchas
+- **ARM runner availability** — `windows-11-arm` and `ubuntu-24.04-arm` runners depend on GitHub hosted-runner availability; the guide notes fallbacks.
+- **Unsigned/unnotarized installers** — the `.dmg`/`.msi`/`.deb` are neither code-signed nor notarized and are not published to any package manager; OSes may warn on first launch.
+- **Real tag push required** — end-to-end release verification (installer production on every runner, incl. Windows/Linux ARM) has not been exercised; it needs an actual `v*` tag push.
+- **No automatic semantic package versioning yet** — the tag affects names only.
+
+### Test/verification status
+- `./gradlew :shared:jvmTest` — BUILD SUCCESSFUL.
+- `./gradlew test` — BUILD SUCCESSFUL (full suite).
+- `./gradlew :desktopApp:packageDistributionForCurrentOS` — BUILD SUCCESSFUL on macOS; produced `desktopApp/build/compose/binaries/main/dmg/com.knowledgespike.junieviewer-1.0.0.dmg` and the app image under `.../main/app/`.
+- Workflow validated by static/YAML review (PyYAML parse; trigger, permissions, matrix, step order, checksums, prerelease gating confirmed). Windows/Linux (incl. ARM) packaging on real runners is **not** locally verifiable and remains pending.
+- Cyclomatic-complexity check: no complexity tool (e.g. Detekt) is configured in the build; no production code changed this sprint, so no remediation is required.

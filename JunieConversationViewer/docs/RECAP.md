@@ -266,3 +266,15 @@ This recap covers all work since the previous entry (2026-07-20 07:15), spanning
     - `98a00a8` — Move desktop-specific functionality to dedicated package
     - `9da0da2` — Add `onCopySelectedText` callback; fix toolbar Copy button focus-stealing
 - **Current State**: Work is on the `feat/sprint6` branch. Uncommitted change: `docs/EVENT_CATALOG.md` deleted (pending).
+
+# 2026-07-23
+
+## 06:50
+### Sprint 7 — CI, GitHub Automation, and README (Milestone)
+- **GitHub-facing README**: Rewrote the root `README.md` as the public entry point — title/description, badges (tag-build workflow status, Kotlin, Java 21, Compose Desktop), features, installation from GitHub Releases, run/build-from-source, usage overview linking `docs/HOW_TO_USE.md`, keyboard shortcuts, sessions/logs paths, troubleshooting, dev/test commands, documentation links, and status/limitations.
+- **Tag-triggered release workflow**: Added `.github/workflows/tag-build.yml` (`Tag Build and Release`), triggered only on pushed `v*` tags, with `permissions: contents: write`, JDK 21 (`actions/setup-java@v5`, Gradle cache), and `./gradlew test` as a gate before packaging.
+- **Cross-platform packaging matrix**: `fail-fast: false` matrix over macOS, Windows x64, Windows ARM64 (`windows-11-arm`, Microsoft OpenJDK), Linux x64, and Linux ARM64 (`ubuntu-24.04-arm`), each producing a native installer (`.dmg`/`.msi`/`.deb`) plus a zipped distributable; Linux runs tests/packaging under Xvfb.
+- **GitHub Release publishing**: Tag-gated `softprops/action-gh-release@v2` publishes installers, `-distributable.zip` app images, and matching `.sha256` checksum sidecars; hyphenated tags (e.g. `v1.0.0-rc1`) publish as prereleases. Artifacts/Release names embed the tag (`JunieConversationViewer-<tag>-<platform>`).
+- **Operator guide**: Authored `docs/GITHUB_SETUP.md` — a step-by-step guide for wiring up CI and publishing releases — cross-linked from the README and `docs/HOW_TO_USE.md`.
+- **Verification**: `./gradlew :shared:jvmTest` and `./gradlew test` BUILD SUCCESSFUL; local macOS `packageDistributionForCurrentOS` verified. Workflow validated by static/YAML review only.
+- **Limitations still applicable**: installers are unsigned/unnotarized and not published to any package manager; `packageVersion` remains `1.0.0` by design (no tag-driven package versioning); Windows/Linux (incl. ARM) packaging on real runners is pending a real tag push; no PR/`main` CI this sprint.
