@@ -5,13 +5,15 @@ Sprint 7 tag-triggered CI/release workflow can build and publish the **Junie
 Conversation Viewer** across macOS, Windows (x64 + ARM64), and Linux (x64 +
 ARM64).
 
-> **Status note.** The workflow file `.github/workflows/tag-build.yml` is
-> **not implemented yet** — it is designed in
-> [`docs/sprint-7-area-2-workflow-design.md`](sprint-7-area-2-workflow-design.md)
-> and will be created in Sprint 7 **Area 3**. Steps below that describe the
-> workflow's runtime behaviour (release triggering, artifact production,
-> monitoring, verification) therefore describe the **designed** behaviour and
-> apply once Area 3 lands. They are marked **(depends on Area 3)**.
+> **Status note.** Sprint 7 is complete: the workflow file
+> [`.github/workflows/tag-build.yml`](../../.github/workflows/tag-build.yml) is
+> **implemented** and follows the design in
+> [`docs/sprint-7-area-2-workflow-design.md`](sprint-7-area-2-workflow-design.md).
+> The steps below describe its live behaviour (release triggering, artifact
+> production, monitoring, verification). End-to-end packaging on the Windows and
+> Linux runners (including the ARM64 rows) has not yet been exercised by a real
+> tag push; those rows are marked **(pending real-runner verification)** where
+> relevant.
 
 ---
 
@@ -89,7 +91,7 @@ Notes:
 - **Windows has no universal binary.** `jpackage`/Compose Desktop emits an
   architecture-specific `.msi`, so both an x64 and an ARM64 MSI are built on
   their own native runners.
-- **JDK distribution caveat (depends on Area 3).** Every job installs **JDK 21**
+- **JDK distribution caveat.** Every job installs **JDK 21**
   via `actions/setup-java`. All jobs use **Temurin** except the
   `windows-11-arm` job, which uses the **Microsoft Build of OpenJDK**
   (`distribution: microsoft`) because Temurin does not ship a Windows `aarch64`
@@ -101,7 +103,7 @@ Notes:
 
 ---
 
-## 4. Publish a release (depends on Area 3)
+## 4. Publish a release
 
 Releases are triggered **only** by pushing a version tag matching `v*` — there
 is no build on `main` pushes or pull requests this sprint.
@@ -131,7 +133,7 @@ is no build on `main` pushes or pull requests this sprint.
 
 ---
 
-## 5. Monitor the workflow run (depends on Area 3)
+## 5. Monitor the workflow run
 
 1. Open the **Actions** tab of the repository.
 2. Select the **Tag Build and Release** run triggered by your tag.
@@ -143,7 +145,7 @@ is no build on `main` pushes or pull requests this sprint.
 
 ---
 
-## 6. Verify the produced artifacts (depends on Area 3)
+## 6. Verify the produced artifacts
 
 Open **Releases** (or the run's uploaded artifacts) and confirm the following
 per-OS files are attached, each alongside a `.sha256` checksum file:
@@ -188,11 +190,11 @@ to unzip and run.
   the remaining platforms still build and publish.
 - **Windows ARM64 job fails installing the JDK.** Temurin has no Windows
   `aarch64` JDK 21; the ARM64 job must use `distribution: microsoft`. If you
-  adapt the workflow, keep that distinction (depends on Area 3).
+  adapt the workflow, keep that distinction.
 - **Linux job fails with a display/`DISPLAY` or headless error.** Compose
   Desktop packaging on Linux needs a virtual display. The workflow installs Xvfb
   packages (`xvfb libegl1 libgles2 libgl1`) and runs Gradle under `xvfb-run` on
-  Linux runners (depends on Area 3).
+  Linux runners.
 - **First-run Gradle configuration-cache warnings.** The first CI runs may log
   configuration-cache warnings because the cache is cold. These are expected on
   a fresh runner and do not fail the build.
@@ -207,3 +209,7 @@ to unzip and run.
   disagree, the design document is the source of truth.
 - [`docs/HOW_TO_USE.md`](HOW_TO_USE.md) — how to use the application once it is
   installed.
+- [`README.md`](../../README.md) — GitHub-facing project overview, installation
+  from Releases, and build commands.
+- [`.github/workflows/tag-build.yml`](../../.github/workflows/tag-build.yml) —
+  the implemented workflow this guide operates.

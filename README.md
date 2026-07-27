@@ -25,7 +25,7 @@ A Compose Desktop application for browsing **Junie** conversation **Sessions** s
 - **Sub-agent representation** — sub-agent delegations are shown as dedicated blocks with agent name and status.
 - **Accessibility** — WCAG AA contrast, screen-reader labels, non-colour-only indicators, and keyboard-navigable focus order.
 
-Terminology used throughout: **Session**, **Conversation**, **Message**, **Human**, **Junie**. See [`docs/UBIQUITOUS-LANGUAGE.md`](docs/UBIQUITOUS-LANGUAGE.md).
+Terminology used throughout: **Session**, **Conversation**, **Message**, **Human**, **Junie**. See [`docs/UBIQUITOUS-LANGUAGE.md`](JunieConversationViewer/docs/UBIQUITOUS-LANGUAGE.md).
 
 ## Installation from GitHub Releases
 
@@ -92,7 +92,7 @@ Outputs are written under `desktopApp/build/compose/binaries/main/`.
 
 On launch the viewer scans `~/.junie/sessions/` and lets you pick a **Session** from the toolbar or **File** menu; **Settings** lets you change the Junie home path. Messages are grouped into **Turns**, with Human Messages on the left and Junie Messages on the right, each tagged with a Message Kind marker. Use the **Filters** chips to control which Message Kinds are shown, **Search** to find and step through matches, **Sort Order** to flip chronological direction, and **Collapse All / Show All** to manage rich content. Enable **Auto-Refresh** to track a live Session as new Events are written.
 
-See [`docs/HOW_TO_USE.md`](docs/HOW_TO_USE.md) for the full, detailed usage reference.
+See [`docs/HOW_TO_USE.md`](JunieConversationViewer/docs/HOW_TO_USE.md) for the full, detailed usage reference.
 
 ## Keyboard shortcuts
 
@@ -132,15 +132,15 @@ See [`docs/HOW_TO_USE.md`](docs/HOW_TO_USE.md) for the full, detailed usage refe
 ./gradlew test
 ```
 
-See [`docs/TESTING.md`](docs/TESTING.md) for the testing strategy.
+See [`docs/TESTING.md`](JunieConversationViewer/docs/TESTING.md) for the testing strategy.
 
 ## Documentation
 
-- [How to Use](docs/HOW_TO_USE.md) — full usage reference.
-- [Testing](docs/TESTING.md) — testing strategy and commands.
-- [Ubiquitous Language](docs/UBIQUITOUS-LANGUAGE.md) — domain terminology.
-- [GitHub Setup Guide](docs/GITHUB_SETUP.md) — maintainers: wire up CI and publish releases.
-- Sprint and task docs under [`docs/`](docs/).
+- [How to Use](JunieConversationViewer/docs/HOW_TO_USE.md) — full usage reference.
+- [Testing](JunieConversationViewer/docs/TESTING.md) — testing strategy and commands.
+- [Ubiquitous Language](JunieConversationViewer/docs/UBIQUITOUS-LANGUAGE.md) — domain terminology.
+- [GitHub Setup Guide](JunieConversationViewer/docs/GITHUB_SETUP.md) — maintainers: wire up CI and publish releases.
+- Sprint and task docs under [`docs/`](JunieConversationViewer/docs/).
 
 ## Status / limitations
 
@@ -156,7 +156,7 @@ Contributions are welcome. Please:
 
 - Build and run from source (Java 21 + Gradle wrapper) before opening a PR.
 - Run `./gradlew test` and keep the build green.
-- Follow the existing Kotlin/Compose code style and the domain terminology in [`docs/UBIQUITOUS-LANGUAGE.md`](docs/UBIQUITOUS-LANGUAGE.md).
+- Follow the existing Kotlin/Compose code style and the domain terminology in [`docs/UBIQUITOUS-LANGUAGE.md`](JunieConversationViewer/docs/UBIQUITOUS-LANGUAGE.md).
 
 ---
 
