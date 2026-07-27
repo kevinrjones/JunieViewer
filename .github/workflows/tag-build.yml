@@ -42,14 +42,6 @@ jobs:
             package-task: packageMsi
             installer-path: desktopApp/build/compose/binaries/main/msi/*.msi
             installer-ext: msi
-          - os: windows-11-arm
-            artifact-suffix: windows-arm64
-            # Temurin ships no Windows aarch64 JDK 21 (adoptium/temurin#271);
-            # use the Microsoft Build of OpenJDK for the Windows ARM64 runner.
-            java-distribution: microsoft
-            package-task: packageMsi
-            installer-path: desktopApp/build/compose/binaries/main/msi/*.msi
-            installer-ext: msi
           - os: ubuntu-latest
             artifact-suffix: linux-x64
             java-distribution: temurin
@@ -197,7 +189,7 @@ jobs:
             Automated release for tag `${{ steps.tag.outputs.tag }}`.
 
             Cross-platform Compose Desktop builds are attached for macOS, Windows x64,
-            Windows ARM64, Linux x64, and Linux ARM64. Each platform includes a native
+            Linux x64, and Linux ARM64. Each platform includes a native
             installer (`.dmg` / `.msi` / `.deb`), a zipped runnable distributable app
             image, and a matching SHA256 checksum (`.sha256`).
         env:

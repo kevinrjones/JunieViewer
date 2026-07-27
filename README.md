@@ -34,7 +34,6 @@ Pushing a version tag (`vX.Y.Z`) publishes a **GitHub Release** with per-OS inst
 ```
 JunieConversationViewer-v1.2.0-macos.dmg
 JunieConversationViewer-v1.2.0-windows-x64.msi
-JunieConversationViewer-v1.2.0-windows-arm64.msi
 JunieConversationViewer-v1.2.0-linux-x64.deb
 JunieConversationViewer-v1.2.0-linux-arm64.deb
 JunieConversationViewer-v1.2.0-<platform>-distributable.zip
@@ -144,7 +143,7 @@ See [`docs/TESTING.md`](JunieConversationViewer/docs/TESTING.md) for the testing
 
 ## Status / limitations
 
-- **Platform verification:** only macOS has been fully verified locally; Windows and Linux (incl. ARM64) builds are produced by CI but have not yet been HITL-verified.
+- **Platform verification:** only macOS has been fully verified locally; Windows x64 and Linux (incl. ARM64) builds are produced by CI but have not yet been HITL-verified.
 - Code block syntax highlighting does not yet follow the Light/Dark theme selection.
 - Search highlighting within rendered Markdown may not highlight all matches.
 - Side-by-side diff view is not yet implemented; diffs render in unified format.

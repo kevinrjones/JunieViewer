@@ -78,8 +78,7 @@ are available to your repository:
 | Platform | Runner label | Notes |
 | :--- | :--- | :--- |
 | macOS | `macos-latest` | Builds the `.dmg`. |
-| Windows x64 | `windows-latest` | Builds the x64 `.msi`. |
-| Windows ARM64 | `windows-11-arm` | Builds the ARM64 `.msi`; GA on GitHub-hosted runners since Apr 2025. |
+| Windows x64 | `windows-latest` | Builds the x64 `.msi` (also runs on Windows ARM via emulation). |
 | Linux x64 | `ubuntu-latest` | Builds the x64 `.deb`. |
 | Linux ARM64 | `ubuntu-24.04-arm` | Builds the ARM64 `.deb`. |
 
@@ -88,18 +87,14 @@ Notes:
 - **Free for public repositories.** Standard and ARM GitHub-hosted runners run
   without minute charges on public repos. On private repos, ARM/Windows minutes
   consume your plan's allowance.
-- **Windows has no universal binary.** `jpackage`/Compose Desktop emits an
-  architecture-specific `.msi`, so both an x64 and an ARM64 MSI are built on
-  their own native runners.
-- **JDK distribution caveat.** Every job installs **JDK 21**
-  via `actions/setup-java`. All jobs use **Temurin** except the
-  `windows-11-arm` job, which uses the **Microsoft Build of OpenJDK**
-  (`distribution: microsoft`) because Temurin does not ship a Windows `aarch64`
-  JDK 21.
+- **Windows ARM.** A dedicated Windows ARM64 build is **not** produced; the x64
+  `.msi` runs on Windows on ARM via the OS's x64 emulation layer.
+- **JDK distribution.** Every job installs **JDK 21** (Temurin) via
+  `actions/setup-java`.
 - **Fallback if an ARM runner is unavailable.** The matrix uses
   `fail-fast: false`, so a missing/unsupported ARM runner isolates to its own
-  job. If `windows-11-arm` or `ubuntu-24.04-arm` is unavailable in your account,
-  that row can be dropped without affecting the other platforms.
+  job. If `ubuntu-24.04-arm` is unavailable in your account, that row can be
+  dropped without affecting the other platforms.
 
 ---
 
@@ -137,7 +132,7 @@ is no build on `main` pushes or pull requests this sprint.
 
 1. Open the **Actions** tab of the repository.
 2. Select the **Tag Build and Release** run triggered by your tag.
-3. Each matrix job (macOS, Windows x64, Windows ARM64, Linux x64, Linux ARM64)
+3. Each matrix job (macOS, Windows x64, Linux x64, Linux ARM64)
    runs tests first, then packages. If tests fail, that job's packaging does not
    run.
 4. When all jobs succeed, the run publishes a GitHub **Release** for the tag with
@@ -154,7 +149,6 @@ per-OS files are attached, each alongside a `.sha256` checksum file:
 | :--- | :--- | :--- |
 | macOS | `JunieConversationViewer-<tag>-macos.dmg` | `...-macos-distributable.zip` |
 | Windows x64 | `JunieConversationViewer-<tag>-windows-x64.msi` | `...-windows-x64-distributable.zip` |
-| Windows ARM64 | `JunieConversationViewer-<tag>-windows-arm64.msi` | `...-windows-arm64-distributable.zip` |
 | Linux x64 | `JunieConversationViewer-<tag>-linux-x64.deb` | `...-linux-x64-distributable.zip` |
 | Linux ARM64 | `JunieConversationViewer-<tag>-linux-arm64.deb` | `...-linux-arm64-distributable.zip` |
 

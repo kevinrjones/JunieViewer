@@ -29,7 +29,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.knowledgespike.junieviewer"
+            packageName = "JunieViewer"
             packageVersion = "1.0.0"
 
             // Per-OS application/installer icons. Each platform requires its
