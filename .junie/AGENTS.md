@@ -2,6 +2,11 @@
 
 This document outlines the coding standards, architecture, and deployment procedures for this project.
 
+** General **
+Make sure to read the `docs/UBIQUITOUS-LAMGUANGE.md`, `docs/RECAP.md` file and the `docs/project_memory.md` file at the 
+start of 
+your work.
+
 ## General Coding Standards
 
 ** For Kotlin**

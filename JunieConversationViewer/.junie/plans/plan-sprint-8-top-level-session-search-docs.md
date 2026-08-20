@@ -122,3 +122,48 @@ Both Sprint 8 docs are internally consistent, linked, and ready for HITL review.
 - Verify sprint/task cross-links and references to supporting docs (`HOW_TO_USE`, `RECAP`, `project_memory`, `README` as applicable).
 - Confirm canonical terminology and sender labeling are consistent (`Human`/`Junie`, not ambiguous alternatives).
 - Run a final acceptance checklist against all issue constraints, including explicit non-regression of existing Conversation Search and documented deferred items.
+
+### ✓ Step 5: Audit Sprint 8 Area 1 sources and implementation seams
+Area 1 discovery is grounded in the current sprint/task docs, project terminology docs, and implementation seams.
+- Read required docs and prior Area 1 findings docs to align output structure and terminology.
+- Inspect current session discovery/loading, conversation search, and session-open flow in code.
+- Capture concrete insertion points and non-regression boundaries for future Areas 2+.
+
+### ✓ Step 6: Author Sprint 8 Area 1 discovery findings document
+A new discovery findings doc exists at `docs/sprint-8-area-1-discovery-findings.md` with complete Area 1 coverage.
+- Write all required sections from documentation baseline through HITL review summary.
+- Include concrete file/method seams, MVP strategy recommendation, UX recommendations, and open HITL questions with recommendations.
+- Document explicit Conversation Search vs Top-Level Session Search boundaries.
+
+### ✓ Step 7: Update Sprint 8 task document Area 1 status and notes
+The Sprint 8 task document reflects completed discovery work and pending HITL decisions.
+- Mark 1.1 and 1.2 complete if criteria are satisfied.
+- Keep 1.3 and 1.4 pending unless explicit HITL decisions are already captured.
+- Update Area 1 progress summary and add concise notes/decisions log entries.
+
+### ✓ Step 8: Final consistency pass and submit Area 1 documentation changes
+Area 1 documentation changes are cross-checked and ready for handoff.
+- Verify terminology consistency and required non-regression boundaries.
+- Verify links and references in new/updated docs.
+- Submit with concise summary and verification notes.
+
+### ✓ Step 9: Capture HITL decisions for Sprint 8 Section 6.2
+Section 6.2 open questions are reviewed with HITL and explicit decisions are captured.
+- Walk through all ten decision prompts from `docs/sprint-8-area-1-discovery-findings.md` section 6.2.
+- Record final decisions for entry point, trigger timing, result granularity, open-position behavior, search source, unknown payload handling, metadata visibility, indexing strategy, post-open Conversation Search behavior, and live tracking policy.
+
+### ✓ Step 10: Update Sprint 8 sprint document with approved decisions
+The sprint document reflects final HITL-approved choices and removes ambiguity for implementation.
+- Update open-questions outcomes with explicit accepted decisions.
+- Align UX model, MVP strategy, and deferred items with the approved Section 6.2 answers.
+
+### ✓ Step 11: Update Sprint 8 task document status and decision log
+The task document reflects resolved HITL decisions and accurate Area 1 progress.
+- Mark tasks 1.3 and 1.4 complete only after decisions are captured.
+- Add or update Sprint 8 notes/decision log entries linking to finalized decisions.
+
+### ✓ Step 12: Final consistency pass and submit decision-capture updates
+Sprint and task docs are synchronized and ready for Area 2 execution.
+- Verify terminology and capability split remain explicit.
+- Verify cross-links and status totals match the new Area 1 completion state.
+- Submit concise verification notes and next-step readiness.

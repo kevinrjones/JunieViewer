@@ -37,7 +37,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 | # | Task Area | Status | Task Count |
 |---|-----------|--------|------------|
-| 1 | Discovery and Scope Confirmation | 0/4 complete | 4 |
+| 1 | Discovery and Scope Confirmation | 4/4 complete | 4 |
 | 2 | Search Domain Model and Repository API | 0/4 complete | 4 |
 | 3 | Cross-Session Search Implementation | 0/5 complete | 5 |
 | 4 | UI Entry Point and Search Results | 0/4 complete | 4 |
@@ -45,7 +45,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 | 6 | Tests and Verification | 0/4 complete | 4 |
 | 7 | Documentation Updates | 0/4 complete | 4 |
 | 8 | Manual Review, HITL Review, and Completion | 0/5 complete | 5 |
-| | **Total** | **0/34 complete** | **34** |
+| | **Total** | **4/34 complete** | **34** |
 
 ## 6. Task Status Legend
 
@@ -71,7 +71,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 1.1 Confirm canonical terminology and feature boundaries
 
-- [ ] Confirm canonical terminology and feature boundaries
+- [x] Confirm canonical terminology and feature boundaries
 
 **Description:** Reconfirm use of Conversation, Session, Event, Message, Human, Junie, Search Query, and HITL in implementation and UI copy. Reconfirm explicit split between Conversation Search (current Session only) and Top-Level Session Search (all Sessions).
 
@@ -89,7 +89,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 1.2 Validate current implementation seams for session discovery and search
 
-- [ ] Validate current implementation seams for session discovery and search
+- [x] Validate current implementation seams for session discovery and search
 
 **Description:** Validate where Sessions are discovered/loaded and where current Conversation Search is applied, including command/menu wiring and state transitions.
 
@@ -107,7 +107,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 1.3 Finalize MVP search strategy and deferred indexing decision — `HITL Review`
 
-- [ ] Finalize MVP search strategy and deferred indexing decision
+- [x] Finalize MVP search strategy and deferred indexing decision
 
 **Description:** Confirm on-demand scan MVP strategy and document explicit deferral of persistent indexing unless discovery proves unacceptable performance.
 
@@ -125,9 +125,11 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 **HITL-visible outcome:** HITL decision captured for on-demand scan vs early indexing.
 
+**Status note:** HITL confirmed on-demand scan MVP and explicit indexing deferral; final decision captured in sprint doc section 17.
+
 #### 1.4 Confirm UX entry-point and search-trigger behavior — `HITL Review`
 
-- [ ] Confirm UX entry-point and search-trigger behavior
+- [x] Confirm UX entry-point and search-trigger behavior
 
 **Description:** Decide initial top-level entry point (toolbar, dialog, panel, or equivalent) and trigger behavior (debounced live, submit, or both).
 
@@ -144,6 +146,8 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 **Testing expectations:** Validation scenarios defined for UI and ViewModel tests.
 
 **HITL-visible outcome:** HITL validates chosen interaction model.
+
+**Status note:** HITL confirmed dedicated top-level dialog/panel, debounced live + Enter submit behavior, Session-level grouped results, jump-to-first-match open behavior, and manual rerun policy for live tracking in sprint doc section 17.
 
 ### Area 2 — Search Domain Model and Repository API
 
@@ -716,3 +720,9 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 **Testing expectations:** All required automated and manual checks linked in closure notes.
 
 **HITL-visible outcome:** HITL confirms Sprint 8 is complete.
+
+## 8. Sprint 8 Notes / Decisions Log
+
+- **2026-08-20 — Area 1 discovery completed:** Created `docs/sprint-8-area-1-discovery-findings.md` covering terminology baseline, session/search/open-flow audits, concrete Area 2+ insertion points, non-regression checklist, and test-planning expectations.
+- **2026-08-20 — Area 1 task status:** Marked tasks 1.1, 1.2, 1.3, and 1.4 complete after HITL decisions were captured.
+- **2026-08-20 — HITL decisions resolved:** Section 6.2 question set finalized and recorded in sprint doc section 17, including dedicated entry point, debounced live + Enter execution, Session-level rows, jump-to-first-match on open, safe bounded unknown-text fallback, timestamp metadata, indexing deferral, clear-on-open Conversation Search Query behavior, and manual top-level rerun for live tracking changes.

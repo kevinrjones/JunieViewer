@@ -86,11 +86,11 @@ Sprint 8 must add Top-Level Session Search **without changing expected Conversat
 - **FR2:** Search scans all discovered Sessions under `~/.junie/sessions/` using current configured home path.
 - **FR3:** Search uses case-insensitive substring matching.
 - **FR4:** Search returns Session-grouped results with: Session identifier/display name, match count, and preview snippet.
-- **FR5:** Human can select a result and open that Session in the Conversation viewer.
+- **FR5:** Human can select a result, open that Session in the Conversation viewer, and jump to the first matching Message for that result.
 - **FR6:** Missing/unreadable/malformed Session files are handled gracefully; search still returns partial results when possible.
 - **FR7:** Search supports cancellation when a newer Search Query replaces an in-flight search.
 - **FR8:** If search runs while typing, query input is debounced.
-- **FR9:** Existing Conversation Search remains available and predictable after opening a Session from top-level results.
+- **FR9:** Existing Conversation Search remains available and predictable after opening a Session from top-level results, with Conversation Search Query cleared on top-level result navigation.
 - **FR10:** Search result view includes explicit loading, empty, and partial-results/error states.
 
 # 9. Non-Functional Requirements
@@ -106,7 +106,7 @@ Sprint 8 must add Top-Level Session Search **without changing expected Conversat
 
 ## 10.1 MVP Recommendation
 
-Use a dedicated top-level search surface (toolbar control or modal/search panel opened by command) separate from Conversation Search to avoid control conflation.
+Use a dedicated top-level search dialog/panel opened from explicit toolbar/menu command, separate from Conversation Search, to avoid control conflation.
 
 ## 10.2 Expected States
 
@@ -128,7 +128,7 @@ Each result row should include:
 
 ## 10.4 Post-Selection Behavior
 
-Selecting a Session result loads that Session in the existing viewer and closes/dismisses the top-level results surface according to final UX decision.
+Selecting a Session result loads that Session in the existing viewer, jumps to the first matching Message for the selected result, clears Conversation Search Query state, and closes/dismisses the top-level results surface.
 
 # 11. Data and Search Design
 
@@ -140,7 +140,7 @@ Selecting a Session result loads that Session in the existing viewer and closes/
 ## 11.2 Search Input and Result Model (Conceptual)
 
 - Query model capturing normalized Search Query and runtime options (debounce/cancel context).
-- Result model containing Session summary and nested match previews.
+- Result model containing Session summary, nested match previews, and first-match navigation anchor metadata.
 - Error collection model for partial-results reporting.
 
 ## 11.3 Search Targets
@@ -198,37 +198,27 @@ Selecting a Session result loads that Session in the existing viewer and closes/
 - **Reliability risk:** partial/corrupt JSONL data can reduce result quality.
 - **Scope risk:** adding indexing or live global updates in Sprint 8 may over-expand delivery.
 
-# 17. Open Questions for HITL Review (with Recommendations)
+# 17. HITL Decisions (Resolved 2026-08-20)
 
-1. **Entry point location:** toolbar field, dialog, sidebar, or overlay?
-   - **Recommendation:** dedicated dialog/panel opened from toolbar/menu, separate from Conversation Search field.
-2. **Execution timing:** live while typing, Enter-only, or both?
-   - **Recommendation:** both; debounced live updates plus explicit Enter submit.
-3. **Result granularity:** Session-level rows only or match-level rows grouped by Session?
-   - **Recommendation:** Session-level rows with compact previews; keep match-level expansion deferred.
-4. **Open-position behavior:** open Session at first matching Message when feasible?
-   - **Recommendation:** defer jump-to-first-match unless low effort; open Session normally in MVP.
-5. **Search source:** raw JSONL, parsed Events, mapped Messages, or hybrid?
-   - **Recommendation:** parsed Events + mapped Message text first; fallback handling for unsupported payloads.
-6. **Unsupported/unknown Event payloads:** include in searchable corpus?
-   - **Recommendation:** include safe textual fallback where practical, clearly labeled as unsupported-derived text.
-7. **Metadata in results:** include date/time when available?
-   - **Recommendation:** include lightweight timestamp metadata when available with low overhead.
-8. **Caching/indexing now or later?**
-   - **Recommendation:** defer persistent indexing; ship on-demand scan MVP first.
-9. **Conversation Search Query after opening result:** preserve, clear, or prompt?
-   - **Recommendation:** clear Conversation Search Query on Session change to avoid confusing stale highlights.
-10. **Live tracking impact on top-level results:** auto-update or defer?
-    - **Recommendation:** defer auto-updating global results; rerun query manually in MVP.
+1. **Entry point location:** use dedicated top-level dialog/panel launched by explicit command/button.
+2. **Execution timing:** support debounced live updates and explicit Enter submit; cancel stale scans.
+3. **Result granularity:** show Session-level grouped rows with match count and preview.
+4. **Open-position behavior:** jump to first matching Message after opening selected Session.
+5. **Search source:** use mapped Message searchable text pipeline, with pragmatic fallback handling as needed.
+6. **Unsupported/unknown Event payloads:** include only safely extractable, bounded fallback text.
+7. **Metadata in results:** include Session identity plus timestamp when available.
+8. **Caching/indexing:** defer persistent indexing in Sprint 8; keep on-demand scan MVP.
+9. **Conversation Search Query after opening result:** clear Conversation Search Query on top-level result navigation.
+10. **Live tracking impact:** no automatic top-level result refresh in MVP; rerun Search Query manually.
 
-All items above require HITL confirmation before implementation is finalized.
+These decisions are approved for Sprint 8 implementation planning and unblock Area 2+ task execution.
 
 # 18. Acceptance Criteria
 
 - Human can enter a top-level Search Query.
 - Search runs across all discovered Session `events.jsonl` files.
 - Matching Sessions display match counts and useful previews.
-- Selecting a result opens that Session in the Conversation viewer.
+- Selecting a result opens that Session in the Conversation viewer and lands on the first matching Message.
 - Existing Conversation Search still works as expected.
 - Malformed, missing, empty, or unreadable Session files are handled gracefully.
 - UI remains responsive during search.
@@ -250,4 +240,3 @@ All items above require HITL confirmation before implementation is finalized.
 - Persistent index/caching layer for faster repeated global searches.
 - Rich relevance/ranking and advanced snippet highlighting.
 - Auto-refresh of top-level results from live Session updates.
-- Jump-to-first-match navigation after opening a Session from top-level result.
