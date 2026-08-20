@@ -2,6 +2,10 @@ package com.knowledgespike.junieviewer.ui
 
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.SessionInfo
+import com.knowledgespike.junieviewer.domain.TopLevelSearchQuery
+import com.knowledgespike.junieviewer.domain.TopLevelSearchResults
+import com.knowledgespike.junieviewer.domain.TopLevelSearchStatus
+import com.knowledgespike.junieviewer.domain.TopLevelSessionSearchResult
 import com.knowledgespike.junieviewer.domain.Turn
 import com.knowledgespike.junieviewer.domain.groupMessagesIntoTurns
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
@@ -56,6 +60,17 @@ data class SearchState(
 )
 
 /**
+ * Top-Level Session Search concern, kept isolated from in-Conversation Search state.
+ */
+data class TopLevelSearchState(
+    val isOpen: Boolean = false,
+    val query: TopLevelSearchQuery = TopLevelSearchQuery(),
+    val status: TopLevelSearchStatus = TopLevelSearchStatus.Idle,
+    val results: TopLevelSearchResults = TopLevelSearchResults(),
+    val selectedResult: TopLevelSessionSearchResult? = null
+)
+
+/**
  * Modal dialog visibility concern for the Session picker and Settings dialogs.
  */
 data class DialogState(
@@ -95,13 +110,15 @@ data class BlockExpansionState(
  * Represents the UI state for the conversation screen.
  *
  * Properties are grouped into cohesive nested value objects by concern: [SessionLoadState]
- * (session loading/error), [SearchState] (search/filter/sort), [DialogState] (picker/settings
+ * (session loading/error), [SearchState] (in-Conversation search/filter/sort),
+ * [TopLevelSearchState] (cross-session top-level search), [DialogState] (picker/settings
  * dialogs), and [BlockExpansionState] (per-block collapse/expand and selection). Theme and
  * auto-refresh remain top-level as they are simple, cross-cutting toggles.
  */
 data class ConversationState(
     val sessionLoad: SessionLoadState = SessionLoadState(),
     val search: SearchState = SearchState(),
+    val topLevelSearch: TopLevelSearchState = TopLevelSearchState(),
     val dialogs: DialogState = DialogState(),
     val blockExpansion: BlockExpansionState = BlockExpansionState(),
     /** The currently active theme mode. */
@@ -127,6 +144,12 @@ val ConversationState.turns: List<Turn> get() = search.turns
 val ConversationState.currentMatchIndex: Int get() = search.currentMatchIndex
 val ConversationState.filter: FilterState get() = search.filter
 val ConversationState.sortOrder: SortOrder get() = search.sortOrder
+
+val ConversationState.isTopLevelSearchOpen: Boolean get() = topLevelSearch.isOpen
+val ConversationState.topLevelSearchQuery: TopLevelSearchQuery get() = topLevelSearch.query
+val ConversationState.topLevelSearchStatus: TopLevelSearchStatus get() = topLevelSearch.status
+val ConversationState.topLevelSearchResults: TopLevelSearchResults get() = topLevelSearch.results
+val ConversationState.topLevelSelectedResult: TopLevelSessionSearchResult? get() = topLevelSearch.selectedResult
 
 val ConversationState.isSessionPickerOpen: Boolean get() = dialogs.isSessionPickerOpen
 val ConversationState.isSettingsOpen: Boolean get() = dialogs.isSettingsOpen

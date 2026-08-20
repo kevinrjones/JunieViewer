@@ -79,10 +79,11 @@ class ConversationCommandTest {
     }
 
     @Test
-    fun `open session and settings are always enabled`() {
+    fun `open session top-level search and settings are always enabled`() {
         val state = ConversationState()
         val cmdState = ConversationCommandState.fromConversationState(state)
         assertTrue(cmdState.openSessionEnabled)
+        assertTrue(cmdState.openTopLevelSearchEnabled)
         assertTrue(cmdState.settingsEnabled)
     }
 
@@ -273,6 +274,20 @@ class ConversationCommandTest {
             viewModel.onCommand(ConversationCommand.FocusSearch)
             val event = awaitItem()
             assertEquals(ConversationEvent.FocusSearch, event)
+        }
+    }
+
+    @Test
+    fun `open top-level search command opens top-level search and emits focus event`() = runConversationStateTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onCommand(ConversationCommand.OpenTopLevelSearch)
+            val event = awaitItem()
+
+            assertEquals(ConversationEvent.FocusTopLevelSearch, event)
+            assertTrue(viewModel.state.value.isTopLevelSearchOpen)
         }
     }
 

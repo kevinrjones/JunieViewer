@@ -167,3 +167,57 @@ Sprint and task docs are synchronized and ready for Area 2 execution.
 - Verify terminology and capability split remain explicit.
 - Verify cross-links and status totals match the new Area 1 completion state.
 - Submit concise verification notes and next-step readiness.
+
+### ✓ Step 13: Inspect Area 2 implementation seams and test surfaces
+Area 2 changes are grounded in current domain/data/UI architecture and existing tests.
+- Review current `SessionRepository` contracts, related fakes/tests, and top-level search seams.
+- Review `ConversationState`/`Action`/`Event`/`Command`/`ViewModel` structures for non-regression-safe extension points.
+- Confirm target package/file locations and deterministic test strategy for Area 2 scope.
+
+### ✓ Step 14: Implement top-level search domain models plus deterministic ordering/snippet rules
+Shared domain foundations for Top-Level Session Search are implemented with pure, testable logic.
+- Add query/result/snippet/partial-failure models that preserve Session identity and safe defaults.
+- Implement deterministic result ordering and bounded snippet extraction helpers.
+- Add model and ordering/snippet tests covering normalization, tie-breaks, truncation, and case-insensitive matching.
+
+### ✓ Step 15: Extend repository/service contract and supporting test doubles
+Cross-session search contract is added while preserving existing session list/load compatibility.
+- Extend repository/service API with coroutine-friendly `searchSessions` entry point.
+- Update fakes or test fixtures to satisfy the new contract.
+- Add/adjust contract-level tests ensuring structured result behavior.
+
+### ✓ Step 16: Add top-level search state/action/event/command and ViewModel reducer plumbing
+Top-level search flow state is introduced without conflating existing Conversation Search behavior.
+- Add isolated top-level search state and status fields to `ConversationState`.
+- Add Area 2 action/event/command structures for toggle/query/submit/cancel/result-select paths.
+- Implement minimal ViewModel transition handling and tests proving separation/non-regression.
+
+### ✓ Step 17: Run Area 2 verification tests and update Sprint 8 task tracking
+Area 2 completion is validated and documentation reflects implementation status.
+- Run relevant test targets including `./gradlew :shared:jvmTest` and `./gradlew test` (or document any justified scope limits during iteration).
+- Update `docs/tasks/junie-conversation-viewer-tasks-sprint-8-top-level-session-search.md` Area 2 items/status/notes.
+- Confirm progress totals and decision log entries are accurate.
+
+### ✓ Step 18: Final consistency pass and submit Area 2 implementation
+Area 2 changes are coherent, non-regressive, and ready for handoff.
+- Verify terminology and capability boundaries remain explicit in code and docs.
+- Verify no out-of-scope Area 3+ behavior was implemented.
+- Submit concise summary with verification outcomes.
+
+### ✓ Step 19: Add HITL final approval checkpoints for Sprint 8 Area 2+
+Sprint 8 task documentation includes explicit HITL final approval tasks at the end of each area from 2 onward.
+- Add one `HITL final approval` task to the end of Areas 2–8 in `docs/tasks/junie-conversation-viewer-tasks-sprint-8-top-level-session-search.md`.
+- For each new approval task, document: what changed in that area, what HITL should check, and what app behavior HITL can validate by running the application.
+- Keep existing task ordering, dependencies, and implementation statuses intact unless directly affected by these new review tasks.
+
+### ✓ Step 20: Reconcile progress summary and notes after HITL checkpoint additions
+Sprint 8 progress tracking remains accurate after adding Area 2+ approval tasks.
+- Update Area 2–8 task counts and completion/progress values to reflect newly added approval tasks.
+- Add or update concise Sprint 8 notes describing the new HITL review checkpoints and intended reviewer workflow.
+- Verify consistency with Sprint 7 style while preserving Sprint 8 terminology and scope boundaries.
+
+### ✓ Step 21: Final consistency pass and submit HITL-review-task update
+The documentation update is internally consistent and ready for continued Sprint 8 execution.
+- Verify no production source code behavior changes were introduced for this request.
+- Verify all new HITL approval tasks include concrete review expectations and runnable app checks.
+- Submit concise verification notes and readiness outcome.

@@ -11,6 +11,9 @@ import com.knowledgespike.junieviewer.data.SessionLoadResult
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.Message
 import com.knowledgespike.junieviewer.domain.SessionInfo
+import com.knowledgespike.junieviewer.domain.TopLevelSearchQuery
+import com.knowledgespike.junieviewer.domain.TopLevelSearchResults
+import com.knowledgespike.junieviewer.domain.TopLevelSearchStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
@@ -47,6 +50,11 @@ class FakeSessionRepository(
     var sessionInfoProvider: (sessionId: String, homePath: String) -> SessionInfo? =
         { sessionId, _ -> SessionInfo(sessionId, "/path/$sessionId", 123L) }
 
+    /** Top-level search results returned by [searchSessions]. */
+    var searchResultsToReturn: TopLevelSearchResults = TopLevelSearchResults(
+        status = TopLevelSearchStatus.Completed
+    )
+
     /** Number of times [loadSession] has been called. */
     var loadCount: Int = 0
         private set
@@ -65,6 +73,11 @@ class FakeSessionRepository(
 
     override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
         sessionInfoProvider(sessionId, homePath)
+
+    override suspend fun searchSessions(query: TopLevelSearchQuery): TopLevelSearchResults {
+        val normalizedQuery = TopLevelSearchQuery(query.raw)
+        return searchResultsToReturn.copy(query = normalizedQuery)
+    }
 }
 
 /** Builds a unique temp path for a preferences file used by a single test run. */

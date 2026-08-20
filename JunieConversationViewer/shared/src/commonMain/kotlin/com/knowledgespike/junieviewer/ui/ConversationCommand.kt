@@ -17,6 +17,7 @@ package com.knowledgespike.junieviewer.ui
  * | Copy               | Cmd+C           | Ctrl+C                |
  * | Refresh            | Cmd+R           | Ctrl+R                |
  * | OpenSession        | Cmd+O           | Ctrl+O                |
+ * | OpenTopLevelSearch | Cmd+Shift+F     | Ctrl+Shift+F          |
  * | FocusSearch        | Cmd+F           | Ctrl+F                |
  * | FindNext           | Cmd+G           | Ctrl+G                |
  * | FindPrevious       | Shift+Cmd+G     | Shift+Ctrl+G          |
@@ -37,6 +38,9 @@ sealed interface ConversationCommand {
 
     /** Open/toggle the Session picker dialog. */
     data object OpenSession : ConversationCommand
+
+    /** Open/toggle the top-level Session Search dialog/panel. */
+    data object OpenTopLevelSearch : ConversationCommand
 
     /** Toggle live auto-refresh on/off. Starts/stops live tracking and persists preference. */
     data object ToggleAutoRefresh : ConversationCommand
@@ -79,6 +83,7 @@ sealed interface ConversationCommand {
  */
 fun ConversationCommand.toActionOrNull(): ConversationAction? = when (this) {
     ConversationCommand.OpenSession -> ConversationAction.OnToggleSessionPicker
+    ConversationCommand.OpenTopLevelSearch -> ConversationAction.OnToggleTopLevelSearch
     ConversationCommand.FindNext -> ConversationAction.OnNextMatch
     ConversationCommand.FindPrevious -> ConversationAction.OnPreviousMatch
     ConversationCommand.Settings -> ConversationAction.OnToggleSettings
@@ -114,6 +119,7 @@ data class ConversationCommandState(
     val copyEnabled: Boolean = false,
     val refreshEnabled: Boolean = false,
     val openSessionEnabled: Boolean = true,
+    val openTopLevelSearchEnabled: Boolean = true,
     val toggleAutoRefreshEnabled: Boolean = false,
     val toggleSortOrderEnabled: Boolean = false,
     val collapseAllEnabled: Boolean = false,
@@ -144,6 +150,7 @@ data class ConversationCommandState(
                 copyEnabled = state.hasTextSelection,
                 refreshEnabled = hasSession && !state.isLoading,
                 openSessionEnabled = true,
+                openTopLevelSearchEnabled = true,
                 toggleAutoRefreshEnabled = hasSession,
                 toggleSortOrderEnabled = hasMessages,
                 collapseAllEnabled = hasMessages,

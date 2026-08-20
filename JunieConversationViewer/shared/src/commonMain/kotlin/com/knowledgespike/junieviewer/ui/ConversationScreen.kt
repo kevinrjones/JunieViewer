@@ -51,6 +51,9 @@ fun ConversationRoot(
                 ConversationEvent.ShowAbout -> showAboutDialog = true
                 ConversationEvent.ShowHowToUse -> showHowToUseDialog = true
                 ConversationEvent.CopyText -> onCopyText()
+                ConversationEvent.FocusTopLevelSearch -> Unit
+                is ConversationEvent.TopLevelSearchSubmitted -> Unit
+                is ConversationEvent.TopLevelSearchResultSelected -> Unit
             }
         }
     }

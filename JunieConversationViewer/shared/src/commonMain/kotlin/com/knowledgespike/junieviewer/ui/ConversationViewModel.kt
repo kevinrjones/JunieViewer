@@ -8,6 +8,9 @@ import com.knowledgespike.junieviewer.data.LiveTrackingEvent
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.AppPreferences
+import com.knowledgespike.junieviewer.domain.TopLevelSearchQuery
+import com.knowledgespike.junieviewer.domain.TopLevelSearchResults
+import com.knowledgespike.junieviewer.domain.TopLevelSearchStatus
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -104,6 +107,7 @@ class ConversationViewModel(
             // These commands are routed to onAction via ConversationCommand.toActionOrNull()
             // and never reach this function.
             ConversationCommand.OpenSession,
+            ConversationCommand.OpenTopLevelSearch,
             ConversationCommand.FindNext,
             ConversationCommand.FindPrevious,
             ConversationCommand.Settings -> Unit
@@ -127,6 +131,66 @@ class ConversationViewModel(
                         )
                     }
                     logVisibleMessages()
+                }
+                ConversationAction.OnToggleTopLevelSearch -> {
+                    val willOpen = !_state.value.isTopLevelSearchOpen
+                    updateState {
+                        it.copy(
+                            topLevelSearch = it.topLevelSearch.copy(
+                                isOpen = willOpen,
+                                status = if (willOpen) it.topLevelSearch.status else TopLevelSearchStatus.Idle
+                            )
+                        )
+                    }
+                    if (willOpen) {
+                        viewModelScope.launch { _events.send(ConversationEvent.FocusTopLevelSearch) }
+                    }
+                }
+                is ConversationAction.OnTopLevelSearchQueryChange -> {
+                    val normalizedQuery = TopLevelSearchQuery(action.query)
+                    val nextStatus = if (normalizedQuery.isBlank) {
+                        TopLevelSearchStatus.EmptyQuery
+                    } else {
+                        TopLevelSearchStatus.Idle
+                    }
+
+                    updateState {
+                        it.copy(
+                            topLevelSearch = it.topLevelSearch.copy(
+                                query = normalizedQuery,
+                                status = nextStatus,
+                                results = TopLevelSearchResults(
+                                    query = normalizedQuery,
+                                    status = nextStatus
+                                ),
+                                selectedResult = null
+                            )
+                        )
+                    }
+                }
+                ConversationAction.OnSubmitTopLevelSearch -> submitTopLevelSearch()
+                ConversationAction.OnCancelTopLevelSearch -> {
+                    updateState {
+                        val query = it.topLevelSearch.query
+                        it.copy(
+                            topLevelSearch = it.topLevelSearch.copy(
+                                status = TopLevelSearchStatus.Idle,
+                                results = TopLevelSearchResults(
+                                    query = query,
+                                    status = TopLevelSearchStatus.Idle
+                                ),
+                                selectedResult = null
+                            )
+                        )
+                    }
+                }
+                is ConversationAction.OnTopLevelSearchResultSelected -> {
+                    updateState {
+                        it.copy(topLevelSearch = it.topLevelSearch.copy(selectedResult = action.result))
+                    }
+                    viewModelScope.launch {
+                        _events.send(ConversationEvent.TopLevelSearchResultSelected(action.result.session.sessionId))
+                    }
                 }
                 ConversationAction.OnRetryClick -> loadMessages()
                 ConversationAction.OnToggleSessionPicker -> {
@@ -196,6 +260,52 @@ class ConversationViewModel(
                     updateTextSelection(action.containerId, action.hasSelection)
                 }
             }
+        }
+    }
+
+    private fun submitTopLevelSearch() {
+        val query = _state.value.topLevelSearch.query
+        if (query.isBlank) {
+            updateState {
+                it.copy(
+                    topLevelSearch = it.topLevelSearch.copy(
+                        status = TopLevelSearchStatus.EmptyQuery,
+                        results = TopLevelSearchResults(
+                            query = query,
+                            status = TopLevelSearchStatus.EmptyQuery
+                        ),
+                        selectedResult = null
+                    )
+                )
+            }
+            return
+        }
+
+        updateState {
+            it.copy(
+                topLevelSearch = it.topLevelSearch.copy(
+                    status = TopLevelSearchStatus.Running,
+                    results = TopLevelSearchResults(
+                        query = query,
+                        status = TopLevelSearchStatus.Running
+                    ),
+                    selectedResult = null
+                )
+            )
+        }
+
+        viewModelScope.launch(exceptionHandler) {
+            val results = withContext(ioDispatcher) { repository.searchSessions(query) }
+            val finalResults = results.copy(query = TopLevelSearchQuery(query.raw))
+            updateState {
+                it.copy(
+                    topLevelSearch = it.topLevelSearch.copy(
+                        status = finalResults.status,
+                        results = finalResults
+                    )
+                )
+            }
+            _events.send(ConversationEvent.TopLevelSearchSubmitted(finalResults))
         }
     }
 

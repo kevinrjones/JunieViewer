@@ -56,6 +56,93 @@ class ConversationViewModelTest {
     }
 
     @Test
+    fun `top-level search query change is isolated from conversation search query`() = runConversationStateTest(testMessages) {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
+        viewModel.onAction(ConversationAction.OnTopLevelSearchQueryChange("  global   query "))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals("Hello", state.searchQuery)
+        assertEquals("global query", state.topLevelSearchQuery.normalized)
+        assertEquals(TopLevelSearchStatus.Idle, state.topLevelSearchStatus)
+    }
+
+    @Test
+    fun `opening and closing top-level search does not clear conversation search query`() = runConversationStateTest(testMessages) {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
+        viewModel.onAction(ConversationAction.OnToggleTopLevelSearch)
+        viewModel.onAction(ConversationAction.OnToggleTopLevelSearch)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals("Hello", state.searchQuery)
+        assertFalse(state.isTopLevelSearchOpen)
+    }
+
+    @Test
+    fun `blank top-level submit transitions to empty-query status deterministically`() = runConversationStateTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnTopLevelSearchQueryChange("   \t"))
+        viewModel.onAction(ConversationAction.OnSubmitTopLevelSearch)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(TopLevelSearchStatus.EmptyQuery, state.topLevelSearchStatus)
+        assertEquals("", state.topLevelSearchResults.query.normalized)
+    }
+
+    @Test
+    fun `cancel top-level search resets top-level state without mutating conversation search query`() = runConversationStateTest(testMessages) {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnSessionSelected(SessionInfo("test", "path", 0L)))
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnSearchQueryChange("Hello"))
+        viewModel.onAction(ConversationAction.OnTopLevelSearchQueryChange("global"))
+        viewModel.onAction(ConversationAction.OnSubmitTopLevelSearch)
+        advanceUntilIdle()
+
+        viewModel.onAction(ConversationAction.OnCancelTopLevelSearch)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals("Hello", state.searchQuery)
+        assertEquals(TopLevelSearchStatus.Idle, state.topLevelSearchStatus)
+        assertEquals("global", state.topLevelSearchQuery.normalized)
+        assertEquals(0, state.topLevelSearchResults.sessionResults.size)
+    }
+
+    @Test
+    fun `selecting a top-level search result updates top-level state and emits event`() = runConversationStateTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val selectedResult = TopLevelSessionSearchResult(
+            session = TopLevelSessionIdentity("session-42", "/sessions/session-42", 42L),
+            matchCount = 3
+        )
+
+        viewModel.events.test {
+            viewModel.onAction(ConversationAction.OnTopLevelSearchResultSelected(selectedResult))
+            val event = awaitItem()
+
+            assertEquals(ConversationEvent.TopLevelSearchResultSelected("session-42"), event)
+            assertEquals("session-42", viewModel.state.value.topLevelSelectedResult?.session?.sessionId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `toggling session picker updates state and loads sessions`() = runConversationStateTest {
         sessionRepository.sessionsToReturn = listOf(
             SessionInfo("test-session", "/path/test-session", 123L)

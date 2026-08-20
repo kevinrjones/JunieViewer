@@ -38,14 +38,14 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 | # | Task Area | Status | Task Count |
 |---|-----------|--------|------------|
 | 1 | Discovery and Scope Confirmation | 4/4 complete | 4 |
-| 2 | Search Domain Model and Repository API | 0/4 complete | 4 |
-| 3 | Cross-Session Search Implementation | 0/5 complete | 5 |
-| 4 | UI Entry Point and Search Results | 0/4 complete | 4 |
-| 5 | Open Session From Result | 0/4 complete | 4 |
-| 6 | Tests and Verification | 0/4 complete | 4 |
-| 7 | Documentation Updates | 0/4 complete | 4 |
-| 8 | Manual Review, HITL Review, and Completion | 0/5 complete | 5 |
-| | **Total** | **4/34 complete** | **34** |
+| 2 | Search Domain Model and Repository API | 4/5 complete (awaiting HITL final approval) | 5 |
+| 3 | Cross-Session Search Implementation | 0/6 complete | 6 |
+| 4 | UI Entry Point and Search Results | 0/5 complete | 5 |
+| 5 | Open Session From Result | 0/5 complete | 5 |
+| 6 | Tests and Verification | 0/5 complete | 5 |
+| 7 | Documentation Updates | 0/5 complete | 5 |
+| 8 | Manual Review, HITL Review, and Completion | 0/6 complete | 6 |
+| | **Total** | **8/41 complete** | **41** |
 
 ## 6. Task Status Legend
 
@@ -155,7 +155,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 2.1 Define top-level search domain models — `Test Required`
 
-- [ ] Define top-level search domain models
+- [x] Define top-level search domain models
 
 **Description:** Introduce domain/API models for Search Query input, Session-level results, per-Session match summaries, snippets, and partial-failure reporting.
 
@@ -173,7 +173,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 2.2 Define repository/service contract for cross-session search — `Test Required`
 
-- [ ] Define repository/service contract for cross-session search
+- [x] Define repository/service contract for cross-session search
 
 **Description:** Add repository/service entry points for global Session search that return cancellable results and preserve existing session loading API behavior.
 
@@ -191,7 +191,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 2.3 Add state/action/event extensions for top-level search flow — `Test Required`
 
-- [ ] Add state/action/event extensions for top-level search flow
+- [x] Add state/action/event extensions for top-level search flow
 
 **Description:** Extend Conversation state/action/event/command structures so top-level search can be initiated, canceled, rendered, and result-selected without conflating with Conversation Search state.
 
@@ -209,7 +209,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 2.4 Define deterministic ordering and snippet rules
 
-- [ ] Define deterministic ordering and snippet rules
+- [x] Define deterministic ordering and snippet rules
 
 **Description:** Document and implement deterministic ordering for Session results and stable snippet extraction for repeatable output.
 
@@ -224,6 +224,27 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 - Snippet extraction behavior is bounded and testable.
 
 **Testing expectations:** Unit tests verify stable ordering/snippets for identical inputs.
+
+#### 2.5 HITL final approval for Area 2 foundations — `HITL Review`
+
+- [x] HITL final approval for Area 2 foundations
+
+**Description:** Review Area 2 domain/API foundation changes before Area 3 implementation continues.
+
+**Source:** Sprint sections 8, 11, 12 and Area 2 completion criteria.
+
+**Dependencies:** 2.4.
+
+**Likely files / areas:** `TopLevelSessionSearchModels.kt`, `TopLevelSessionSearchRules.kt`, `SessionRepository.kt`, `ConversationState.kt`, `ConversationAction.kt`, `ConversationEvent.kt`, `ConversationCommand.kt`, `ConversationViewModel.kt`.
+
+**Completion criteria:**
+- **What changed:** top-level search models, repository search contract, deterministic ordering/snippet rules, and isolated top-level search state/action/event/command plumbing are implemented and documented.
+- **What HITL should check:** naming/terminology alignment, explicit Conversation Search vs Top-Level Session Search separation, and no out-of-scope Area 3+ behavior added.
+- **Application checks by running app:** existing Session loading and current Conversation Search (`Search Messages`, Find Next/Previous) still behave as before with no regressions.
+
+**Testing expectations:** Review Area 2 automated-test evidence and complete a quick app smoke run for existing Conversation Search behavior.
+
+**HITL-visible outcome:** HITL approves Area 2 as a stable foundation to proceed with Area 3.
 
 ### Area 3 — Cross-Session Search Implementation
 
@@ -319,6 +340,27 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 **Testing expectations:** Existing and new tests pass for in-conversation search logic and navigation.
 
+#### 3.6 HITL final approval for Area 3 search pipeline — `HITL Review`
+
+- [ ] HITL final approval for Area 3 search pipeline
+
+**Description:** Review Area 3 cross-session scan behavior, reliability handling, and non-regression boundaries before UI rollout.
+
+**Source:** Sprint sections 8, 9, 11, 12, 16 and Area 3 completion criteria.
+
+**Dependencies:** 3.5.
+
+**Likely files / areas:** shared data/search implementation, `ConversationViewModel.kt`, search-result/error mapping.
+
+**Completion criteria:**
+- **What changed:** on-demand cross-session scanning, case-insensitive matching, cancellation/debounce behavior, and partial-failure capture/logging are implemented.
+- **What HITL should check:** deterministic behavior under repeated queries, resilient handling of missing/unreadable/malformed Session files, and preserved Conversation Search behavior.
+- **Application checks by running app:** run with multiple Sessions and verify search execution remains responsive, failures are handled gracefully, and existing in-Conversation search/navigation still works.
+
+**Testing expectations:** Review repository/ViewModel regression results and validate one manual multi-Session run in the desktop app.
+
+**HITL-visible outcome:** HITL confirms Area 3 implementation is ready for full top-level search UI integration.
+
 ### Area 4 — UI Entry Point and Search Results
 
 *Source: Sprint sections 10, 14, 18.*
@@ -398,6 +440,27 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 **HITL-visible outcome:** HITL can execute full query-to-open flow successfully.
 
+#### 4.5 HITL final approval for Area 4 top-level search UI — `HITL Review`
+
+- [ ] HITL final approval for Area 4 top-level search UI
+
+**Description:** Confirm the new top-level search entry point and result UI states are implementation-ready and usable.
+
+**Source:** Sprint sections 10, 14, 18 and Area 4 completion criteria.
+
+**Dependencies:** 4.4.
+
+**Likely files / areas:** `ConversationToolbar.kt`, top-level search composables, result-row UI, menu/command wiring.
+
+**Completion criteria:**
+- **What changed:** dedicated top-level search entry point, loading/empty/results/error UI states, and Session-level result rows with counts/snippets/tags are implemented.
+- **What HITL should check:** visual clarity vs existing Conversation Search controls, keyboard accessibility, and result readability/disambiguation quality.
+- **Application checks by running app:** open top-level search, enter Search Query values, verify state transitions, inspect Session result rows, and confirm existing `Search Messages` behavior remains independent.
+
+**Testing expectations:** Review Compose/UI automation outcomes and execute a manual query-to-results walkthrough.
+
+**HITL-visible outcome:** HITL signs off on Area 4 UX and confirms readiness for open-from-result completion work.
+
 ### Area 5 — Open Session From Result
 
 *Source: Sprint FR5, FR9, sections 10.4 and 17.*
@@ -476,6 +539,27 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 **Testing expectations:** Compose UI and command-path regression tests.
 
+#### 5.5 HITL final approval for Area 5 open-from-result behavior — `HITL Review`
+
+- [ ] HITL final approval for Area 5 open-from-result behavior
+
+**Description:** Confirm top-level result selection opens the intended Session and post-open behavior matches Sprint 8 decisions.
+
+**Source:** Sprint FR5, FR9, section 17 decisions and Area 5 completion criteria.
+
+**Dependencies:** 5.4.
+
+**Likely files / areas:** `ConversationViewModel.kt`, top-level result interaction handlers, session-open command/event paths.
+
+**Completion criteria:**
+- **What changed:** selecting a top-level Session result opens that Session, post-navigation Conversation Search behavior is applied, and live-tracking interaction policy is enforced.
+- **What HITL should check:** correct Session opens, jump-to-first-match behavior works as intended, and Conversation Search Query handling follows approved decision.
+- **Application checks by running app:** execute search → select result → verify Session switch, match positioning behavior, Search Messages query state, and keyboard parity for open actions.
+
+**Testing expectations:** Review ViewModel/UI regression results and complete manual keyboard + mouse open-flow checks.
+
+**HITL-visible outcome:** HITL confirms open-from-result behavior is correct and non-regressive.
+
 ### Area 6 — Tests and Verification
 
 *Source: Sprint section 13 and acceptance criteria.*
@@ -553,6 +637,27 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 **Testing expectations:** Full command output indicates green test suite.
 
+#### 6.5 HITL final approval for Area 6 verification evidence — `HITL Review`
+
+- [ ] HITL final approval for Area 6 verification evidence
+
+**Description:** Review the full automated and manual verification package before documentation and closure areas proceed.
+
+**Source:** Sprint section 13, acceptance criteria, and Area 6 completion criteria.
+
+**Dependencies:** 6.4.
+
+**Likely files / areas:** shared test suites, CI/local test outputs, verification notes.
+
+**Completion criteria:**
+- **What changed:** repository/domain, ViewModel, and Compose UI coverage for top-level search behavior and regressions has been expanded and executed.
+- **What HITL should check:** required commands/results are present, failures are addressed, and coverage includes cancellation, partial failures, and Conversation Search non-regression.
+- **Application checks by running app:** perform a targeted smoke run of query, result rendering, and open-from-result behavior to confirm test evidence matches observed behavior.
+
+**Testing expectations:** HITL reviews command outputs plus a manual app smoke-validation record.
+
+**HITL-visible outcome:** HITL approves Area 6 test evidence as sufficient for sprint-close documentation and final review.
+
 ### Area 7 — Documentation Updates
 
 *Source: Sprint section 15 and DoD.*
@@ -624,6 +729,27 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 - Entry contains required fields and aligns with actual delivered behavior.
 
 **Testing expectations:** Manual doc review.
+
+#### 7.5 HITL final approval for Area 7 documentation updates — `HITL Review`
+
+- [ ] HITL final approval for Area 7 documentation updates
+
+**Description:** Confirm Sprint 8 documentation updates are accurate, complete, and aligned with implemented behavior.
+
+**Source:** Sprint section 15, DoD, and Area 7 completion criteria.
+
+**Dependencies:** 7.4.
+
+**Likely files / areas:** `docs/HOW_TO_USE.md`, `README.md`, `docs/RECAP.md`, `docs/project_memory.md`.
+
+**Completion criteria:**
+- **What changed:** Human-facing and project-history docs are updated for top-level search capabilities, decisions, deferred scope, and validation outcomes.
+- **What HITL should check:** terminology consistency, Conversation Search vs Top-Level Session Search clarity, and consistency between docs and delivered behavior.
+- **Application checks by running app:** run the application and verify observable workflow/copy aligns with updated documentation instructions and capability split.
+
+**Testing expectations:** Manual doc review plus app walkthrough against updated usage guidance.
+
+**HITL-visible outcome:** HITL confirms documentation is release-ready and faithful to implemented behavior.
 
 ### Area 8 — Manual Review, HITL Review, and Completion
 
@@ -721,8 +847,32 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 **HITL-visible outcome:** HITL confirms Sprint 8 is complete.
 
+#### 8.6 HITL final approval for Sprint 8 completion package — `HITL Review`
+
+- [ ] HITL final approval for Sprint 8 completion package
+
+**Description:** Provide final HITL sign-off gate for Sprint 8 after all implementation, verification, and documentation tasks are complete.
+
+**Source:** Sprint sections 18, 19, 20 and project completion guidance.
+
+**Dependencies:** 8.5.
+
+**Likely files / areas:** sprint doc, task doc, test evidence, updated documentation, and running desktop app.
+
+**Completion criteria:**
+- **What changed:** Sprint 8 delivery package (implementation + tests + docs + decision records) is complete and traceable.
+- **What HITL should check:** all acceptance criteria and DoD items are satisfied, deferred scope is explicit, and closure notes are complete.
+- **Application checks by running app:** execute end-to-end top-level search workflow (open entry point, query, inspect Session results, open a result, verify Conversation Search remains intact) and confirm expected behavior.
+
+**Testing expectations:** HITL validates linked automated test evidence plus final manual end-to-end app walkthrough.
+
+**HITL-visible outcome:** HITL provides final Sprint 8 approval and authorizes closure.
+
 ## 8. Sprint 8 Notes / Decisions Log
 
 - **2026-08-20 — Area 1 discovery completed:** Created `docs/sprint-8-area-1-discovery-findings.md` covering terminology baseline, session/search/open-flow audits, concrete Area 2+ insertion points, non-regression checklist, and test-planning expectations.
 - **2026-08-20 — Area 1 task status:** Marked tasks 1.1, 1.2, 1.3, and 1.4 complete after HITL decisions were captured.
 - **2026-08-20 — HITL decisions resolved:** Section 6.2 question set finalized and recorded in sprint doc section 17, including dedicated entry point, debounced live + Enter execution, Session-level rows, jump-to-first-match on open, safe bounded unknown-text fallback, timestamp metadata, indexing deferral, clear-on-open Conversation Search Query behavior, and manual top-level rerun for live tracking changes.
+- **2026-08-20 — Area 2 foundations implemented:** Added top-level search domain models (`TopLevelSearchQuery`, `TopLevelSearchResults`, Session-level result/snippet/partial-failure models), repository contract extension (`SessionRepository.searchSessions`), and isolated top-level search state/action/event/command + reducer plumbing for toggle/query/submit/cancel/result-select flows.
+- **2026-08-20 — Deterministic rule and verification record (Area 2):** Implemented explicit ordering rule (**match count desc → session timestamp desc when available → stable Session identity/path tie-break**) and bounded case-insensitive snippet rule (safe source normalization, deterministic first-match preview, stable ellipsis/truncation); verification passed with `./gradlew :shared:jvmTest` and `./gradlew test`.
+- **2026-08-20 — HITL final approval checkpoints added (Areas 2–8):** Added one `HITL final approval` task at the end of each implementation area from 2 onward, each with explicit reviewer checks (`what changed`, `what to verify`, and `what to test by running the app`) to support staged HITL sign-off.

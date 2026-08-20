@@ -1,5 +1,6 @@
 package com.knowledgespike.junieviewer.ui
 
+import com.knowledgespike.junieviewer.domain.TopLevelSessionSearchResult
 import com.knowledgespike.junieviewer.domain.SessionInfo
 import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 
@@ -8,6 +9,11 @@ import com.knowledgespike.junieviewer.ui.theme.ThemeMode
  */
 sealed interface ConversationAction {
     data class OnSearchQueryChange(val query: String) : ConversationAction
+    data object OnToggleTopLevelSearch : ConversationAction
+    data class OnTopLevelSearchQueryChange(val query: String) : ConversationAction
+    data object OnSubmitTopLevelSearch : ConversationAction
+    data object OnCancelTopLevelSearch : ConversationAction
+    data class OnTopLevelSearchResultSelected(val result: TopLevelSessionSearchResult) : ConversationAction
     data object OnRetryClick : ConversationAction
     data object OnToggleSessionPicker : ConversationAction
     data class OnSessionSelected(val session: SessionInfo) : ConversationAction

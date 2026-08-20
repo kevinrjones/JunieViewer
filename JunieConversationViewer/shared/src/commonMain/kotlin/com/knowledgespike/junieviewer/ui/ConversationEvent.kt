@@ -1,5 +1,7 @@
 package com.knowledgespike.junieviewer.ui
 
+import com.knowledgespike.junieviewer.domain.TopLevelSearchResults
+
 /**
  * Represents one-time side effects for the conversation screen.
  */
@@ -13,4 +15,10 @@ sealed interface ConversationEvent {
     data object ShowHowToUse : ConversationEvent
     /** Requests the platform layer to perform a native text copy action. */
     data object CopyText : ConversationEvent
+    /** Requests the UI to focus the top-level Search Query input. */
+    data object FocusTopLevelSearch : ConversationEvent
+    /** Announces that top-level search results were freshly submitted. */
+    data class TopLevelSearchSubmitted(val results: TopLevelSearchResults) : ConversationEvent
+    /** Announces that a top-level search result was selected. */
+    data class TopLevelSearchResultSelected(val sessionId: String) : ConversationEvent
 }

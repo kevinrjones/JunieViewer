@@ -25,6 +25,13 @@ interface SessionRepository {
     fun listSessions(homePath: String): List<SessionInfo>
     /** Returns the [SessionInfo] for the currently set session, or null if unavailable. */
     fun getSessionInfo(sessionId: String, homePath: String): SessionInfo?
+    /**
+     * Searches across discovered Sessions using a normalized top-level Search Query.
+     *
+     * Area 2 defines the contract and structured result model. Full cross-session scan
+     * behavior is implemented in later sprint areas.
+     */
+    suspend fun searchSessions(query: TopLevelSearchQuery): TopLevelSearchResults
 }
 
 /**
@@ -106,6 +113,23 @@ class SessionRepositoryImpl(
             logger.e(e) { "Error listing sessions from $sessionsDir" }
             emptyList()
         }
+    }
+
+    override suspend fun searchSessions(query: TopLevelSearchQuery): TopLevelSearchResults {
+        val normalizedQuery = TopLevelSearchQuery(query.raw)
+        if (normalizedQuery.isBlank) {
+            return TopLevelSearchResults(
+                query = normalizedQuery,
+                status = TopLevelSearchStatus.EmptyQuery
+            )
+        }
+
+        // Area 2 intentionally defines only the contract and deterministic result shape.
+        // The full on-demand scan pipeline lands in Area 3.
+        return TopLevelSearchResults(
+            query = normalizedQuery,
+            status = TopLevelSearchStatus.Completed
+        )
     }
 
     /** Builds the [SessionInfo] for the session directory [dir], identified by [id]. */

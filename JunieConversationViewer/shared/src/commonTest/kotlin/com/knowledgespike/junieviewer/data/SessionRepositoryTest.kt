@@ -3,6 +3,9 @@ package com.knowledgespike.junieviewer.data
 import com.knowledgespike.junieviewer.domain.MessageContent
 import com.knowledgespike.junieviewer.domain.MessageKind
 import com.knowledgespike.junieviewer.domain.Sender
+import com.knowledgespike.junieviewer.domain.TopLevelSearchQuery
+import com.knowledgespike.junieviewer.domain.TopLevelSearchStatus
+import kotlinx.coroutines.test.runTest
 import okio.FileSystem
 import okio.Path
 import org.junit.After
@@ -56,6 +59,26 @@ class SessionRepositoryTest {
         expectThat(result).hasSize(2)
         expectThat(result[0].id).isEqualTo("session-2")
         expectThat(result[1].id).isEqualTo("session-1")
+    }
+
+    @Test
+    fun `given blank top-level search query when searchSessions then it returns empty-query status safely`() = runTest {
+        val result = repository.searchSessions(TopLevelSearchQuery("   \n \t"))
+
+        expectThat(result.status).isEqualTo(TopLevelSearchStatus.EmptyQuery)
+        expectThat(result.query.normalized).isEqualTo("")
+        expectThat(result.sessionResults).hasSize(0)
+        expectThat(result.partialFailures).hasSize(0)
+    }
+
+    @Test
+    fun `given non-blank top-level search query when searchSessions then contract returns structured empty completed result`() = runTest {
+        val result = repository.searchSessions(TopLevelSearchQuery("build error"))
+
+        expectThat(result.status).isEqualTo(TopLevelSearchStatus.Completed)
+        expectThat(result.query.normalized).isEqualTo("build error")
+        expectThat(result.sessionResults).hasSize(0)
+        expectThat(result.partialFailures).hasSize(0)
     }
 
     @Test
