@@ -8,6 +8,7 @@ import com.knowledgespike.junieviewer.data.LiveTrackingEvent
 import com.knowledgespike.junieviewer.data.PreferencesRepository
 import com.knowledgespike.junieviewer.data.SessionRepository
 import com.knowledgespike.junieviewer.domain.AppPreferences
+import com.knowledgespike.junieviewer.domain.SessionInfo
 import com.knowledgespike.junieviewer.domain.TopLevelSearchQuery
 import com.knowledgespike.junieviewer.domain.TopLevelSearchResults
 import com.knowledgespike.junieviewer.domain.TopLevelSearchStatus
@@ -15,6 +16,7 @@ import com.knowledgespike.junieviewer.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -154,6 +156,7 @@ class ConversationViewModel(
                         TopLevelSearchStatus.Idle
                     }
 
+                    topLevelSearchJob?.cancel()
                     updateState {
                         it.copy(
                             topLevelSearch = it.topLevelSearch.copy(
@@ -170,6 +173,7 @@ class ConversationViewModel(
                 }
                 ConversationAction.OnSubmitTopLevelSearch -> submitTopLevelSearch()
                 ConversationAction.OnCancelTopLevelSearch -> {
+                    topLevelSearchJob?.cancel()
                     updateState {
                         val query = it.topLevelSearch.query
                         it.copy(
@@ -185,11 +189,29 @@ class ConversationViewModel(
                     }
                 }
                 is ConversationAction.OnTopLevelSearchResultSelected -> {
+                    val sessionId = action.result.session.sessionId
                     updateState {
-                        it.copy(topLevelSearch = it.topLevelSearch.copy(selectedResult = action.result))
+                        it.copy(
+                            topLevelSearch = it.topLevelSearch.copy(
+                                selectedResult = action.result,
+                                isOpen = false
+                            ),
+                            search = it.search.copy(searchQuery = "", currentMatchIndex = -1),
+                            sessionLoad = it.sessionLoad.copy(
+                                selectedSessionId = sessionId,
+                                selectedSession = SessionInfo(
+                                    id = sessionId,
+                                    path = action.result.session.sessionPath,
+                                    lastModified = action.result.session.sessionTimestampMillis ?: 0L
+                                ),
+                                errorMessage = null
+                            )
+                        )
                     }
+                    saveLastSession(sessionId)
+                    loadMessages()
                     viewModelScope.launch {
-                        _events.send(ConversationEvent.TopLevelSearchResultSelected(action.result.session.sessionId))
+                        _events.send(ConversationEvent.TopLevelSearchResultSelected(sessionId))
                     }
                 }
                 ConversationAction.OnRetryClick -> loadMessages()
@@ -263,17 +285,17 @@ class ConversationViewModel(
         }
     }
 
+    private var topLevelSearchJob: Job? = null
+
     private fun submitTopLevelSearch() {
         val query = _state.value.topLevelSearch.query
+        topLevelSearchJob?.cancel()
         if (query.isBlank) {
             updateState {
                 it.copy(
                     topLevelSearch = it.topLevelSearch.copy(
                         status = TopLevelSearchStatus.EmptyQuery,
-                        results = TopLevelSearchResults(
-                            query = query,
-                            status = TopLevelSearchStatus.EmptyQuery
-                        ),
+                        results = TopLevelSearchResults(query = query, status = TopLevelSearchStatus.EmptyQuery),
                         selectedResult = null
                     )
                 )
@@ -285,18 +307,17 @@ class ConversationViewModel(
             it.copy(
                 topLevelSearch = it.topLevelSearch.copy(
                     status = TopLevelSearchStatus.Running,
-                    results = TopLevelSearchResults(
-                        query = query,
-                        status = TopLevelSearchStatus.Running
-                    ),
+                    results = TopLevelSearchResults(query = query, status = TopLevelSearchStatus.Running),
                     selectedResult = null
                 )
             )
         }
 
-        viewModelScope.launch(exceptionHandler) {
-            val results = withContext(ioDispatcher) { repository.searchSessions(query) }
+        topLevelSearchJob = viewModelScope.launch(exceptionHandler) {
+            val homePath = _state.value.sessionLoad.junieHomePath
+            val results = withContext(ioDispatcher) { repository.searchSessions(query, homePath) }
             val finalResults = results.copy(query = TopLevelSearchQuery(query.raw))
+            
             updateState {
                 it.copy(
                     topLevelSearch = it.topLevelSearch.copy(

@@ -74,7 +74,7 @@ class FakeSessionRepository(
     override fun getSessionInfo(sessionId: String, homePath: String): SessionInfo? =
         sessionInfoProvider(sessionId, homePath)
 
-    override suspend fun searchSessions(query: TopLevelSearchQuery): TopLevelSearchResults {
+    override suspend fun searchSessions(query: TopLevelSearchQuery, homePath: String): TopLevelSearchResults {
         val normalizedQuery = TopLevelSearchQuery(query.raw)
         return searchResultsToReturn.copy(query = normalizedQuery)
     }

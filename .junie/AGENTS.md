@@ -203,7 +203,7 @@ Avoid
 
 * When adding features prefer using an 'outside-in' rather than in 'inside-out' style (also known as creating a 'walking
   skeleton').
-* Prefer creating the UI or command line first and filling in the internal details later
+* *ALWAYS* create the UI or command line first and filling in the internal details later
 * If the feature is part of a CLI then make sure that the feature is always 'runnable' from the command line with the
   correct command line flags in place
 * If the feature is part of a web or mobile user interface make sure that the UI is navigable and available to a human

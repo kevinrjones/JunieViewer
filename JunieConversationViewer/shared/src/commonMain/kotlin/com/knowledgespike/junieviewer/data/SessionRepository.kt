@@ -3,6 +3,10 @@ package com.knowledgespike.junieviewer.data
 import co.touchlab.kermit.Logger
 import com.knowledgespike.junieviewer.domain.*
 import com.knowledgespike.junieviewer.getPlatform
+import com.knowledgespike.junieviewer.search.buildTopLevelSearchSnippet
+import com.knowledgespike.junieviewer.search.normalizeTopLevelSnippetSource
+import com.knowledgespike.junieviewer.search.orderTopLevelSessionResults
+import com.knowledgespike.junieviewer.ui.MessageContentRegistry
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -26,12 +30,9 @@ interface SessionRepository {
     /** Returns the [SessionInfo] for the currently set session, or null if unavailable. */
     fun getSessionInfo(sessionId: String, homePath: String): SessionInfo?
     /**
-     * Searches across discovered Sessions using a normalized top-level Search Query.
-     *
-     * Area 2 defines the contract and structured result model. Full cross-session scan
-     * behavior is implemented in later sprint areas.
+     * Searches across discovered Sessions using a normalized top-level Search Query under [homePath].
      */
-    suspend fun searchSessions(query: TopLevelSearchQuery): TopLevelSearchResults
+    suspend fun searchSessions(query: TopLevelSearchQuery, homePath: String = ""): TopLevelSearchResults
 }
 
 /**
@@ -115,7 +116,7 @@ class SessionRepositoryImpl(
         }
     }
 
-    override suspend fun searchSessions(query: TopLevelSearchQuery): TopLevelSearchResults {
+    override suspend fun searchSessions(query: TopLevelSearchQuery, homePath: String): TopLevelSearchResults {
         val normalizedQuery = TopLevelSearchQuery(query.raw)
         if (normalizedQuery.isBlank) {
             return TopLevelSearchResults(
@@ -124,11 +125,123 @@ class SessionRepositoryImpl(
             )
         }
 
-        // Area 2 intentionally defines only the contract and deterministic result shape.
-        // The full on-demand scan pipeline lands in Area 3.
+        val sessions = listSessions(homePath)
+        val sessionResults = mutableListOf<TopLevelSessionSearchResult>()
+        val partialFailures = mutableListOf<TopLevelSearchPartialFailure>()
+
+        for (sessionInfo in sessions) {
+            val eventsFile = try {
+                expandPath(homePath).toPath().div("sessions").div(sessionInfo.id).div("events.jsonl")
+            } catch (e: Exception) {
+                partialFailures.add(
+                    TopLevelSearchPartialFailure(
+                        sessionId = sessionInfo.id,
+                        sessionPath = sessionInfo.path,
+                        reason = e.message ?: "Invalid session path"
+                    )
+                )
+                continue
+            }
+
+            if (!fileSystem.exists(eventsFile)) {
+                partialFailures.add(
+                    TopLevelSearchPartialFailure(
+                        sessionId = sessionInfo.id,
+                        sessionPath = sessionInfo.path,
+                        reason = "Session file does not exist: $eventsFile"
+                    )
+                )
+                continue
+            }
+
+            val fileSize = try {
+                fileSystem.metadata(eventsFile).size ?: 0L
+            } catch (e: Exception) {
+                0L
+            }
+
+            if (fileSize == 0L) {
+                continue
+            }
+
+            val sessionLoadResult = try {
+                loadSession(sessionInfo.id, homePath)
+            } catch (e: Exception) {
+                logger.e(e) { "Error loading session ${sessionInfo.id} for search" }
+                partialFailures.add(
+                    TopLevelSearchPartialFailure(
+                        sessionId = sessionInfo.id,
+                        sessionPath = sessionInfo.path,
+                        reason = e.message ?: "Unreadable file"
+                    )
+                )
+                continue
+            }
+
+            if (sessionLoadResult.messages.isEmpty() && sessionLoadResult.totalLineCount > 0) {
+                partialFailures.add(
+                    TopLevelSearchPartialFailure(
+                        sessionId = sessionInfo.id,
+                        sessionPath = sessionInfo.path,
+                        reason = "Malformed JSONL file or no valid parseable events"
+                    )
+                )
+                continue
+            }
+
+            var sessionMatchCount = 0
+            val sessionSnippets = mutableListOf<TopLevelSearchSnippet>()
+
+            for (message in sessionLoadResult.messages) {
+                val searchText = MessageContentRegistry.searchableText(message)
+                if (searchText.isBlank()) continue
+
+                val normalizedText = normalizeTopLevelSnippetSource(searchText)
+                val lowerText = normalizedText.lowercase()
+                val lowerQuery = normalizedQuery.normalized.lowercase()
+
+                if (lowerQuery.isEmpty()) continue
+
+                var index = lowerText.indexOf(lowerQuery)
+                while (index >= 0) {
+                    sessionMatchCount++
+                    if (sessionSnippets.isEmpty()) {
+                        buildTopLevelSearchSnippet(searchText, normalizedQuery)?.let { snippet ->
+                            sessionSnippets.add(snippet)
+                        }
+                    }
+                    index = lowerText.indexOf(lowerQuery, index + lowerQuery.length)
+                }
+            }
+
+            if (sessionMatchCount > 0) {
+                val identity = TopLevelSessionIdentity(
+                    sessionId = sessionInfo.id,
+                    sessionPath = sessionInfo.path,
+                    sessionTimestampMillis = sessionInfo.lastModified
+                )
+                val summary = TopLevelSearchMatchSummary(
+                    firstSnippet = sessionSnippets.firstOrNull(),
+                    additionalSnippetCount = maxOf(0, sessionSnippets.size - 1)
+                )
+                sessionResults.add(
+                    TopLevelSessionSearchResult(
+                        session = identity,
+                        matchCount = sessionMatchCount,
+                        snippets = sessionSnippets,
+                        summary = summary
+                    )
+                )
+            }
+        }
+
+        val orderedResults = orderTopLevelSessionResults(sessionResults)
+
         return TopLevelSearchResults(
             query = normalizedQuery,
-            status = TopLevelSearchStatus.Completed
+            status = TopLevelSearchStatus.Completed,
+            sessionResults = orderedResults,
+            partialFailures = partialFailures
         )
     }
 
