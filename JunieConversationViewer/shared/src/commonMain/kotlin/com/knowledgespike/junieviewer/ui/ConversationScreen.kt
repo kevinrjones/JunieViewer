@@ -41,6 +41,7 @@ fun ConversationRoot(
 
     // Search focus requester shared between event handling and toolbar
     val searchFocusRequester = remember { FocusRequester() }
+    val topLevelSearchFocusRequester = remember { FocusRequester() }
 
     // Collect one-time events from the ViewModel
     LaunchedEffect(Unit) {
@@ -51,7 +52,7 @@ fun ConversationRoot(
                 ConversationEvent.ShowAbout -> showAboutDialog = true
                 ConversationEvent.ShowHowToUse -> showHowToUseDialog = true
                 ConversationEvent.CopyText -> onCopyText()
-                ConversationEvent.FocusTopLevelSearch -> Unit
+                ConversationEvent.FocusTopLevelSearch -> topLevelSearchFocusRequester.requestFocus()
                 is ConversationEvent.TopLevelSearchSubmitted -> Unit
                 is ConversationEvent.TopLevelSearchResultSelected -> Unit
             }
@@ -118,6 +119,14 @@ fun ConversationScreen(
         )
     }
 
+    if (state.isTopLevelSearchOpen) {
+        TopLevelSearchDialog(
+            state = state.topLevelSearch,
+            onAction = onAction,
+            onDismiss = { onAction(ConversationAction.OnToggleTopLevelSearch) }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -126,8 +135,13 @@ fun ConversationScreen(
                     keyEvent.key == Key.F &&
                     (keyEvent.isMetaPressed || keyEvent.isCtrlPressed)
                 ) {
-                    searchFocusRequester.requestFocus()
-                    true
+                    if (keyEvent.isShiftPressed) {
+                        onAction(ConversationAction.OnToggleTopLevelSearch)
+                        true
+                    } else {
+                        searchFocusRequester.requestFocus()
+                        true
+                    }
                 } else {
                     false
                 }

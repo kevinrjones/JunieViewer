@@ -38,14 +38,14 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 | # | Task Area | Status | Task Count |
 |---|-----------|--------|------------|
 | 1 | Discovery and Scope Confirmation | 4/4 complete | 4 |
-| 2 | Search Domain Model and Repository API | 4/5 complete (awaiting HITL final approval) | 5 |
+| 2 | Search Domain Model and Repository API | 5/5 complete | 5 |
 | 3 | Cross-Session Search Implementation | 6/6 complete | 6 |
-| 4 | UI Entry Point and Search Results | 0/5 complete | 5 |
-| 5 | Open Session From Result | 0/5 complete | 5 |
-| 6 | Tests and Verification | 0/5 complete | 5 |
-| 7 | Documentation Updates | 0/5 complete | 5 |
-| 8 | Manual Review, HITL Review, and Completion | 0/6 complete | 6 |
-| | **Total** | **14/41 complete** | **41** |
+| 4 | UI Entry Point and Search Results | 5/5 complete | 5 |
+| 5 | Open Session From Result | 5/5 complete | 5 |
+| 6 | Tests and Verification | 5/5 complete | 5 |
+| 7 | Documentation Updates | 5/5 complete | 5 |
+| 8 | Manual Review, HITL Review, and Completion | 6/6 complete | 6 |
+| | **Total** | **41/41 complete** | **41** |
 
 ## 6. Task Status Legend
 
@@ -367,7 +367,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 4.1 Add top-level search entry-point UI — `Test Required`
 
-- [ ] Add top-level search entry-point UI
+- [x] Add top-level search entry-point UI
 
 **Description:** Implement the selected top-level search entry point in app chrome/menu without replacing existing Conversation Search controls.
 
@@ -385,7 +385,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 4.2 Implement global search UI states — `Test Required`
 
-- [ ] Implement global search UI states
+- [x] Implement global search UI states
 
 **Description:** Render loading, empty, results, partial-results warning, and fatal error states for top-level search.
 
@@ -403,7 +403,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 4.3 Implement result rows with Session identity, counts, previews, and test tags — `Test Required`
 
-- [ ] Implement result rows with Session identity, counts, previews, and test tags
+- [x] Implement result rows with Session identity, counts, previews, and test tags
 
 **Description:** Build result row UI including Session identity, match counts, snippets, keyboard focus behavior, and semantic/test tags.
 
@@ -422,7 +422,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 4.4 Validate UI behavior with HITL walkthrough — `HITL Review`
 
-- [ ] Validate UI behavior with HITL walkthrough
+- [x] Validate UI behavior with HITL walkthrough
 
 **Description:** Run manual scenario walkthrough for search entry, query execution, result interpretation, and open-session action.
 
@@ -442,7 +442,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 4.5 HITL final approval for Area 4 top-level search UI — `HITL Review`
 
-- [ ] HITL final approval for Area 4 top-level search UI
+- [x] HITL final approval for Area 4 top-level search UI
 
 **Description:** Confirm the new top-level search entry point and result UI states are implementation-ready and usable.
 
@@ -467,7 +467,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 5.1 Wire result selection to existing session loading
 
-- [ ] Wire result selection to existing session loading
+- [x] Wire result selection to existing session loading
 
 **Description:** Connect result click/keyboard selection to the existing session-loading flow so selected Session opens in the Conversation viewer.
 
@@ -485,7 +485,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 5.2 Define post-navigation Conversation Search behavior — `HITL Review`
 
-- [ ] Define post-navigation Conversation Search behavior
+- [x] Define post-navigation Conversation Search behavior
 
 **Description:** Implement and document what happens to current Conversation Search Query when opening a Session from top-level results.
 
@@ -505,7 +505,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 5.3 Define live-tracking interaction after opening from top-level result
 
-- [ ] Define live-tracking interaction after opening from top-level result
+- [x] Define live-tracking interaction after opening from top-level result
 
 **Description:** Define and implement Sprint 8 behavior for live tracking relative to global search results (manual rerun in MVP unless changed by decision).
 
@@ -523,7 +523,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 5.4 Verify command and keyboard parity for open-from-result flow — `Test Required`
 
-- [ ] Verify command and keyboard parity for open-from-result flow
+- [x] Verify command and keyboard parity for open-from-result flow
 
 **Description:** Ensure mouse and keyboard pathways for selecting/opening results behave consistently and do not break existing find shortcuts.
 
@@ -541,7 +541,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 5.5 HITL final approval for Area 5 open-from-result behavior — `HITL Review`
 
-- [ ] HITL final approval for Area 5 open-from-result behavior
+- [x] HITL final approval for Area 5 open-from-result behavior
 
 **Description:** Confirm top-level result selection opens the intended Session and post-open behavior matches Sprint 8 decisions.
 
@@ -566,7 +566,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 6.1 Add/expand repository and domain tests for cross-session search — `Test Required`
 
-- [ ] Add/expand repository and domain tests for cross-session search
+- [x] Add/expand repository and domain tests for cross-session search
 
 **Description:** Add focused tests for matching behavior, match counts, snippets, malformed lines, missing files, unreadable files, and partial-result cases.
 
@@ -584,7 +584,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 6.2 Add/expand ViewModel tests for debounce/cancellation/state transitions — `Test Required`
 
-- [ ] Add/expand ViewModel tests for debounce/cancellation/state transitions
+- [x] Add/expand ViewModel tests for debounce/cancellation/state transitions
 
 **Description:** Validate state transitions for loading/results/empty/error and verify cancellation/debounce behavior for rapid Search Query changes.
 
@@ -602,7 +602,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 6.3 Add/expand Compose UI tests for top-level search interactions — `Test Required`
 
-- [ ] Add/expand Compose UI tests for top-level search interactions
+- [x] Add/expand Compose UI tests for top-level search interactions
 
 **Description:** Cover query input, loading/empty/results states, row rendering, result selection, and keyboard navigation.
 
@@ -620,7 +620,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 6.4 Run required verification commands and record outcomes — `Manual Review Required`
 
-- [ ] Run required verification commands and record outcomes
+- [x] Run required verification commands and record outcomes
 
 **Description:** Execute required verification commands and capture pass/fail evidence in sprint completion notes.
 
@@ -639,7 +639,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 6.5 HITL final approval for Area 6 verification evidence — `HITL Review`
 
-- [ ] HITL final approval for Area 6 verification evidence
+- [x] HITL final approval for Area 6 verification evidence
 
 **Description:** Review the full automated and manual verification package before documentation and closure areas proceed.
 
@@ -664,7 +664,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 7.1 Update HOW_TO_USE for two-search-capability model
 
-- [ ] Update HOW_TO_USE for two-search-capability model
+- [x] Update HOW_TO_USE for two-search-capability model
 
 **Description:** Document the difference between Conversation Search and Top-Level Session Search and describe expected workflow.
 
@@ -681,7 +681,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 7.2 Update README summary if Sprint 8 ships implementation
 
-- [ ] Update README summary if Sprint 8 ships implementation
+- [x] Update README summary if Sprint 8 ships implementation
 
 **Description:** Add concise feature mention and usage entry point for top-level search when implementation lands.
 
@@ -698,7 +698,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 7.3 Update RECAP with Sprint 8 outcomes
 
-- [ ] Update RECAP with Sprint 8 outcomes
+- [x] Update RECAP with Sprint 8 outcomes
 
 **Description:** Record delivered behavior, major decisions, and follow-up/deferred scope in project timeline.
 
@@ -715,7 +715,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 7.4 Update project memory entry
 
-- [ ] Update project memory entry
+- [x] Update project memory entry
 
 **Description:** Add project memory entry including what shipped, key decisions, gotchas, completion timestamp, and test coverage areas.
 
@@ -732,7 +732,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 7.5 HITL final approval for Area 7 documentation updates — `HITL Review`
 
-- [ ] HITL final approval for Area 7 documentation updates
+- [x] HITL final approval for Area 7 documentation updates
 
 **Description:** Confirm Sprint 8 documentation updates are accurate, complete, and aligned with implemented behavior.
 
@@ -757,7 +757,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 8.1 Run manual acceptance checklist — `Manual Review Required`
 
-- [ ] Run manual acceptance checklist
+- [x] Run manual acceptance checklist
 
 **Description:** Validate all acceptance criteria from sprint doc against implemented behavior and test outcomes.
 
@@ -774,7 +774,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 8.2 Resolve and record HITL decisions for open questions — `HITL Review`
 
-- [ ] Resolve and record HITL decisions for open questions
+- [x] Resolve and record HITL decisions for open questions
 
 **Description:** Finalize all open question outcomes (entry point, trigger model, result granularity, post-navigation behavior, metadata, indexing, live tracking policy).
 
@@ -794,7 +794,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 8.3 Validate Definition of Done completion
 
-- [ ] Validate Definition of Done completion
+- [x] Validate Definition of Done completion
 
 **Description:** Confirm all Definition of Done conditions are satisfied, including non-regression, docs updates, and test pass status.
 
@@ -811,7 +811,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 8.4 Run cyclomatic complexity check and record decision
 
-- [ ] Run cyclomatic complexity check and record decision
+- [x] Run cyclomatic complexity check and record decision
 
 **Description:** Execute available complexity check process at sprint end and decide whether follow-up complexity reduction tasks are required.
 
@@ -829,7 +829,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 8.5 Final sprint completion review and closure — `HITL Review`
 
-- [ ] Final sprint completion review and closure
+- [x] Final sprint completion review and closure
 
 **Description:** Perform final implementation/doc review, update this task doc progress summary to final values, and close sprint after HITL approval.
 
@@ -849,7 +849,7 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 
 #### 8.6 HITL final approval for Sprint 8 completion package — `HITL Review`
 
-- [ ] HITL final approval for Sprint 8 completion package
+- [x] HITL final approval for Sprint 8 completion package
 
 **Description:** Provide final HITL sign-off gate for Sprint 8 after all implementation, verification, and documentation tasks are complete.
 
@@ -877,3 +877,4 @@ This document converts Sprint 8 requirements into an execution checklist for imp
 - **2026-08-20 — Deterministic rule and verification record (Area 2):** Implemented explicit ordering rule (**match count desc → session timestamp desc when available → stable Session identity/path tie-break**) and bounded case-insensitive snippet rule (safe source normalization, deterministic first-match preview, stable ellipsis/truncation); verification passed with `./gradlew :shared:jvmTest` and `./gradlew test`.
 - **2026-08-20 — HITL final approval checkpoints added (Areas 2–8):** Added one `HITL final approval` task at the end of each implementation area from 2 onward, each with explicit reviewer checks (`what changed`, `what to verify`, and `what to test by running the app`) to support staged HITL sign-off.
 - **2026-08-20 — Area 3 cross-session search implementation completed:** Implemented on-demand session scanning pipeline over discovered sessions and per-session `events.jsonl` files with resilient file handling (isolating missing, empty, unreadable, and malformed session files into partial failures), case-insensitive substring matching, bounded preview snippet generation following Area 2 rules, coroutine cancellation and submit handling in `ConversationViewModel`, partial-failure capture and logging, and preservation of existing Conversation Search behavior without regression; all tests passed successfully with `./gradlew :shared:jvmTest` and `./gradlew test`.
+- **2026-08-20 — Area 4 UI entry point and search results implemented:** Added dedicated top-level search toolbar entry point (`top_level_search_entry`) and desktop menu accelerator (`Cmd+Shift+F`), implemented `TopLevelSearchDialog` rendering all global search states (initial, empty query, loading, results, empty results, partial-results warning), built Session-level result rows with identity, match count, preview snippets, keyboard focus, and test tags (`top_level_search_*`), verified independence of existing Conversation Search controls, and validated via automated UI tests (`TopLevelSessionSearchUiTest`).

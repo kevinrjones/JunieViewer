@@ -72,6 +72,31 @@ class JsonlParserTest(private val case: ParserCase) {
             ),
 
             ParserCase(
+                name = "given a PlanReviewResolvedEvent line when parsed then it returns PlanReviewResolvedEvent",
+                jsonLine = """{"kind":"PlanReviewResolvedEvent","reviewId":{"taskId":"task-123"},"outcome":"Confirmed","timestampMs":123}""",
+                verify = { result ->
+                    expectThat(result.getOrNull()).isA<PlanReviewResolvedEvent>()
+                        .and {
+                            get { reviewId?.taskId }.isEqualTo("task-123")
+                            get { outcome }.isEqualTo("Confirmed")
+                            get { timestampMs }.isEqualTo(123L)
+                        }
+                }
+            ),
+
+            ParserCase(
+                name = "given a UserMessagesDroppedFromHistory line when parsed then it returns UserMessagesDroppedFromHistory",
+                jsonLine = """{"kind":"UserMessagesDroppedFromHistory","userMessageIds":["msg-1"],"timestampMs":456}""",
+                verify = { result ->
+                    expectThat(result.getOrNull()).isA<UserMessagesDroppedFromHistory>()
+                        .and {
+                            get { userMessageIds }.isEqualTo(listOf("msg-1"))
+                            get { timestampMs }.isEqualTo(456L)
+                        }
+                }
+            ),
+
+            ParserCase(
                 name = "given a SessionA2uxEvent line with AgentThoughtBlockUpdatedEvent when parsed then it returns SessionA2uxEvent",
                 jsonLine = """{"kind":"SessionA2uxEvent","event":{"state":"IN_PROGRESS","agentEvent":{"kind":"AgentThoughtBlockUpdatedEvent","text":"Thinking..."}},"timestampMs":123456789}""",
                 verify = { result ->

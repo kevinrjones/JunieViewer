@@ -279,4 +279,24 @@ class ConversationViewModelTest {
 
         assertEquals(ThemeMode.System, viewModel.state.value.themeMode)
     }
+
+    @Test
+    fun `selecting top level search result applies top level query to opened session and sets currentMatchIndex to 0`() = runConversationStateTest(testMessages) {
+        val viewModel = createViewModel()
+        viewModel.onAction(ConversationAction.OnTopLevelSearchQueryChange("Hello"))
+        advanceUntilIdle()
+
+        val searchResult = TopLevelSessionSearchResult(
+            session = TopLevelSessionIdentity(sessionId = "test-session", sessionPath = "test/path"),
+            matchCount = 2
+        )
+
+        viewModel.onAction(ConversationAction.OnTopLevelSearchResultSelected(searchResult))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals("Hello", state.searchQuery)
+        assertEquals(0, state.currentMatchIndex)
+        assertEquals("test-session", state.selectedSessionId)
+    }
 }

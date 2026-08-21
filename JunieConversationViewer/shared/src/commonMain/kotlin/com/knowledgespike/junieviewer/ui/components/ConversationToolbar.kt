@@ -123,6 +123,14 @@ fun ConversationToolbar(
                 onClick = { onCommand(ConversationCommand.Refresh) },
                 testTag = "toolbar_refresh"
             )
+            ToolbarIconButton(
+                icon = Icons.Default.Search,
+                contentDesc = "Top-Level Session Search",
+                tooltip = "Top-Level Session Search (Cmd+Shift+F)",
+                enabled = commandState.openTopLevelSearchEnabled,
+                onClick = { onCommand(ConversationCommand.OpenTopLevelSearch) },
+                testTag = "top_level_search_entry"
+            )
 
             ToolbarDivider()
 

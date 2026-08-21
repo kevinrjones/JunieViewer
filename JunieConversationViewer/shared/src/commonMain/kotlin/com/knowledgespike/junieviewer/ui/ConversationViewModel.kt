@@ -190,13 +190,19 @@ class ConversationViewModel(
                 }
                 is ConversationAction.OnTopLevelSearchResultSelected -> {
                     val sessionId = action.result.session.sessionId
+                    val queryToApply = _state.value.topLevelSearch.query.raw.ifBlank {
+                        _state.value.topLevelSearch.results.query.raw
+                    }
                     updateState {
                         it.copy(
                             topLevelSearch = it.topLevelSearch.copy(
                                 selectedResult = action.result,
                                 isOpen = false
                             ),
-                            search = it.search.copy(searchQuery = "", currentMatchIndex = -1),
+                            search = it.search.copy(
+                                searchQuery = queryToApply,
+                                currentMatchIndex = if (queryToApply.isBlank()) -1 else 0
+                            ),
                             sessionLoad = it.sessionLoad.copy(
                                 selectedSessionId = sessionId,
                                 selectedSession = SessionInfo(

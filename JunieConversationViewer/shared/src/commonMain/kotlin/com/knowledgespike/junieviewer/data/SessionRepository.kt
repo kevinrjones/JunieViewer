@@ -20,7 +20,9 @@ data class SessionLoadResult(
     val eventsFilePath: Path?,
     val fileSizeAfterLoad: Long,
     /** Total number of lines read from the events.jsonl file (for stable ID continuity in live tracking). */
-    val totalLineCount: Int = 0
+    val totalLineCount: Int = 0,
+    /** Number of lines that failed to parse during scan. */
+    val parseErrors: Int = 0
 )
 
 interface SessionRepository {
@@ -90,7 +92,7 @@ class SessionRepositoryImpl(
 
         val messages = EventToMessageMapper.mapEventsToMessages(events)
         val fileSize = try { fileSystem.metadata(path).size ?: 0L } catch (_: Exception) { 0L }
-        return SessionLoadResult(messages, path, fileSize, totalLineCount)
+        return SessionLoadResult(messages, path, fileSize, totalLineCount, parseErrors)
     }
 
     override fun listSessions(homePath: String): List<SessionInfo> {
@@ -133,6 +135,7 @@ class SessionRepositoryImpl(
             val eventsFile = try {
                 expandPath(homePath).toPath().div("sessions").div(sessionInfo.id).div("events.jsonl")
             } catch (e: Exception) {
+                logger.w(e) { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) could not be scanned: failed to resolve events file path. Reason: ${e.message}" }
                 partialFailures.add(
                     TopLevelSearchPartialFailure(
                         sessionId = sessionInfo.id,
@@ -144,30 +147,26 @@ class SessionRepositoryImpl(
             }
 
             if (!fileSystem.exists(eventsFile)) {
-                partialFailures.add(
-                    TopLevelSearchPartialFailure(
-                        sessionId = sessionInfo.id,
-                        sessionPath = sessionInfo.path,
-                        reason = "Session file does not exist: $eventsFile"
-                    )
-                )
+                logger.d { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) has missing events file, ignoring." }
                 continue
             }
 
             val fileSize = try {
                 fileSystem.metadata(eventsFile).size ?: 0L
             } catch (e: Exception) {
+                logger.w(e) { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) encountered warning while reading metadata for events file '$eventsFile': ${e.message}" }
                 0L
             }
 
             if (fileSize == 0L) {
+                logger.d { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) has empty events file (0 bytes), ignoring." }
                 continue
             }
 
             val sessionLoadResult = try {
                 loadSession(sessionInfo.id, homePath)
             } catch (e: Exception) {
-                logger.e(e) { "Error loading session ${sessionInfo.id} for search" }
+                logger.w(e) { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) could not be scanned: error loading/reading session file at path '$eventsFile'. Reason: ${e.message}" }
                 partialFailures.add(
                     TopLevelSearchPartialFailure(
                         sessionId = sessionInfo.id,
@@ -178,15 +177,29 @@ class SessionRepositoryImpl(
                 continue
             }
 
-            if (sessionLoadResult.messages.isEmpty() && sessionLoadResult.totalLineCount > 0) {
-                partialFailures.add(
-                    TopLevelSearchPartialFailure(
-                        sessionId = sessionInfo.id,
-                        sessionPath = sessionInfo.path,
-                        reason = "Malformed JSONL file or no valid parseable events"
-                    )
-                )
+            if (sessionLoadResult.totalLineCount == 0) {
+                logger.d { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) has totalLineCount = 0, ignoring empty session." }
                 continue
+            }
+
+            if (sessionLoadResult.parseErrors > 0) {
+                logger.w { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) contains ${sessionLoadResult.parseErrors} malformed/unparseable line(s) in events file at path '$eventsFile'" }
+            }
+
+            if (sessionLoadResult.messages.isEmpty() && sessionLoadResult.totalLineCount > 0) {
+                if (sessionLoadResult.parseErrors > 0) {
+                    logger.w { "Top-level search: Session '${sessionInfo.id}' (path: ${sessionInfo.path}) was malformed: events file at path '$eventsFile' has totalLineCount=${sessionLoadResult.totalLineCount} and parseErrors=${sessionLoadResult.parseErrors}" }
+                    partialFailures.add(
+                        TopLevelSearchPartialFailure(
+                            sessionId = sessionInfo.id,
+                            sessionPath = sessionInfo.path,
+                            reason = "Malformed JSONL file or no valid parseable events (totalLineCount=${sessionLoadResult.totalLineCount}, parseErrors=${sessionLoadResult.parseErrors})"
+                        )
+                    )
+                    continue
+                } else {
+                    continue
+                }
             }
 
             var sessionMatchCount = 0

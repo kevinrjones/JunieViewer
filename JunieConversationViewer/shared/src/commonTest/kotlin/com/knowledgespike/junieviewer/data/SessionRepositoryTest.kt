@@ -104,7 +104,7 @@ class SessionRepositoryTest {
     }
 
     @Test
-    fun `searchSessions handles missing session file as partial failure`() = runTest {
+    fun `searchSessions ignores missing session file without partial failure`() = runTest {
         val sessionsDir = testDir / "sessions"
         val session1 = sessionsDir / "session-missing"
         fileSystem.createDirectories(session1)
@@ -114,22 +114,23 @@ class SessionRepositoryTest {
 
         expectThat(result.status).isEqualTo(TopLevelSearchStatus.Completed)
         expectThat(result.sessionResults).hasSize(0)
-        expectThat(result.partialFailures).hasSize(1)
-        expectThat(result.partialFailures[0].sessionId).isEqualTo("session-missing")
+        expectThat(result.partialFailures).hasSize(0)
     }
 
     @Test
     fun `searchSessions handles mixed success and partial failure`() = runTest {
         val sessionsDir = testDir / "sessions"
         val session1 = sessionsDir / "session-match"
-        val session2 = sessionsDir / "session-missing"
+        val session2 = sessionsDir / "session-malformed"
         fileSystem.createDirectories(session1)
         fileSystem.createDirectories(session2)
 
         fileSystem.write(session1 / "events.jsonl") {
             writeUtf8("""{"kind":"UserPromptEvent","requestId":"req-1","prompt":"Success match keyword"}""")
         }
-        // session-2 has no events.jsonl
+        fileSystem.write(session2 / "events.jsonl") {
+            writeUtf8("""not valid jsonl line""")
+        }
 
         val result = repository.searchSessions(TopLevelSearchQuery("keyword"), testDir.toString())
 
@@ -137,7 +138,7 @@ class SessionRepositoryTest {
         expectThat(result.sessionResults).hasSize(1)
         expectThat(result.sessionResults[0].session.sessionId).isEqualTo("session-match")
         expectThat(result.partialFailures).hasSize(1)
-        expectThat(result.partialFailures[0].sessionId).isEqualTo("session-missing")
+        expectThat(result.partialFailures[0].sessionId).isEqualTo("session-malformed")
     }
 
     @Test
@@ -483,5 +484,37 @@ class SessionRepositoryTest {
             get { content }.isA<MessageContent.Text>()
                 .get { text }.isEqualTo("How to proceed?\n• Confirm plan\n")
         }
+    }
+
+    @Test
+    fun `searchSessions ignores empty session file without partial failure`() = runTest {
+        val sessionsDir = testDir / "sessions"
+        val session1 = sessionsDir / "session-empty"
+        fileSystem.createDirectories(session1)
+        fileSystem.write(session1 / "events.jsonl") {
+            // empty file (0 bytes)
+        }
+
+        val result = repository.searchSessions(TopLevelSearchQuery("keyword"), testDir.toString())
+
+        expectThat(result.status).isEqualTo(TopLevelSearchStatus.Completed)
+        expectThat(result.sessionResults).hasSize(0)
+        expectThat(result.partialFailures).hasSize(0)
+    }
+
+    @Test
+    fun `searchSessions ignores session with zero lines without partial failure`() = runTest {
+        val sessionsDir = testDir / "sessions"
+        val session1 = sessionsDir / "session-zero-lines"
+        fileSystem.createDirectories(session1)
+        fileSystem.write(session1 / "events.jsonl") {
+            writeUtf8("   \n   \n")
+        }
+
+        val result = repository.searchSessions(TopLevelSearchQuery("keyword"), testDir.toString())
+
+        expectThat(result.status).isEqualTo(TopLevelSearchStatus.Completed)
+        expectThat(result.sessionResults).hasSize(0)
+        expectThat(result.partialFailures).hasSize(0)
     }
 }

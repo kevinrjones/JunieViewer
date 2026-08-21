@@ -12,7 +12,7 @@ your work.
 ** For Kotlin**
 
 - **Kotlin First**: Use idiomatic Kotlin (data classes, extension functions, sealed classes, null safety).
-- **Provide Tests**: Prefer JUnit and Strikt for the tests and always provide tests
+- **Provide Tests**: Prefer JUnit and Strikt for the tests and always provide tests. A sprint should never need a separate test task. All coding tasks *must* be test first, and those tests may be TDD, functional, BDD, or any other mixture that is necessary
 - **Functional Style**: Prefer Arrow's `Either` for error handling and data flow instead of throwing exceptions.
 - **Functional Style**: Prefer a functional style for all code.
 - **Small function**: Prefer smaller descriptively named functions over large blocks of code
@@ -122,7 +122,7 @@ to this
 - Inheritance: capped at one level. Prefer composition.
 - **COMPOSITION** Prefer composition over inheritance
 - **ADR** generate an ADR for every architectural decision
-- **Testing** Code must be test first, prefer to use BDD for user stories and TDD for testing smaller units
+- **Testing** Code *must* be test first, prefer to use BDD for user stories and TDD for testing smaller units
 - **TDD** Prefer JUnit and Strikt for TDD
 - **BDD** Prefer Cucumber JVM for BDD and use Gherkin spec files
 
@@ -199,7 +199,7 @@ Avoid
 | style    | Code formatting (no logic change)     |
 | perf     | Performance improvements              |
 
-## Adding Features
+## Adding Features and Creating a Sprint
 
 * When adding features prefer using an 'outside-in' rather than in 'inside-out' style (also known as creating a 'walking
   skeleton').

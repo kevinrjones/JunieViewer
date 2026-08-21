@@ -142,6 +142,26 @@ data class UserResponseEvent(
     )
 }
 
+/** Records that a plan review was resolved. */
+@Serializable
+data class PlanReviewResolvedEvent(
+    val reviewId: ReviewId? = null,
+    val outcome: String? = null,
+    val timestampMs: Long? = null
+) : JunieEvent {
+    @Serializable
+    data class ReviewId(
+        val taskId: String? = null
+    )
+}
+
+/** Records that user messages were dropped from history. */
+@Serializable
+data class UserMessagesDroppedFromHistory(
+    val userMessageIds: List<String>? = null,
+    val timestampMs: Long? = null
+) : JunieEvent
+
 /**
  * Fallback for any top-level event kind not yet modelled.
  * Preserves the raw JSON so no data is lost.

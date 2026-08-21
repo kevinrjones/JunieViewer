@@ -67,6 +67,12 @@ fun FrameWindowScope.JunieMenuBar(
                 onClick = { onCommand(ConversationCommand.FocusSearch) }
             )
             Item(
+                "Search All Sessions…",
+                shortcut = KeyShortcut(Key.F, meta = true, shift = true),
+                enabled = commandState.openTopLevelSearchEnabled,
+                onClick = { onCommand(ConversationCommand.OpenTopLevelSearch) }
+            )
+            Item(
                 "Find Next",
                 shortcut = KeyShortcut(Key.G, meta = true),
                 enabled = commandState.findNextEnabled,

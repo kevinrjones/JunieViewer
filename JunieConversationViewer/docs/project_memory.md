@@ -1,5 +1,30 @@
 # Project Memory
 
+## Implement Sprint 8: Top-Level Session Search
+**Date/Time:** 2026-08-21 09:30
+
+### What was shipped
+- Cross-session search pipeline traversing discovered sessions and scanning `events.jsonl` files with resilient error isolation.
+- Case-insensitive substring matching and stable bounded preview snippet generation.
+- Dedicated top-level search dialog/panel with toolbar entry point and menu accelerator (`Cmd+Shift+F` / `Ctrl+Shift+F`).
+- Session-level result rows with match count badges, snippets, keyboard navigation, and test tags.
+- Automatic propagation of top-level search queries to newly opened sessions and navigation to the first matching entry.
+- Resilient file handling and detailed WARN-level logging for missing, empty, unreadable, or malformed session files.
+- Domain support for additional event types (`PlanReviewResolvedEvent`, `UserMessagesDroppedFromHistory`).
+
+### Key decisions
+- Used on-demand session scanning MVP strategy with explicit deferral of persistent indexing.
+- Implemented deterministic ordering (match count descending → session timestamp descending → stable session ID tie-break).
+- Kept top-level search strictly isolated from current-session conversation search (`Search Messages`).
+
+### Gotchas
+- Empty and missing session files must be quietly ignored rather than treated as malformed partial failures.
+
+### Test coverage areas
+- Repository search tests covering multiple sessions, edge cases, partial failures, missing files, and empty files.
+- ViewModel coroutine tests covering debounce, cancellation, state transitions, and result selection propagation.
+- Compose UI tests verifying dialog states, result rows, keybindings, and search independence.
+
 ## Acknowledge project memory requirement
 **Date/Time:** 2026-06-22 14:26
 
@@ -513,3 +538,24 @@ Area 7 (Accessibility & Cross-Platform Desktop Polish) and Area 8 (Automated Tes
 - `./gradlew :desktopApp:packageDistributionForCurrentOS` — BUILD SUCCESSFUL on macOS; produced `desktopApp/build/compose/binaries/main/dmg/com.knowledgespike.junieviewer-1.0.0.dmg` and the app image under `.../main/app/`.
 - Workflow validated by static/YAML review (PyYAML parse; trigger, permissions, matrix, step order, checksums, prerelease gating confirmed). Windows/Linux (incl. ARM) packaging on real runners is **not** locally verifiable and remains pending.
 - Cyclomatic-complexity check: no complexity tool (e.g. Detekt) is configured in the build; no production code changed this sprint, so no remediation is required.
+
+## Sprint 8 — Area 4: UI Entry Point and Search Results
+**Date/Time:** 2026-08-20 08:30
+
+### What was shipped
+- Dedicated top-level search toolbar button (`top_level_search_entry`) and desktop menu item (`Search All Sessions…` with `Cmd+Shift+F` / `Ctrl+Shift+F`).
+- `TopLevelSearchDialog` rendering all global search states: initial/idle, empty query, loading/running, results list, empty results, and partial-results warning.
+- Session-level result rows featuring session identity, match count badges, bounded preview snippets with ellipsis/truncation rules, mouse click and keyboard activation (Enter/Space) dispatching result selection.
+- Comprehensive test coverage (`TopLevelSessionSearchUiTest`) and non-regression verification of existing Conversation Search controls.
+
+### Key decisions
+- Top-Level Session Search is hosted in a dedicated dialog/panel, keeping it completely separated from current-Session Conversation Search.
+- Partial search failures per session are surfaced as prominent warning notices without hiding successful matching session results.
+- Result rows display aggregated match counts and deterministic preview snippets.
+
+### Gotchas
+- None; Compose UI testing harness (`runConversationUiTest`) cleanly tests dialog visibility, input handling, and state transitions.
+
+### Test coverage areas
+- `TopLevelSessionSearchUiTest`: dialog open/close, entry point invocation, partial warning rendering, and Conversation Search independence.
+- Full gradle test suite (`./gradlew :shared:jvmTest`, `./gradlew test`): all tests passed successfully.

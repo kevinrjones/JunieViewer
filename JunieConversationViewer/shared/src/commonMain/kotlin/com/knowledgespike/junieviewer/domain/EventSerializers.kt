@@ -31,6 +31,8 @@ private val topLevelEventRegistry: Map<String, DeserializationStrategy<JunieEven
     "SkillsStatusEvent" to SkillsStatusEvent.serializer(),
     "TaskContinueStopped" to TaskContinueStopped.serializer(),
     "UserResponseEvent" to UserResponseEvent.serializer(),
+    "PlanReviewResolvedEvent" to PlanReviewResolvedEvent.serializer(),
+    "UserMessagesDroppedFromHistory" to UserMessagesDroppedFromHistory.serializer(),
 )
 
 /** Registry of known nested agent event kind strings to their serializers. */
