@@ -1,3 +1,15 @@
+# 2026-08-21
+
+## 09:30
+### Sprint 8 — Top-Level Session Search (Complete)
+- **Top-Level Session Search Pipeline**: Implemented global scan over all discovered sessions and per-session `events.jsonl` content with resilient file handling (isolating missing, empty, unreadable, and malformed session files into partial failures with detailed WARN logs and quiet skipping of empty/missing files).
+- **Case-Insensitive Substring Matching & Snippets**: Added case-insensitive substring matching and stable bounded preview snippet generation following deterministic Area 2 rules (match count descending → session timestamp descending → stable session identity tie-break).
+- **UI Dialog & Result Rows**: Introduced dedicated top-level search dialog/panel (`top_level_search_dialog`), toolbar entry point (`top_level_search_entry`), menu accelerator (`Cmd+Shift+F` / `Ctrl+Shift+F`), and session-level result rows with match count badges, snippets, keyboard navigation, and semantic test tags.
+- **Open Session & Search Query Propagation**: Wired result selection to open the selected session and automatically apply the top-level search query to the opened session's in-conversation search query state, navigating to the first matching entry (`currentMatchIndex = 0`), while preserving complete independence of existing current-session Conversation Search (`Search Messages`).
+- **Event Support Expansion**: Added domain support and polymorphic serialization for `PlanReviewResolvedEvent` and `UserMessagesDroppedFromHistory`.
+- **Testing & Verification**: Added comprehensive repository, coroutine, ViewModel, and Compose UI tests. Executed `./gradlew :shared:jvmTest` and `./gradlew test` successfully with zero test failures.
+- **Documentation**: Updated sprint task tracking (`41/41 complete`), project memory, RECAP, and documentation.
+
 # 2026-06-23
 
 ## 09:09

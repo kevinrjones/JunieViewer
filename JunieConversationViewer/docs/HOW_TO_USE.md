@@ -69,6 +69,16 @@ On macOS, the viewer uses the native system menu bar. On Windows and Linux, the 
 - **Search highlighting**: matching text is highlighted in the Conversation. The current match has a distinct highlight colour.
 - Search highlighting works in plain text, code blocks, terminal output, and other rendered content.
 
+## Top-Level Session Search
+
+In addition to searching within the currently active conversation, you can search across **all discovered Sessions** in your Junie home directory.
+
+- **Opening Top-Level Search**: Click the search icon in the toolbar or press `Cmd+Shift+F` (macOS) / `Ctrl+Shift+F` (Windows/Linux).
+- **Search Query**: Type a query in the top-level search dialog. Search executes as you type (with debounce) and when pressing Enter.
+- **Session-Level Results**: Results are grouped by Session, displaying the Session identity, match count, and preview snippets of the matching events.
+- **Partial Failures**: If any session files are missing, unreadable, or malformed, they are isolated as partial failures with warning details in logs without blocking successful session matches. Empty or missing session files are ignored quietly.
+- **Opening a Result**: Click or press Enter on a Session result row to open that Session in the viewer. The search query is automatically applied to the opened session, and navigation jumps to the first matching entry (`currentMatchIndex = 0`), while preserving complete independence from current-session Conversation Search (`Search Messages`).
+
 ## Filters
 
 Filters control which Message Kinds are visible. Toggle filters using the pill-shaped chips in the top chrome.
